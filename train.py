@@ -203,6 +203,10 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     print("-"*50)
     # Training loop
     for epoch in range(epochs):
+        # Exp-G4: Disabled - constant tau=2.0 works better than annealing
+        # if hasattr(model, 'set_tau'):
+        #     model.set_tau(epoch, epochs)
+        
         # Train one epoch
         train_loss_sum = 0.0 # sum of training loss  
         train_correct = 0 # no. of training samples predicted correctly
@@ -215,6 +219,12 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
 
             outputs = model(fft_mag) # 1. forward 
             loss = criterion(outputs, labels) # 2. loss
+            
+            # Exp-G3: Add sparsity regularization for GumbelMask models
+            if hasattr(model, 'mask_l1') and model.mask_l1 is not None:
+                sparsity_weight = 0.01  # L1 penalty on fraction of bins kept
+                loss = loss + sparsity_weight * model.mask_l1
+            
             optimizer.zero_grad() # 3. backward: zero_grad
             loss.backward() # cal gradient
             optimizer.step() # update step
@@ -258,9 +268,18 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         else:
             epochs_no_improve += 1
         
+        # Exp-G1: Print mask statistics if model has masking
+        mask_info = ""
+        if hasattr(model, 'mask_l1') and model.mask_l1 is not None:
+            mask_fraction = model.mask_l1.item()
+            tau_info = ""
+            if hasattr(model, 'current_tau'):
+                tau_info = f' (tau={model.current_tau:.2f})'
+            mask_info = f'; Mask: {mask_fraction:.2%}' + tau_info
+        
         print(f'Epoch [{epoch+1}/{epochs}]: '
               f'Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; '
-              f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}')
+              f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}' + mask_info)
         
         if wandb_run is not None: # tracking
             wandb_run.log({
@@ -303,6 +322,16 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     print(f"Summary:")
     print(f"Best Val Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
     print(f"Test Loss: {test_loss:.4f} | Test Acc: {test_acc:.2f}%")
+    
+    # Exp-G1: Print final learned mask if available
+    if hasattr(model, 'last_mask') and model.last_mask is not None:
+        final_mask = model.last_mask.cpu().numpy()
+        bins_kept = (final_mask > 0.5).sum()
+        total_bins = len(final_mask)
+        print(f"\nFinal Mask Statistics:")
+        print(f"  Bins kept: {bins_kept}/{total_bins} ({bins_kept/total_bins:.1%})")
+        print(f"  Mask values (first 10 bins): {final_mask[:10]}")
+        print(f"  Mask values (last 10 bins): {final_mask[-10:]}")
 
     if wandb_run is not None: # tracking
         wandb_run.log({

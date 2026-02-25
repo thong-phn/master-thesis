@@ -7,12 +7,16 @@ class GumbelMaskSeparableConvCNN(nn.Module):
     """
     SeparableConv-based CNN with Gumbel-Softmax bin on/off masking.
     """
-    def __init__(self, num_classes=6, num_channels=3, freq_bins=65, dropout=0.4, gumbel_tau=1.0):
+    def __init__(self, num_classes=6, num_channels=3, freq_bins=65, dropout=0.4, gumbel_tau=2.0, tau_start=2.0, tau_end=2.0):
         super(GumbelMaskSeparableConvCNN, self).__init__()
 
         # Two-class logits per bin: [off, on]
         self.bin_logits = nn.Parameter(torch.zeros(freq_bins, 2))
+        # Exp-G4 tested: Constant tau=2.0 works better than annealing
         self.gumbel_tau = gumbel_tau
+        self.tau_start = tau_start
+        self.tau_end = tau_end
+        self.current_tau = gumbel_tau  # Use constant tau
         self.mask_l1 = None
         self.last_mask = None
 
@@ -47,9 +51,12 @@ class GumbelMaskSeparableConvCNN(nn.Module):
         # x: (batch, num_channels, freq_bins)
 
         if self.training:
-            probs = F.gumbel_softmax(self.bin_logits, tau=self.gumbel_tau, hard=True)
+            # Exp-G4: Use annealed temperature
+            probs = F.gumbel_softmax(self.bin_logits, tau=self.current_tau, hard=True)
         else:
-            probs = torch.softmax(self.bin_logits, dim=-1)
+            # Exp-G5: Use hard mask in test (argmax) to match training behavior
+            probs_soft = torch.softmax(self.bin_logits, dim=-1)
+            probs = F.one_hot(probs_soft.argmax(dim=-1), num_classes=2).float()
 
         mask = probs[:, 1]
         self.mask_l1 = mask.mean()
@@ -87,6 +94,12 @@ class GumbelMaskSeparableConvCNN(nn.Module):
         x = self.fc2(x)
 
         return x
+
+    def set_tau(self, epoch, max_epochs):
+        """Exp-G4: Anneal temperature from tau_start to tau_end over training."""
+        # Linear annealing
+        progress = epoch / max(max_epochs, 1)
+        self.current_tau = self.tau_start - (self.tau_start - self.tau_end) * progress
 
 
 class SeparableConv1d(nn.Module):
