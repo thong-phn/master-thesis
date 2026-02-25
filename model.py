@@ -7,7 +7,7 @@ class GumbelMaskSeparableConvCNN(nn.Module):
     """
     SeparableConv-based CNN with Gumbel-Softmax bin on/off masking.
     """
-    def __init__(self, num_classes=6, num_channels=3, freq_bins=65, dropout=0.4, gumbel_tau=1.0):
+    def __init__(self, num_classes=6, num_channels=3, freq_bins=128, dropout=0.4, gumbel_tau=1.0):
         super(GumbelMaskSeparableConvCNN, self).__init__()
 
         # Two-class logits per bin: [off, on]
@@ -108,32 +108,32 @@ class SeparableConv1d(nn.Module):
 
 class SeparableConvCNN(nn.Module):
     """
-    SeparableConv-based CNN for UCI-HAR FFT data
+    SeparableConv-based CNN for UCI-HAR DCT data
     Based on depthwise separable convolutions for efficiency
     """
-    def __init__(self, num_classes=6, num_channels=3, freq_bins=65, dropout=0.4):
+    def __init__(self, num_classes=6, num_channels=3, freq_bins=128, dropout=0.4):
         super(SeparableConvCNN, self).__init__()
         
-        # Input shape: (batch, num_channels, 31) where num_channels is 3 (accel) or 6 (accel+gyro)
+        # Input shape: (batch, num_channels, freq_bins) where num_channels is 3 (accel) or 6 (accel+gyro)
         
         # Stem block
         self.bn0 = nn.BatchNorm1d(num_channels)
         self.sep_conv1 = SeparableConv1d(num_channels, 32, kernel_size=5, padding=2)
         self.bn1 = nn.BatchNorm1d(32)
-        self.pool1 = nn.MaxPool1d(2)  # 31 -> 15
+        self.pool1 = nn.MaxPool1d(2)
         
         # Separable conv blocks
         self.sep_conv2 = SeparableConv1d(32, 64, kernel_size=3, padding=1)
         self.bn2 = nn.BatchNorm1d(64)
-        self.pool2 = nn.MaxPool1d(2)  # 32 -> 16
+        self.pool2 = nn.MaxPool1d(2)
         
         self.sep_conv3 = SeparableConv1d(64, 128, kernel_size=3, padding=1)
         self.bn3 = nn.BatchNorm1d(128)
-        self.pool3 = nn.MaxPool1d(2)  # 16 -> 8
+        self.pool3 = nn.MaxPool1d(2)
         
         self.sep_conv4 = SeparableConv1d(128, 128, kernel_size=3, padding=1)
         self.bn4 = nn.BatchNorm1d(128)
-        self.pool4 = nn.MaxPool1d(2)  # 8 -> 4
+        self.pool4 = nn.MaxPool1d(2)
         
         # Global Average Pooling
         self.global_avg_pool = nn.AdaptiveAvgPool1d(1)
@@ -144,7 +144,7 @@ class SeparableConvCNN(nn.Module):
         self.fc2 = nn.Linear(64, num_classes)
     
     def forward(self, x):
-        # x: (batch, num_channels, 31)
+        # x: (batch, num_channels, freq_bins)
         
         # Stem
         x = self.bn0(x)

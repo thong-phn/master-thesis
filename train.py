@@ -9,7 +9,7 @@ from pathlib import Path
 class MyDataset(Dataset):
     def __init__(self, root_path, split='train', subject_ids = None, use_gyro=False):
         """
-        Load UCI-HAR data, compute FFT
+        Load UCI-HAR data, compute DCT features
         Args:
             root_path: Path to dataset
             split: 'train' or 'test'
@@ -52,6 +52,10 @@ class MyDataset(Dataset):
 
         all_signals = np.stack(signals, axis=1) # Stack to shape (samples, num_channels, 128) where num_channels is 3 or 6
 
+        signal_length = all_signals.shape[-1]
+        self.freq_bins = signal_length
+        self.dct_basis = self._build_dct_basis(signal_length, self.freq_bins)
+
         # Return
         if subject_ids is None:
             self.labels = all_labels
@@ -63,32 +67,31 @@ class MyDataset(Dataset):
             self.signals = all_signals[mask]
             self.subjects = all_subjects[mask]
 
+    @staticmethod
+    def _build_dct_basis(signal_length, freq_bins):
+        n = np.arange(signal_length, dtype=np.float32)
+        k = np.arange(freq_bins, dtype=np.float32)[:, None]
+
+        basis = np.cos((np.pi / signal_length) * (n + 0.5) * k)
+        basis[0] *= np.sqrt(1.0 / signal_length)
+        if freq_bins > 1:
+            basis[1:] *= np.sqrt(2.0 / signal_length)
+
+        return basis.astype(np.float32)
+
 
     def __len__(self):
         return len(self.labels)
 
     def __getitem__(self, idx):
         # Get time-domain signal (3, 128) for accel only, or (6, 128) with gyro
-        signal = self.signals[idx]
-        
-        # Apply FFT to each axis
-        # Output: (3, 31) without gyro, or (6, 31) with gyro
-        fft_mag = []
-        for axis_signal in signal:
-            fft_vals = np.fft.rfft(axis_signal)
-            mag = np.abs(fft_vals) / len(axis_signal)
-            
-            # One-sided amplitude scaling
-            if len(axis_signal) % 2 == 0:
-                mag[1:-1] *= 2
-            else:
-                mag[1:] *= 2
-            
-            fft_mag.append(mag)
-        
-        fft_mag = np.stack(fft_mag, axis=0)  # shape: (num_channels, 31)
-        
-        return torch.FloatTensor(fft_mag), torch.LongTensor([self.labels[idx]])[0]
+        signal = self.signals[idx].astype(np.float32)
+
+        # Apply full DCT-II coefficients (raw DCT data)
+        # Output: (3, 128) without gyro, or (6, 128) with gyro
+        dct_coeffs = signal @ self.dct_basis.T
+
+        return torch.from_numpy(dct_coeffs), torch.LongTensor([self.labels[idx]])[0]
         
 # Training function
 def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=None, use_gyro=False, **train_kwargs):
@@ -130,7 +133,7 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     print(f"Using {num_channels} channels ({'accel + gyro' if use_gyro else 'accel only'})")
 
     # Training loop configuration
-    model = model_class(num_channels=num_channels).to(device)
+    model = model_class(num_channels=num_channels, freq_bins=train_dataset.freq_bins).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
