@@ -220,9 +220,10 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
             outputs = model(fft_mag) # 1. forward 
             loss = criterion(outputs, labels) # 2. loss
             
-            # Exp-G3: Add sparsity regularization for GumbelMask models
+            # Exp-G3: Best accuracy configuration
+            # L1 penalty on fraction of bins kept
             if hasattr(model, 'mask_l1') and model.mask_l1 is not None:
-                sparsity_weight = 0.01  # L1 penalty on fraction of bins kept
+                sparsity_weight = 0.01
                 loss = loss + sparsity_weight * model.mask_l1
             
             optimizer.zero_grad() # 3. backward: zero_grad
@@ -330,8 +331,7 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         total_bins = len(final_mask)
         print(f"\nFinal Mask Statistics:")
         print(f"  Bins kept: {bins_kept}/{total_bins} ({bins_kept/total_bins:.1%})")
-        print(f"  Mask values (first 10 bins): {final_mask[:10]}")
-        print(f"  Mask values (last 10 bins): {final_mask[-10:]}")
+        print(f"  All mask values: {final_mask}")
 
     if wandb_run is not None: # tracking
         wandb_run.log({

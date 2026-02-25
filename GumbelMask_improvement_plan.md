@@ -5,9 +5,13 @@
 - **After Exp-G1 + G5**: 89.48% (+1.97%)
 - **After Exp-G4 attempt (constant tau=2.0)**: 90.53% (+1.05%)
 - **After Exp-G4 with annealing**: 88.80% - **REJECTED** ❌
-- **After Exp-G3 (sparsity reg)**: **90.97% (+0.44%)** - **NEW BEST!** 🎯
+- **After Exp-G3 (sparsity reg=0.01)**: **90.97% (+0.44%)** - 35 bins (53.8%) ✅ BEST
+- **After Exp-S1 (sparsity reg=0.10)**: 86.56% (-4.41%) - 18 bins (27.7%) - Too aggressive ⚠️
+- **After Exp-S2 (sparsity reg=0.05)**: 89.72% (-1.25%) - 23 bins (35.4%) - Good balance ✅
+- **Exp-S3 (target sparsity)**: Paused
+- **Current training config**: Reverted to **Exp-G3 (sparsity_weight=0.01)**
 - **Target**: 90.0% (match baseline SeparableConvCNN)
-- **Status**: TARGET EXCEEDED by 0.97% ✅
+- **Status**: Best = 90.97% with 35 bins ✅
 
 ## Model Overview
 `GumbelMaskSeparableConvCNN` learns to mask/select frequency bins using Gumbel-Softmax:
@@ -349,17 +353,33 @@ x = x * attention.view(1, 1, -1)
 
 ### Successful Experiments
 1. **Exp-G5** (train/test fix): +1.97% - Critical fix for hard masking consistency
-2. **Exp-G3** (sparsity regularization): +0.44% - Improved selectivity and interpretability
-3. **Constant tau=2.0**: High exploration throughout training works best
+2. **Exp-G3** (sparsity regularization weight=0.01): +0.44% - Improved selectivity and interpretability (35 bins)
+3. **Exp-S2** (sparsity weight=0.05): -1.25% but 35% sparsity - Good accuracy/sparsity trade-off (23 bins)
+4. **Constant tau=2.0**: High exploration throughout training works best
 
-### Failed Experiments
+### Failed/Suboptimal Experiments
 1. **Exp-G4** (temperature annealing): -1.73% - Annealing 2.0→0.3 hurts generalization
+2. **Exp-S1** (sparsity weight=0.10): -4.41% - Too aggressive, 18 bins not enough (27.7% kept)
 
 ### Learned Mask Pattern (Interpretability)
-- **Bins kept**: 35/65 (53.8%)
+
+**Best Accuracy (Exp-G3, sparsity_weight=0.01):**
+- **Bins kept**: 35/65 (53.8%), **Accuracy: 90.97%**
 - **Low-frequency bins (0-10 Hz)**: ALL kept (100%)
 - **High-frequency bins (last 10)**: ALL dropped (0%)
-- **Interpretation**: Human activities (walking, sitting, etc.) have most discriminative information in low frequencies (<10 Hz), consistent with biomechanics literature
+- **Interpretation**: Human activities have most discriminative information in low frequencies (<10 Hz)
+- Link: https://wandb.ai/thongp-ubicomp/thesis/runs/0dkov216
+
+**Best Sparsity/Accuracy Balance (Exp-S2, sparsity_weight=0.05):**
+- **Bins kept**: 23/65 (35.4%), **Accuracy: 89.72%** (-1.25% from best)
+- **Pattern**: First 17 bins + selective mid-freq bins (19, 20, 23, 24, 27, 28)
+- **Finding**: Model selectively keeps important mid-frequency components (5-10 Hz) for activity discrimination
+- **Trade-off**: 34% fewer bins with only 1.25% accuracy drop
+
+**Too Aggressive (Exp-S1, sparsity_weight=0.10):**
+- **Bins kept**: 18/65 (27.7%), **Accuracy: 86.56%** (-4.41%)
+- **Pattern**: First 17 bins + bin 19 only
+- **Finding**: Only ultra-low frequencies (<5 Hz) retained, too restrictive
 
 ### Best Configuration
 ```python
@@ -378,6 +398,283 @@ GumbelMaskSeparableConvCNN(
 
 ---
 
+## Reducing Bin Sparsity (Fewer Bins Kept)
+
+**Current State**: 35/65 bins kept (53.8%)  
+**Goal**: Achieve higher sparsity (e.g., 20-30 bins = 30-45% kept) while maintaining accuracy
+
+### Strategy S1: Increase Sparsity Regularization Weight
+**Current**: `sparsity_weight = 0.01` achieved 53.8% bins kept
+
+**Implementation**:
+```python
+# In train.py, try progressively higher weights:
+sparsity_weight = 0.02  # Expected: ~40-45% bins kept
+sparsity_weight = 0.05  # Expected: ~30-35% bins kept
+sparsity_weight = 0.10  # Expected: ~20-25% bins kept
+
+loss = loss + sparsity_weight * model.mask_l1
+```
+
+**Expected**: Higher weight → stronger penalty for keeping bins → fewer bins selected  
+**Risk**: Too high (>0.1) may degrade accuracy significantly  
+**Recommendation**: Try [0.02, 0.03, 0.05] first
+
+---
+
+### Strategy S2: Target Sparsity Loss
+**Goal**: Penalize deviation from specific target sparsity (e.g., 30% bins)
+
+**Implementation**:
+```python
+# In train.py:
+target_sparsity = 0.30  # target 30% of bins kept
+sparsity_target_weight = 0.1
+
+# Add to loss:
+sparsity_delta = torch.abs(model.mask_l1 - target_sparsity)
+loss = loss + sparsity_target_weight * sparsity_delta
+```
+
+**Advantage**: Direct control over sparsity level (not just "fewer")  
+**Expected**: Converges to exactly ~20 bins (30% of 65)
+
+---
+
+### Strategy S3: L0/L1 Regularization on Logits
+**Goal**: Penalize non-zero logit differences directly
+
+**Implementation**:
+```python
+# In train.py:
+# L1 on logit differences (encourages "off" state)
+logit_diff = model.bin_logits[:, 1] - model.bin_logits[:, 0]  # positive = "on"
+logit_l1 = torch.abs(logit_diff).mean()
+loss = loss + 0.01 * logit_l1
+```
+
+**Alternative - L0 approximation** (continuous relaxation):
+```python
+# Hoyer regularization (promotes exact zeros)
+l1_norm = torch.abs(logit_diff).sum()
+l2_norm = torch.sqrt((logit_diff ** 2).sum())
+hoyer = l1_norm / (l2_norm + 1e-8)
+loss = loss + 0.01 * hoyer
+```
+
+**Expected**: More aggressive sparsity than L1 on mask
+
+---
+
+### Strategy S4: Entropy Regularization
+**Goal**: Encourage confident on/off decisions (reduce "uncertain" bins sitting at 0.5)
+
+**Implementation**:
+```python
+# In model.py forward():
+probs_soft = torch.softmax(self.bin_logits, dim=-1)
+entropy = -(probs_soft * torch.log(probs_soft + 1e-8)).sum(dim=-1).mean()
+
+# Lower entropy = more confident decisions
+self.mask_entropy = entropy
+
+# In train.py:
+entropy_weight = 0.05
+loss = loss - entropy_weight * model.mask_entropy  # negative to minimize entropy
+```
+
+**Expected**: Forces bins to choose "clearly on" or "clearly off" (no middleground)  
+**May help**: Push 53.8% down by eliminating marginal bins
+
+---
+
+### Strategy S5: Progressive Sparsity Annealing
+**Goal**: Start lenient (allow many bins), gradually enforce stricter sparsity
+
+**Implementation**:
+```python
+# In train.py training loop:
+def get_sparsity_weight(epoch, max_epochs, start_weight=0.001, end_weight=0.1):
+    # Linear increase in sparsity penalty
+    return start_weight + (end_weight - start_weight) * (epoch / max_epochs)
+
+# Each epoch:
+sparsity_weight = get_sparsity_weight(epoch, epochs)
+loss = loss + sparsity_weight * model.mask_l1
+```
+
+**Schedule example**: 0.001 → 0.1 over 60 epochs  
+**Expected**: Gentle start (model learns which bins are useful), aggressive end (force sparsity)
+
+---
+
+### Strategy S6: Top-K Hard Constraint
+**Goal**: Force exactly K bins to be kept (no more, no less)
+
+**Implementation**:
+```python
+# In model.py forward():
+K = 20  # keep exactly 20 bins
+
+# Get top-K bins by logit score
+logit_scores = self.bin_logits[:, 1] - self.bin_logits[:, 0]  # "on" preference
+_, top_k_indices = torch.topk(logit_scores, K)
+
+# Create hard mask
+mask = torch.zeros(freq_bins)
+mask[top_k_indices] = 1.0
+```
+
+**Advantage**: Guarantees exact sparsity (e.g., 20/65 = 30.8%)  
+**Disadvantage**: Not differentiable (need straight-through estimator)  
+**Use case**: When you need exact bin budget (e.g., inference constraints)
+
+---
+
+### Strategy S7: Initialization Bias Toward "Off"
+**Goal**: Start with most bins off, let training turn essential ones back on
+
+**Implementation**:
+```python
+# In model.py __init__:
+# Bias toward "off" state
+self.bin_logits = nn.Parameter(torch.zeros(freq_bins, 2))
+nn.init.constant_(self.bin_logits[:, 0], 0.5)   # bias toward "off"
+nn.init.constant_(self.bin_logits[:, 1], -0.5)  # discourage "on"
+
+# Or more aggressive:
+self.bin_logits[:, 0] = 1.0   # strong "off" bias
+self.bin_logits[:, 1] = -1.0
+```
+
+**Expected**: Starts with ~20-30% bins, training adds essential bins  
+**Risk**: May converge to local minimum with too few bins
+
+---
+
+### Strategy S8: Combine Multiple Strategies
+**Recommended combination** for aggressive sparsity:
+
+```python
+# In train.py:
+# 1. Target sparsity (30%)
+target_sparsity = 0.30
+loss = loss + 0.1 * torch.abs(model.mask_l1 - target_sparsity)
+
+# 2. Entropy minimization (confident decisions)
+loss = loss - 0.02 * model.mask_entropy
+
+# 3. Progressive annealing (easier start)
+sparsity_weight = get_sparsity_weight(epoch, epochs, 0.005, 0.03)
+loss = loss + sparsity_weight * model.mask_l1
+```
+
+**Expected**: Converges to ~20 bins with high confidence
+
+---
+
+### Strategy S9: Post-Training Pruning
+**Goal**: Train with current sparsity, then prune lowest-scoring bins
+
+**Implementation**:
+```python
+# After training:
+K = 20  # desired bins
+logit_scores = model.bin_logits[:, 1] - model.bin_logits[:, 0]
+_, top_k_indices = torch.topk(logit_scores, K)
+
+# Set pruned bins to hard "off"
+model.bin_logits.data[:, 1] = -10  # all off
+model.bin_logits.data[top_k_indices, 1] = 10  # top-K on
+model.bin_logits.data[top_k_indices, 0] = -10
+
+# Fine-tune for a few epochs
+# Network adapts to fixed mask
+```
+
+**Advantage**: Maintains 90.97% during training, only increases sparsity at end  
+**Use case**: When you want guaranteed performance, then compress
+
+---
+
+## Recommended Sparsity Reduction Plan
+
+### Phase 1: Gentle Increase (Exp-S1)
+**Goal**: Reach 40-45% bins kept (26-29 bins)
+
+```python
+sparsity_weight = 0.02
+```
+
+**Expected**: 89.5-90.5% accuracy (minimal drop)
+
+### Phase 2: Moderate Sparsity (Exp-S2)
+**Goal**: Reach 30-35% bins kept (20-23 bins)
+
+```python
+target_sparsity = 0.33
+loss = loss + 0.1 * torch.abs(model.mask_l1 - target_sparsity)
+```
+
+**Expected**: 88.5-89.5% accuracy (~1-2% drop)
+
+### Phase 3: Aggressive Sparsity (Exp-S3)
+**Goal**: Reach 20-25% bins kept (13-16 bins)
+
+```python
+# Combine strategies:
+target_sparsity = 0.23
+loss = loss + 0.15 * torch.abs(model.mask_l1 - target_sparsity)
+loss = loss - 0.03 * model.mask_entropy  # confident decisions
+```
+
+**Expected**: 87-89% accuracy (~2-4% drop)  
+**Benefit**: Highly interpretable (only most critical bins)
+
+### Phase 4: Post-Pruning (Exp-S4)
+**Goal**: Keep 90.97% accuracy, then prune to 20 bins and fine-tune
+
+1. Train with current config (35 bins, 90.97%)
+2. Prune to top-20 bins by logit score
+3. Fine-tune network with frozen mask (5-10 epochs)
+
+**Expected**: 89-90% accuracy (smaller drop than training sparse from scratch)
+
+---
+
+## Trade-off Analysis
+
+| Bins Kept | % Kept | Strategy | Actual Accuracy | Accuracy Drop | Notes |
+|-----------|--------|----------|-----------------|---------------|-------|
+| **35** | 53.8% | sparsity_weight=0.01 | **90.97%** ✅ | baseline | Best accuracy |
+| **23** | 35.4% | sparsity_weight=0.05 | **89.72%** ✅ | -1.25% | **Best balance** |
+| **18** | 27.7% | sparsity_weight=0.10 | **86.56%** ⚠️ | -4.41% | Too aggressive |
+| **~20** (expected) | ~30% | target_sparsity=0.30 | Testing now... | Expected: -1.5 to -2% | Exp-S3 |
+
+**Key Findings**: 
+- **Sweet spot**: sparsity_weight=0.05 achieves 35% sparsity with minimal accuracy loss (1.25%)
+- **Diminishing returns**: Going from 35→23 bins saves only 1.25%, but 23→18 bins costs 3.16% more
+
+---
+
+## Implementation Priority
+
+### High Priority (Easy Wins)
+- [x] **Exp-G3**: sparsity_weight=0.01 → 35 bins (53.8%), **90.97%** ✅ Best accuracy
+- [x] **Exp-S1**: sparsity_weight=0.10 → 18 bins (27.7%), **86.56%** ⚠️ Too aggressive
+- [x] **Exp-S2**: sparsity_weight=0.05 → 23 bins (35.4%), **89.72%** ✅ Best balance
+- [ ] **Exp-S3**: Target sparsity loss (target=0.30) → paused (reverted to Exp-G3)
+
+### Medium Priority (More Control)
+- [ ] **Exp-S4**: Progressive annealing (0.01→0.05)
+
+### Advanced (If Needed)
+- [ ] **Exp-S5**: Entropy regularization + target sparsity
+- [ ] **Exp-S6**: Post-training pruning + fine-tuning (preserves accuracy best)
+- [ ] **Exp-S7**: Top-K hard constraint (for guaranteed bin budget)
+
+---
+
 ## Open Questions
 
 1. **Why use masking?** 
@@ -391,6 +688,11 @@ GumbelMaskSeparableConvCNN(
 3. **Should masking be per-channel or global?**
    - Current: same mask for all channels
    - Alternative: different masks for accel vs. gyro
+
+4. **What is the optimal sparsity target?**
+   - Computational efficiency: 20-30% bins (faster inference)
+   - Interpretability: 15-25% bins (clearer insights)
+   - Accuracy preservation: 40-50% bins (safer)
 
 ---
 
