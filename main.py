@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 from train import train_loso
-from model import SeparableConvCNN, GumbelMaskSeparableConvCNN
+from model import SeparableConvCNN, GumbelMaskSeparableConvCNN, GumbelMaskMobileStyleCNN
 
 
 def set_seed(seed: int = 42):
@@ -24,6 +24,9 @@ def set_seed(seed: int = 42):
 
 def main():
 	set_seed(42)
+	l1_channels = [16, 32, 64, 64]
+	l1_fc_hidden = 80  # Set to 96 for the larger-head variant
+	experiment_name = f"val-subject-1-gyro-exp-l1-narrow-head{l1_fc_hidden}-log1p-lr5e4"
 
 	project_root = Path(__file__).resolve().parent
 	root_path = project_root / "uci-har"
@@ -48,7 +51,7 @@ def main():
 	# Tracking init
 	wandb_run = wandb.init(
 		project="thesis",
-		name=f"val-subject-{val_subjects}-gyro-exp7-log1p-lr5e4",
+		name=experiment_name,
 		config={
 			"train_subjects": train_subjects,
 			"val_subjects": val_subjects,
@@ -57,6 +60,9 @@ def main():
 			"lr": 5e-4,
 			"batch_size": 64,
 			"model": "GumbelMaskSeparableConvCNN",
+			"variant": f"L1-Narrow-Head{l1_fc_hidden}",
+			"channels": l1_channels,
+			"fc_hidden": l1_fc_hidden,
 			"use_gyro": True,
 		},
 	)
@@ -73,11 +79,12 @@ def main():
 		val_subjects=val_subjects,
 		wandb_run=wandb_run,
 		use_gyro=True,
+		model_kwargs={"channels": l1_channels, "fc_hidden": l1_fc_hidden},
 		epochs=60,
 		lr=5e-4,
 		batch_size=64,
 		device=device,
-		model_path=project_root / "models" / "best_model_subject1_val.pth",
+		model_path=project_root / "models" / f"best_model_subject1_val_l1_narrow_head{l1_fc_hidden}.pth",
 	)
 
 	# Training loop output

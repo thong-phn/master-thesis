@@ -5,6 +5,10 @@ from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 
 
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
 # Dataset 
 class MyDataset(Dataset):
     def __init__(
@@ -145,6 +149,7 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
     patience = train_kwargs.get('patience', 10)
     min_delta = train_kwargs.get('min_delta', 1e-3)
+    model_kwargs = train_kwargs.get('model_kwargs', {})
     model_path = Path(train_kwargs.get('model_path', './models/best_model.pth'))
     model_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -189,7 +194,9 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     print(f"Using {num_channels} channels ({'accel + gyro' if use_gyro else 'accel only'})")
 
     # Training loop configuration
-    model = model_class(num_channels=num_channels).to(device)
+    model = model_class(num_channels=num_channels, **model_kwargs).to(device)
+    model_parameters = count_parameters(model)
+    print(f"Model parameters: {model_parameters:,}")
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -339,6 +346,7 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
             "best_epoch": best_epoch,
             "test_loss": test_loss,
             "test_acc": test_acc,
+            "model_parameters": model_parameters,
         })
 
     return {

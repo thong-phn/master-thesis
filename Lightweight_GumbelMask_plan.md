@@ -243,16 +243,66 @@ def train_with_distillation(student, teacher, dataloader, temperature=4, alpha=0
 
 - [x] **Exp-L0**: Add parameter counting utility, benchmark current model (**37k params**)
 - [ ] Create `lightweight_models.py` with modular architectures
-- [ ] **Exp-L1**: Test 16→32→64→64 narrow architecture
+- [x] **Exp-L1**: Test 16→32→64→64 narrow architecture (**Completed on 2026-02-25: Test Acc 89.72%, Best Val Loss 0.2974 @ epoch 45**)
+- [ ] **Exp-L1H**: Test L1-Narrow with larger classifier head (`fc_hidden=80/96`) (**Partially completed on 2026-02-25: fc_hidden=80 run done; fc_hidden=96 pending**)
 - [ ] **Exp-L2**: Test 12→24→48→48 minimal architecture
-- [ ] **Exp-L4**: Test 3-block depth reduction
-- [ ] **Exp-L9**: Implement MobileNet-style inverted residuals (priority)
-- [ ] **Exp-L6**: Test frequency-aware 40-bin input
+- [x] **Exp-L4**: Test 3-block depth reduction (**Completed on 2026-02-25: Test Acc 88.84%, Params 19,986**)
+- [x] **Exp-L9**: Implement MobileNet-style inverted residuals (priority) (**Completed on 2026-02-25: Test Acc 89.14%, Params 14,630**)
+- [ ] **Exp-L6**: Test frequency-aware 40-bin input -> Prune unrelated input 
 - [ ] **Exp-L8**: Implement knowledge distillation training
 - [ ] Create experiment tracking table (accuracy vs parameters vs speed)
 - [ ] Visualize parameter-accuracy Pareto frontier
 - [ ] Profile inference speed on CPU (simulate edge device)
 - [ ] Log model size (MB) and FLOPs to W&B
+
+### Experiment Run Registry
+| Exp | Variant | Channels | Blocks | Params | Param Reduction vs 37k | Best Val Loss (Epoch) | Test Loss | Test Acc | Bins Kept | W&B |
+|---|---|---|---:|---:|---:|---|---:|---:|---|---|
+| L1 | L1-Narrow | 16→32→64→64 | 4 | 12,162 | 67.1% | 0.2974 (45) | 0.2677 | 89.72% | 33/65 (50.8%) | https://wandb.ai/thongp-ubicomp/thesis/runs/o4fkeufo |
+| L1H-80 | L1 + larger head | 16→32→64→64 + FC 80 | 4 | 13,298 | 64.1% | 0.4738 (16) | 0.4810 | 78.55% | 44/65 (67.7%) | https://wandb.ai/thongp-ubicomp/thesis/runs/9rhqcal5 |
+| L1H-96 | L1 + larger head | 16→32→64→64 + FC 96 | 4 | 14,434 | 61.0% | - | - | - | - | pending |
+| L4 | L4-Shallow | 32→64→128 | 3 | 19,986 | 46.0% | 0.3066 (45) | 0.2886 | 88.84% | 17/65 (26.2%) | https://wandb.ai/thongp-ubicomp/thesis/runs/0jyme3zj |
+| L9 | L9-MobileStyle | 24→32→40 (exp=3) | 3 | 14,630 | 60.5% | 0.2360 (55) | 0.2962 | 89.14% | 37/65 (56.9%) | https://wandb.ai/thongp-ubicomp/thesis/runs/cj6w6v0z |
+
+### Progress Notes
+- **2026-02-25 (Exp-L1 setup)**:
+  - Enabled configurable channel widths in `GumbelMaskSeparableConvCNN`
+  - Wired `L1-Narrow` channels `[16, 32, 64, 64]` into `main.py`
+  - Added model parameter counting/logging in training for experiment tracking
+- **2026-02-25 (Exp-L1 result)**:
+  - Best validation loss: **0.2974** at epoch **45**
+  - Test loss / accuracy: **0.2677 / 89.72%**
+  - Final learned mask: **33/65 bins kept (50.8%)**
+  - W&B run: https://wandb.ai/thongp-ubicomp/thesis/runs/o4fkeufo
+  - Target check: Meets minimum viable accuracy goal (≥89.5%), below optimal target (≥90.0%)
+- **2026-02-25 (Exp-L1H setup)**:
+  - Configured `main.py` to run **L1-Narrow + larger classifier head** with `fc_hidden=80`
+  - Added easy toggle to test `fc_hidden=96` in the same script
+  - Counted exact parameter sizes:
+    - `fc_hidden=80`: **13,298** params (≈**64.1%** reduction vs 37k)
+    - `fc_hidden=96`: **14,434** params (≈**61.0%** reduction vs 37k)
+  - Next: run `L1H-80`, then `L1H-96`, and compare against L1 baseline (89.72%)
+- **2026-02-25 (Exp-L1H-80 result)**:
+  - Best validation loss: **0.4738** at epoch **16**
+  - Test loss / accuracy: **0.4810 / 78.55%**
+  - Final learned mask: **44/65 bins kept (67.7%)**
+  - Model parameters: **13,298** (≈**64.1%** reduction vs 37k baseline)
+  - W&B run: https://wandb.ai/thongp-ubicomp/thesis/runs/9rhqcal5
+  - Target check: Does **not** meet minimum viable accuracy goal; significantly below L1 baseline (89.72%)
+- **2026-02-25 (Exp-L4 result)**:
+  - Best validation loss: **0.3066** at epoch **45**
+  - Test loss / accuracy: **0.2886 / 88.84%**
+  - Final learned mask: **17/65 bins kept (26.2%)**
+  - Model parameters: **19,986** (≈**46.0%** reduction vs 37k baseline)
+  - W&B run: https://wandb.ai/thongp-ubicomp/thesis/runs/0jyme3zj
+  - Target check: Below minimum viable accuracy goal (89.5%) and below 50% parameter-reduction target
+- **2026-02-25 (Exp-L9 result)**:
+  - Best validation loss: **0.2360** at epoch **55**
+  - Test loss / accuracy: **0.2962 / 89.14%**
+  - Final learned mask: **37/65 bins kept (56.9%)**
+  - Model parameters: **14,630** (≈**60.5%** reduction vs 37k baseline)
+  - W&B run: https://wandb.ai/thongp-ubicomp/thesis/runs/cj6w6v0z
+  - Target check: Meets parameter-reduction target (50-70%) but is slightly below minimum viable accuracy goal (89.5%)
 
 ---
 
