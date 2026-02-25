@@ -48,13 +48,13 @@ def main():
 	# Tracking init
 	wandb_run = wandb.init(
 		project="thesis",
-		name=f"val-subject-{val_subjects}-gyro-21firstbin",
+		name=f"val-subject-{val_subjects}-gyro-exp7-log1p-lr5e4",
 		config={
 			"train_subjects": train_subjects,
 			"val_subjects": val_subjects,
 			"test_subjects": test_subjects,
 			"epochs": 60,
-			"lr": 1e-3,
+			"lr": 5e-4,
 			"batch_size": 64,
 			"model": "SeparableConvCNN",
 			"use_gyro": True,
@@ -63,7 +63,7 @@ def main():
 	# Log code version
 	wandb_run.log_code(
 		root=str(project_root),
-		include_fn=lambda p: p.endswith((".py", ".yaml", ".yml", ".md"))
+		include_fn=lambda p: p.endswith((".py", ".yaml", ".yml"))
 	)
 	# Run training loop
 	metrics = train_loso(
@@ -74,7 +74,7 @@ def main():
 		wandb_run=wandb_run,
 		use_gyro=True,
 		epochs=60,
-		lr=1e-3,
+		lr=5e-4,
 		batch_size=64,
 		device=device,
 		model_path=project_root / "models" / "best_model_subject1_val.pth",

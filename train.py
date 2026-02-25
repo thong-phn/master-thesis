@@ -7,7 +7,15 @@ from pathlib import Path
 
 # Dataset 
 class MyDataset(Dataset):
-    def __init__(self, root_path, split='train', subject_ids = None, use_gyro=False):
+    def __init__(
+        self,
+        root_path,
+        split='train',
+        subject_ids=None,
+        use_gyro=False,
+        log_fft=True,
+        fft_norm_stats=None,
+    ):
         """
         Load UCI-HAR data, compute FFT
         Args:
@@ -15,11 +23,15 @@ class MyDataset(Dataset):
             split: 'train' or 'test'
             subject_ids: List of subject IDs to filter (optional)
             use_gyro: Whether to include gyro (angular velocity) data (default: False)
+            log_fft: Apply log1p to FFT magnitudes
+            fft_norm_stats: Tuple (mu, sigma) for FFT normalization, both shape (num_channels, num_freq_bins)
         """
         self.root_path = Path(root_path)
         self.split_path = self.root_path / split
         self.inertial_path = self.split_path/"Inertial Signals"
         self.use_gyro = use_gyro
+        self.log_fft = log_fft
+        self.fft_norm_stats = fft_norm_stats
 
         # Load Y (label) and subjects
         path_to_y_file = self.split_path/f"y_{split}.txt"
@@ -67,26 +79,50 @@ class MyDataset(Dataset):
     def __len__(self):
         return len(self.labels)
 
+    @staticmethod
+    def _compute_fft_magnitude(signal):
+        fft_vals = np.fft.rfft(signal, axis=-1)
+        mag = np.abs(fft_vals) / signal.shape[-1]
+
+        # One-sided amplitude scaling
+        if signal.shape[-1] % 2 == 0:
+            mag[..., 1:-1] *= 2
+        else:
+            mag[..., 1:] *= 2
+
+        return mag
+
+    def fit_fft_norm_stats(self):
+        """Fit FFT normalization stats from this dataset only (typically train split)."""
+        fft_mag = self._compute_fft_magnitude(self.signals)
+        if self.log_fft:
+            fft_mag = np.log1p(fft_mag)
+
+        # Channel-wise normalization stats (shape: num_channels)
+        # This is less aggressive than per-bin normalization and tends to be
+        # more stable for cross-subject HAR.
+        mu = fft_mag.mean(axis=(0, 2))  # Average over samples and freq bins
+        sigma = fft_mag.std(axis=(0, 2))  # Std over samples and freq bins
+        sigma = np.maximum(sigma, 1e-3)
+        return mu, sigma
+
+    def set_fft_norm_stats(self, mu, sigma):
+        self.fft_norm_stats = (mu, sigma)
+
     def __getitem__(self, idx):
         # Get time-domain signal (3, 128) for accel only, or (6, 128) with gyro
         signal = self.signals[idx]
-        
-        # Apply FFT to each axis
-        # Output: (3, 31) without gyro, or (6, 31) with gyro
-        fft_mag = []
-        for axis_signal in signal:
-            fft_vals = np.fft.rfft(axis_signal)
-            mag = np.abs(fft_vals) / len(axis_signal)
-            
-            # One-sided amplitude scaling
-            if len(axis_signal) % 2 == 0:
-                mag[1:-1] *= 2
-            else:
-                mag[1:] *= 2
-            
-            fft_mag.append(mag)
-        
-        fft_mag = np.stack(fft_mag, axis=0)  # shape: (num_channels, 31)
+
+        # Apply FFT to each axis -> shape: (num_channels, num_freq_bins)
+        fft_mag = self._compute_fft_magnitude(signal)
+
+        if self.log_fft:
+            fft_mag = np.log1p(fft_mag)
+
+        if self.fft_norm_stats is not None:
+            mu, sigma = self.fft_norm_stats
+            # Broadcast: mu/sigma are (num_channels,), fft_mag is (num_channels, freq_bins)
+            fft_mag = (fft_mag - mu[:, None]) / (sigma[:, None] + 1e-8)
         
         return torch.FloatTensor(fft_mag), torch.LongTensor([self.labels[idx]])[0]
         
@@ -113,9 +149,32 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     model_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Create dataset and dataloader
-    train_dataset = MyDataset(root_path, split='train', subject_ids=train_subjects, use_gyro=use_gyro)
-    val_dataset = MyDataset(root_path, split='train', subject_ids=val_subjects, use_gyro=use_gyro)
-    test_dataset = MyDataset(root_path, split='test', subject_ids=None, use_gyro=use_gyro)
+    # Exp-5: log1p only, no z-score normalization
+    train_dataset = MyDataset(
+        root_path,
+        split='train',
+        subject_ids=train_subjects,
+        use_gyro=use_gyro,
+        log_fft=True,
+        fft_norm_stats=None,
+    )
+
+    val_dataset = MyDataset(
+        root_path,
+        split='train',
+        subject_ids=val_subjects,
+        use_gyro=use_gyro,
+        log_fft=True,
+        fft_norm_stats=None,
+    )
+    test_dataset = MyDataset(
+        root_path,
+        split='test',
+        subject_ids=None,
+        use_gyro=use_gyro,
+        log_fft=True,
+        fft_norm_stats=None,
+    )
 
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
