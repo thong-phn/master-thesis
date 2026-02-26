@@ -248,20 +248,60 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     print(f"Best Val Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
     print(f"Test Loss: {test_loss:.4f} | Test Acc: {test_acc:.2f}%")
 
+    mask_probs = None
+    hard_mask = None
+    kept_bins = None
+    total_bins = None
+    kept_ratio = None
+
+    # Print Gumbel mask summary (if model has bin logits)
+    if hasattr(model, "bin_logits"):
+        with torch.no_grad():
+            probs = torch.softmax(model.bin_logits, dim=-1)
+            mask_probs = probs[:, 1].detach().cpu().numpy()
+            hard_mask = (probs[:, 1] > probs[:, 0]).to(torch.int32).detach().cpu().numpy()
+
+        kept_bins = int(hard_mask.sum())
+        total_bins = int(hard_mask.shape[0])
+        kept_ratio = kept_bins / max(total_bins, 1)
+
+        print("-"*50)
+        print("Gumbel hard mask (1=kept, 0=dropped):")
+        print(hard_mask)
+        print(f"Bins kept: {kept_bins}/{total_bins} ({kept_ratio*100:.2f}%)")
+
     if wandb_run is not None: # tracking
-        wandb_run.log({
+        log_payload = {
             "best_val_loss": best_val_loss,
             "best_epoch": best_epoch,
             "test_loss": test_loss,
             "test_acc": test_acc,
-        })
+        }
+        if kept_bins is not None:
+            log_payload.update({
+                "mask_kept_bins": kept_bins,
+                "mask_total_bins": total_bins,
+                "mask_kept_ratio": kept_ratio,
+            })
+        wandb_run.log(log_payload)
 
-    return {
+    result = {
         "best_val_loss": best_val_loss,
         "test_loss": test_loss,
         "test_acc": test_acc,
         "model_path": str(model_path),
     }
+
+    if mask_probs is not None:
+        result.update({
+            "mask_probs": mask_probs.tolist(),
+            "mask_hard": hard_mask.tolist(),
+            "mask_kept_bins": kept_bins,
+            "mask_total_bins": total_bins,
+            "mask_kept_ratio": kept_ratio,
+        })
+
+    return result
 
 
 

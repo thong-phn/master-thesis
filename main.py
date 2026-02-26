@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 from train import train_loso
-from model import SeparableConvCNN
+from model import SeparableConvCNN, GumbelMaskSeparableConvCNN
 
 
 def set_seed(seed: int = 42):
@@ -56,7 +56,7 @@ def main():
 			"epochs": 60,
 			"lr": 1e-3,
 			"batch_size": 64,
-			"model": "SeparableConvCNN",
+			"model": "GumbelMaskSeparableConvCNN",
 			"use_gyro": True,
 		},
 	)
@@ -68,7 +68,7 @@ def main():
 	# Run training loop
 	metrics = train_loso(
 		root_path=root_path,
-		model_class=SeparableConvCNN,
+		model_class=GumbelMaskSeparableConvCNN,
 		train_subjects=train_subjects,
 		val_subjects=val_subjects,
 		wandb_run=wandb_run,
