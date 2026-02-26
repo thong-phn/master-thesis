@@ -48,7 +48,7 @@ def main():
 	# Tracking init
 	wandb_run = wandb.init(
 		project="thesis",
-		name=f"val-subject-{val_subjects}-gyro-21firstbin",
+		name=f"val-subject-{val_subjects}-gyro-timedomain",
 		config={
 			"train_subjects": train_subjects,
 			"val_subjects": val_subjects,

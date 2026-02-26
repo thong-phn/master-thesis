@@ -9,7 +9,7 @@ from pathlib import Path
 class MyDataset(Dataset):
     def __init__(self, root_path, split='train', subject_ids = None, use_gyro=False):
         """
-        Load UCI-HAR data, compute FFT
+        Load UCI-HAR data, use raw time-domain windows
         Args:
             root_path: Path to dataset
             split: 'train' or 'test'
@@ -51,6 +51,7 @@ class MyDataset(Dataset):
                 signals.append(data)
 
         all_signals = np.stack(signals, axis=1) # Stack to shape (samples, num_channels, 128) where num_channels is 3 or 6
+        self.seq_len = all_signals.shape[-1]
 
         # Return
         if subject_ids is None:
@@ -69,26 +70,8 @@ class MyDataset(Dataset):
 
     def __getitem__(self, idx):
         # Get time-domain signal (3, 128) for accel only, or (6, 128) with gyro
-        signal = self.signals[idx]
-        
-        # Apply FFT to each axis
-        # Output: (3, 31) without gyro, or (6, 31) with gyro
-        fft_mag = []
-        for axis_signal in signal:
-            fft_vals = np.fft.rfft(axis_signal)
-            mag = np.abs(fft_vals) / len(axis_signal)
-            
-            # One-sided amplitude scaling
-            if len(axis_signal) % 2 == 0:
-                mag[1:-1] *= 2
-            else:
-                mag[1:] *= 2
-            
-            fft_mag.append(mag)
-        
-        fft_mag = np.stack(fft_mag, axis=0)  # shape: (num_channels, 31)
-        
-        return torch.FloatTensor(fft_mag), torch.LongTensor([self.labels[idx]])[0]
+        signal = self.signals[idx].astype(np.float32)
+        return torch.from_numpy(signal), torch.LongTensor([self.labels[idx]])[0]
         
 # Training function
 def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=None, use_gyro=False, **train_kwargs):
@@ -130,7 +113,7 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     print(f"Using {num_channels} channels ({'accel + gyro' if use_gyro else 'accel only'})")
 
     # Training loop configuration
-    model = model_class(num_channels=num_channels).to(device)
+    model = model_class(num_channels=num_channels, freq_bins=train_dataset.seq_len).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -151,10 +134,10 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         
         model.train()
 
-        for fft_mag, labels in train_dataloader:
-            fft_mag, labels = fft_mag.to(device), labels.to(device)
+        for signals_batch, labels in train_dataloader:
+            signals_batch, labels = signals_batch.to(device), labels.to(device)
 
-            outputs = model(fft_mag) # 1. forward 
+            outputs = model(signals_batch) # 1. forward 
             loss = criterion(outputs, labels) # 2. loss
             optimizer.zero_grad() # 3. backward: zero_grad
             loss.backward() # cal gradient
@@ -175,10 +158,10 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         val_total = 0
         
         with torch.no_grad(): # no need to track grad in val
-            for fft_mag, labels in val_dataloader:
-                fft_mag, labels = fft_mag.to(device), labels.to(device)
+            for signals_batch, labels in val_dataloader:
+                signals_batch, labels = signals_batch.to(device), labels.to(device)
                 
-                outputs = model(fft_mag)
+                outputs = model(signals_batch)
                 loss = criterion(outputs, labels)
 
                 val_loss_sum += loss.item() * labels.size(0)
@@ -226,9 +209,9 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
 
     test_loss_sum, test_correct, test_total = 0.0, 0, 0
     with torch.no_grad():
-        for fft_mag, labels in test_dataloader:
-            fft_mag, labels = fft_mag.to(device), labels.to(device)
-            outputs = model(fft_mag)
+        for signals_batch, labels in test_dataloader:
+            signals_batch, labels = signals_batch.to(device), labels.to(device)
+            outputs = model(signals_batch)
             loss = criterion(outputs, labels)
 
             bs = labels.size(0)
