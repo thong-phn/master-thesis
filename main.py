@@ -11,6 +11,7 @@ import torch
 
 from train import train_loso
 from model import SeparableConvCNN
+from export import export_best_model_to_onnx
 
 
 def set_seed(seed: int = 42):
@@ -39,6 +40,7 @@ def main():
 	test_subjects = [subject for subject in all_test_subjects]
 
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	use_gyro = True
 
 	print(f"Using device: {device}")
 	print(f"Train subjects ({len(train_subjects)}): {train_subjects}")
@@ -57,7 +59,7 @@ def main():
 			"lr": 1e-3,
 			"batch_size": 64,
 			"model": "SeparableConvCNN",
-			"use_gyro": True,
+			"use_gyro": use_gyro,
 		},
 	)
 	# Log code version
@@ -65,20 +67,35 @@ def main():
 		root=str(project_root),
 		include_fn=lambda p: p.endswith((".py", ".yaml", ".yml", ".md"))
 	)
-	# Run training loop
+
+	# TRAINING LOOP
 	metrics = train_loso(
 		root_path=root_path,
 		model_class=SeparableConvCNN,
 		train_subjects=train_subjects,
 		val_subjects=val_subjects,
 		wandb_run=wandb_run,
-		use_gyro=True,
+		use_gyro=use_gyro,
 		epochs=60,
 		lr=1e-3,
 		batch_size=64,
 		device=device,
 		model_path=project_root / "models" / "best_model_subject1_val.pth",
 	)
+
+	# Export best checkpoint to ONNX
+	num_channels = int(metrics["num_channels"])
+	input_len = int(metrics["input_len"])
+	onnx_path = project_root / "models" / "best_model.onnx"
+	exported_onnx_path = export_best_model_to_onnx(
+		model_class=SeparableConvCNN,
+		checkpoint_path=metrics["model_path"],
+		onnx_path=onnx_path,
+		num_channels=num_channels,
+		input_len=input_len,
+		device=device,
+	)
+	metrics["onnx_path"] = exported_onnx_path
 
 	# Training loop output
 	print("Final metrics:")

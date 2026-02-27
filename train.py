@@ -127,6 +127,7 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
 
     # Determine number of channels based on use_gyro
     num_channels = 6 if use_gyro else 3
+    input_len = int(train_dataset[0][0].shape[-1])
     print(f"Using {num_channels} channels ({'accel + gyro' if use_gyro else 'accel only'})")
 
     # Training loop configuration
@@ -258,7 +259,35 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         "test_loss": test_loss,
         "test_acc": test_acc,
         "model_path": str(model_path),
+        "num_channels": num_channels,
+        "input_len": input_len,
     }
+
+
+def train_loso_int8(root_path, model_class, train_subjects, val_subjects, wandb_run=None, use_gyro=False, **train_kwargs):
+    """
+    INT8-oriented LOSO training entrypoint.
+
+    This function reuses the same training loop as `train_loso` and returns
+    additional metadata for downstream PTQ/export stages.
+    """
+    metrics = train_loso(
+        root_path=root_path,
+        model_class=model_class,
+        train_subjects=train_subjects,
+        val_subjects=val_subjects,
+        wandb_run=wandb_run,
+        use_gyro=use_gyro,
+        **train_kwargs,
+    )
+
+    metrics.update({
+        "quant_profile": "full_integer_int8",
+        "quant_input_dtype": "int8",
+        "quant_weight_dtype": "int8",
+        "quant_bias_dtype": "int8",
+    })
+    return metrics
 
 
 
