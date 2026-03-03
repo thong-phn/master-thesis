@@ -3,6 +3,9 @@ import torch.nn as nn
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
+import torch.ao.quantization.quantize_fx as quantize_fx
+import torch.ao.quantization.qconfig_mapping as qconfig_mapping
+import copy
 
 
 # Dataset 
@@ -91,15 +94,17 @@ class MyDataset(Dataset):
         return torch.FloatTensor(fft_mag), torch.LongTensor([self.labels[idx]])[0]
         
 # Training function
-def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=None, use_gyro=False, **train_kwargs):
+def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=None, use_gyro=False, use_qat=False, qat_backend='qnnpack', pretrained_float_path=None, **train_kwargs):
     """
     Args:
         root_path: path to UCI-HAR
         model_class
         train_subjects
         val_subjects
-        wandb_run:
-        use_gyro: Whether to include gyro data (default: False)
+    use_gyro: Whether to include gyro data (default: False)
+        use_qat: Whether to apply Quantization Aware Training
+        qat_backend: QAT backend (e.g., 'qnnpack', 'x86', 'fbgemm')
+        pretrained_float_path: Path to pre-trained floating point model for QAT fine-tuning
         **train_kwargs
     """
     # Hyperparameters 
@@ -131,11 +136,50 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
 
     # Training loop configuration
     model = model_class(num_channels=num_channels).to(device)
+    
+    # Load pre-trained weights if provided (Crucial for QAT fine-tuning)
+    if pretrained_float_path is not None:
+        pretrained_path = Path(pretrained_float_path)
+        if pretrained_path.exists():
+            print(f"Loading pre-trained float weights from {pretrained_float_path}")
+            model.load_state_dict(torch.load(pretrained_path, map_location=device))
+        else:
+            print(f"WARNING: Pre-trained file not found at {pretrained_float_path}. Model will be initialized randomly.")
+
+    # Output prefix for saving models
+    model_prefix = "qat_" if use_qat else "float_"
+
+    # QAT Preparation
+    if use_qat:
+        print(f"Preparing model for QAT targeting backend: {qat_backend}")
+        torch.backends.quantized.engine = qat_backend
+        qconfig_map = qconfig_mapping.get_default_qat_qconfig_mapping(qat_backend)
+        
+        # --- Partial Quantization ---
+        # Keep sensitive layers (first conv and final fc) in float32 for highest accuracy.
+        print("Applying partial quantization (keeping 'sep_conv1' and 'fc2' in float32)")
+        qconfig_map.set_module_name("sep_conv1", None)
+        qconfig_map.set_module_name("fc2", None)
+
+        # We need a sample input for FX tracing
+        sample_input = torch.randn(1, num_channels, 31).to(device)
+        model.eval()
+        model = quantize_fx.prepare_qat_fx(model, qconfig_map, sample_input)
+        print("Model prepared for QAT.")
+        
+    model.train()
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6
-    )
+    
+    if use_qat:
+        print("Using ReduceLROnPlateau for QAT Partial Fine-Tuning.")
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6
+        )
+    else:
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6
+        )
 
     best_val_loss = float('inf')
     best_epoch = 0 # 
@@ -144,6 +188,11 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     print("-"*50)
     # Training loop
     for epoch in range(epochs):
+        # Freeze BN Stats and Observers halfway through QAT to stabilize scales and running averages
+        if use_qat and epoch >= epochs // 2:
+            model.apply(torch.ao.quantization.disable_observer)
+            model.apply(torch.nn.intrinsic.qat.freeze_bn_stats)
+
         # Train one epoch
         train_loss_sum = 0.0 # sum of training loss  
         train_correct = 0 # no. of training samples predicted correctly
@@ -188,7 +237,11 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
 
         val_loss = val_loss_sum / max(val_total, 1)
         val_acc = 100. * val_correct / max(val_total, 1)
-        scheduler.step(val_loss) # Step LR scheduler on val loss
+        
+        if use_qat:
+            scheduler.step(val_loss) # Restored back to Step LR scheduler on val loss
+        else:
+            scheduler.step(val_loss) # Step LR scheduler on val loss
         
         # Save best model based on val_loss
         if val_loss < best_val_loss - min_delta:
@@ -201,7 +254,8 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         
         print(f'Epoch [{epoch+1}/{epochs}]: '
               f'Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; '
-              f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}')
+              f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}; '
+              f'LR: {optimizer.param_groups[0]["lr"]:.6f}')
         
         if wandb_run is not None: # tracking
             wandb_run.log({
@@ -212,23 +266,42 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
                 "val_acc": val_acc,
                 "best_val_loss": best_val_loss,
                 "lr": optimizer.param_groups[0]["lr"],  # actual LR
-                # "epochs_no_improve": epochs_no_improve, # early stopping
             })
 
-        if epochs_no_improve >= patience: # early stopping
+        if epochs_no_improve >= patience: # Early stop on both float and QAT
             print(f"Early Stopping: Epoch [{epoch+1}/{epochs}] (patience={patience}, min_delta={min_delta}).")
             break
 
 
     # Test with best model
     model.load_state_dict(torch.load(model_path, map_location=device))
-    model.eval()
+    
+    if use_qat:
+        print("Converting QAT model to fully quantized INT8 model for evaluation...")
+        model.eval()
+        # Convert to quantized model (creates FakeQuant modules into actual quant/dequant)
+        # Note: The converted model typically runs on CPU backend (qnnpack). 
+        # Moving to CPU for exact validation of the integer math.
+        model.to('cpu')
+        quantized_model = quantize_fx.convert_fx(copy.deepcopy(model))
+        
+        # Save the fully quantized int8 model as well
+        int8_model_path = model_path.parent / f"int8_{model_path.name}"
+        torch.save(quantized_model.state_dict(), int8_model_path)
+        print(f"Saved fully quantized INT8 model to {int8_model_path}")
+        
+        eval_model = quantized_model
+        eval_device = torch.device('cpu')
+    else:
+        model.eval()
+        eval_model = model
+        eval_device = device
 
     test_loss_sum, test_correct, test_total = 0.0, 0, 0
     with torch.no_grad():
         for fft_mag, labels in test_dataloader:
-            fft_mag, labels = fft_mag.to(device), labels.to(device)
-            outputs = model(fft_mag)
+            fft_mag, labels = fft_mag.to(eval_device), labels.to(eval_device)
+            outputs = eval_model(fft_mag)
             loss = criterion(outputs, labels)
 
             bs = labels.size(0)

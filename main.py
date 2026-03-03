@@ -54,10 +54,12 @@ def main():
 			"val_subjects": val_subjects,
 			"test_subjects": test_subjects,
 			"epochs": 60,
-			"lr": 1e-3,
+			"lr": 5e-5, # Even smaller LR for stabilization
 			"batch_size": 64,
 			"model": "SeparableConvCNN",
 			"use_gyro": True,
+			"use_qat": True,
+			"qat_backend": "qnnpack",
 		},
 	)
 	# Log code version
@@ -73,11 +75,15 @@ def main():
 		val_subjects=val_subjects,
 		wandb_run=wandb_run,
 		use_gyro=True,
+		use_qat=True,
+		qat_backend="qnnpack",
+		pretrained_float_path=project_root / "models" / "best_model_subject1_val.pth",
 		epochs=60,
-		lr=1e-3,
+		lr=5e-5, # Even smaller LR
 		batch_size=64,
+		patience=15,
 		device=device,
-		model_path=project_root / "models" / "best_model_subject1_val.pth",
+		model_path=project_root / "models" / "qat_best_model_subject1_val.pth",
 	)
 
 	# Training loop output

@@ -58,23 +58,27 @@ class GumbelMaskSeparableConvCNN(nn.Module):
 
         # Stem
         x = self.bn0(x)
-        x = F.relu(self.sep_conv1(x))
+        x = self.sep_conv1(x)
         x = self.bn1(x)
+        x = F.relu(x)
         x = self.pool1(x)
 
         # Block 2
-        x = F.relu(self.sep_conv2(x))
+        x = self.sep_conv2(x)
         x = self.bn2(x)
+        x = F.relu(x)
         x = self.pool2(x)
 
         # Block 3
-        x = F.relu(self.sep_conv3(x))
+        x = self.sep_conv3(x)
         x = self.bn3(x)
+        x = F.relu(x)
         x = self.pool3(x)
 
         # Block 4
-        x = F.relu(self.sep_conv4(x))
+        x = self.sep_conv4(x)
         x = self.bn4(x)
+        x = F.relu(x)
         x = self.pool4(x)
 
         # Global average pooling
@@ -148,23 +152,27 @@ class SeparableConvCNN(nn.Module):
         
         # Stem
         x = self.bn0(x)
-        x = F.relu(self.sep_conv1(x))
+        x = self.sep_conv1(x)
         x = self.bn1(x)
+        x = F.relu(x)
         x = self.pool1(x)
         
         # Block 2
-        x = F.relu(self.sep_conv2(x))
+        x = self.sep_conv2(x)
         x = self.bn2(x)
+        x = F.relu(x)
         x = self.pool2(x)
         
         # Block 3
-        x = F.relu(self.sep_conv3(x))
+        x = self.sep_conv3(x)
         x = self.bn3(x)
+        x = F.relu(x)
         x = self.pool3(x)
         
         # Block 4
-        x = F.relu(self.sep_conv4(x))
+        x = self.sep_conv4(x)
         x = self.bn4(x)
+        x = F.relu(x)
         x = self.pool4(x)
         
         # Global average pooling
