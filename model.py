@@ -7,21 +7,22 @@ class GumbelMaskSeparableConvCNN(nn.Module):
     """
     SeparableConv-based CNN with Gumbel-Softmax bin on/off masking.
     """
-    def __init__(self, num_classes=6, num_channels=3, freq_bins=65, dropout=0.4, gumbel_tau=2.0, tau_start=2.0, tau_end=2.0):
+    def __init__(self, num_classes=6, num_channels=3, freq_bins=65, dropout=0.4, gumbel_tau=2.0, tau_start=5.0, tau_end=0.5):
         super(GumbelMaskSeparableConvCNN, self).__init__()
 
         # Two-class logits per bin: [off, on]
         self.bin_logits = nn.Parameter(torch.zeros(freq_bins, 2))
-        # Exp-G4 tested: Constant tau=2.0 works better than annealing
+        
+        # Exp-G4: Tau annealing configuration
         self.gumbel_tau = gumbel_tau
         self.tau_start = tau_start
         self.tau_end = tau_end
-        self.current_tau = gumbel_tau  # Use constant tau
+        self.current_tau = tau_start  # Initialize with tau_start
         self.mask_l1 = None
         self.last_mask = None
 
         # Stem block
-        self.bn0 = nn.BatchNorm1d(num_channels)
+        # self.bn0 = nn.BatchNorm1d(num_channels)
         self.sep_conv1 = SeparableConv1d(num_channels, 32, kernel_size=5, padding=2)
         self.bn1 = nn.BatchNorm1d(32)
         self.pool1 = nn.MaxPool1d(2)
@@ -64,7 +65,7 @@ class GumbelMaskSeparableConvCNN(nn.Module):
         x = x * mask.view(1, 1, -1)
 
         # Stem
-        x = self.bn0(x)
+        # x = self.bn0(x)
         x = F.relu(self.sep_conv1(x))
         x = self.bn1(x)
         x = self.pool1(x)

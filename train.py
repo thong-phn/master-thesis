@@ -13,8 +13,6 @@ class MyDataset(Dataset):
         split='train',
         subject_ids=None,
         use_gyro=False,
-        log_fft=True,
-        fft_norm_stats=None,
     ):
         """
         Load UCI-HAR data, compute FFT
@@ -30,8 +28,6 @@ class MyDataset(Dataset):
         self.split_path = self.root_path / split
         self.inertial_path = self.split_path/"Inertial Signals"
         self.use_gyro = use_gyro
-        self.log_fft = log_fft
-        self.fft_norm_stats = fft_norm_stats
 
         # Load Y (label) and subjects
         path_to_y_file = self.split_path/f"y_{split}.txt"
@@ -41,6 +37,7 @@ class MyDataset(Dataset):
         all_subjects = np.loadtxt(path_to_subject_file, dtype=int)
         
         # Load accelerometer data (body acceleration)
+        # body has better result than total
         signal_files = {       
             "X": f"body_acc_x_{split}.txt",
             "Y": f"body_acc_y_{split}.txt",
@@ -92,23 +89,6 @@ class MyDataset(Dataset):
 
         return mag
 
-    def fit_fft_norm_stats(self):
-        """Fit FFT normalization stats from this dataset only (typically train split)."""
-        fft_mag = self._compute_fft_magnitude(self.signals)
-        if self.log_fft:
-            fft_mag = np.log1p(fft_mag)
-
-        # Channel-wise normalization stats (shape: num_channels)
-        # This is less aggressive than per-bin normalization and tends to be
-        # more stable for cross-subject HAR.
-        mu = fft_mag.mean(axis=(0, 2))  # Average over samples and freq bins
-        sigma = fft_mag.std(axis=(0, 2))  # Std over samples and freq bins
-        sigma = np.maximum(sigma, 1e-3)
-        return mu, sigma
-
-    def set_fft_norm_stats(self, mu, sigma):
-        self.fft_norm_stats = (mu, sigma)
-
     def __getitem__(self, idx):
         # Get time-domain signal (3, 128) for accel only, or (6, 128) with gyro
         signal = self.signals[idx]
@@ -116,14 +96,6 @@ class MyDataset(Dataset):
         # Apply FFT to each axis -> shape: (num_channels, num_freq_bins)
         fft_mag = self._compute_fft_magnitude(signal)
 
-        if self.log_fft:
-            fft_mag = np.log1p(fft_mag)
-
-        if self.fft_norm_stats is not None:
-            mu, sigma = self.fft_norm_stats
-            # Broadcast: mu/sigma are (num_channels,), fft_mag is (num_channels, freq_bins)
-            fft_mag = (fft_mag - mu[:, None]) / (sigma[:, None] + 1e-8)
-        
         return torch.FloatTensor(fft_mag), torch.LongTensor([self.labels[idx]])[0]
         
 # Training function
@@ -139,7 +111,7 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         **train_kwargs
     """
     # Hyperparameters 
-    epochs = train_kwargs.get('epochs', 30)
+    epochs = train_kwargs.get('epochs', 60)
     lr = train_kwargs.get('lr', 1e-3)
     batch_size = train_kwargs.get('batch_size', 64)
     device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
@@ -155,8 +127,6 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         split='train',
         subject_ids=train_subjects,
         use_gyro=use_gyro,
-        log_fft=True,
-        fft_norm_stats=None,
     )
 
     val_dataset = MyDataset(
@@ -164,16 +134,12 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         split='train',
         subject_ids=val_subjects,
         use_gyro=use_gyro,
-        log_fft=True,
-        fft_norm_stats=None,
     )
     test_dataset = MyDataset(
         root_path,
         split='test',
         subject_ids=None,
         use_gyro=use_gyro,
-        log_fft=True,
-        fft_norm_stats=None,
     )
 
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -203,9 +169,9 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     print("-"*50)
     # Training loop
     for epoch in range(epochs):
-        # Exp-G4: Disabled - constant tau=2.0 works better than annealing
-        # if hasattr(model, 'set_tau'):
-        #     model.set_tau(epoch, epochs)
+        # Exp-G4: Enable tau annealing
+        if hasattr(model, 'set_tau'):
+            model.set_tau(epoch, epochs)
         
         # Train one epoch
         train_loss_sum = 0.0 # sum of training loss  
