@@ -22,7 +22,7 @@ class GumbelMaskSeparableConvCNN(nn.Module):
         self.last_mask = None
 
         # Stem block
-        # self.bn0 = nn.BatchNorm1d(num_channels)
+        self.bn0 = nn.BatchNorm1d(num_channels)
         self.sep_conv1 = SeparableConv1d(num_channels, 32, kernel_size=5, padding=2)
         self.bn1 = nn.BatchNorm1d(32)
         self.pool1 = nn.MaxPool1d(2)
@@ -65,7 +65,7 @@ class GumbelMaskSeparableConvCNN(nn.Module):
         x = x * mask.view(1, 1, -1)
 
         # Stem
-        # x = self.bn0(x)
+        x = self.bn0(x)
         x = F.relu(self.sep_conv1(x))
         x = self.bn1(x)
         x = self.pool1(x)
