@@ -4,6 +4,7 @@ Tasks:
 	Log training to wandb
 """
 from pathlib import Path
+import argparse
 import wandb
 import random
 import numpy as np
@@ -23,6 +24,11 @@ def set_seed(seed: int = 42):
 
 
 def main():
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct'], default='fft',
+	                    help='Preprocessing applied to signals: fft or dct')
+	args = parser.parse_args()
+
 	set_seed(42)
 
 	project_root = Path(__file__).resolve().parent
@@ -48,7 +54,7 @@ def main():
 	# Tracking init
 	wandb_run = wandb.init(
 		project="thesis",
-		name=f"val-subject-{val_subjects}-gyro-exp7-lr1e3",
+		name=f"val-subject-{val_subjects}-gyro-exp7-lr1e3-{args.preprocessing}",
 		config={
 			"train_subjects": train_subjects,
 			"val_subjects": val_subjects,
@@ -57,6 +63,7 @@ def main():
 			"lr": 1e-3,
 			"batch_size": 64,
 			"model": "GumbelMaskSeparableConvCNN",
+			"preprocessing": args.preprocessing,
 		},
 	)
 	# Log code version
@@ -76,6 +83,7 @@ def main():
 		batch_size=64,
 		device=device,
 		model_path=project_root / "models" / "best_model_subject1_val.pth",
+		preprocessing=args.preprocessing,
 	)
 
 	# Training loop output

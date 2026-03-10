@@ -1,3 +1,0 @@
-LOSO Cross-Validation Results
-Test Accuracy: 89.67% ± 1.66%
-Test F1 Macro: 0.8974 ± 0.0165

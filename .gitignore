@@ -4,6 +4,8 @@ models/
 
 # Dataset
 uci-har/
+img/
+log/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

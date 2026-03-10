@@ -4,6 +4,7 @@ import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 from sklearn.metrics import f1_score
+from scipy.fftpack import dct
 
 
 # Dataset 
@@ -13,6 +14,7 @@ class MyDataset(Dataset):
         root_path,
         split='train',
         subject_ids=None,
+        preprocessing='fft',
     ):
         """
         Load UCI-HAR data, compute FFT
@@ -56,6 +58,8 @@ class MyDataset(Dataset):
 
         all_signals = np.stack(signals, axis=1) # Stack to shape (samples, num_channels, 128) 
 
+        self.preprocessing = preprocessing
+
         # Return
         if subject_ids is None:
             self.labels = all_labels
@@ -84,14 +88,21 @@ class MyDataset(Dataset):
 
         return mag
 
+    @staticmethod
+    def _compute_dct(signal):
+        dct_vals = dct(signal, type=2, axis=-1, norm='ortho')
+        return np.abs(dct_vals)
+
     def __getitem__(self, idx):
         # Get time-domain signal (6, 128) for accel + gyro
         signal = self.signals[idx]
 
-        # Apply FFT to each axis -> shape: (num_channels, num_freq_bins)
-        fft_mag = self._compute_fft_magnitude(signal)
+        if self.preprocessing == 'dct':
+            mag = self._compute_dct(signal)
+        else:
+            mag = self._compute_fft_magnitude(signal)
 
-        return torch.FloatTensor(fft_mag), torch.LongTensor([self.labels[idx]])[0]
+        return torch.FloatTensor(mag), torch.LongTensor([self.labels[idx]])[0]
         
 # Training function
 def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
@@ -114,23 +125,28 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     model_path = Path(train_kwargs.get('model_path', './models/best_model.pth'))
     model_path.parent.mkdir(parents=True, exist_ok=True)
 
+    preprocessing = train_kwargs.get('preprocessing', 'fft')
+
     # Create dataset and dataloader
     # Exp-5: log1p only, no z-score normalization
     train_dataset = MyDataset(
         root_path,
         split='train',
         subject_ids=train_subjects,
+        preprocessing=preprocessing,
     )
 
     val_dataset = MyDataset(
         root_path,
         split='train',
         subject_ids=val_subjects,
+        preprocessing=preprocessing,
     )
     test_dataset = MyDataset(
         root_path,
         split='test',
         subject_ids=None,
+        preprocessing=preprocessing,
     )
 
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -144,21 +160,11 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
 
 
     # Training loop configuration
-    model = model_class().to(device)
+    freq_bins = train_dataset[0][0].shape[-1]
+    model = model_class(freq_bins=freq_bins).to(device)
     criterion = nn.CrossEntropyLoss()
-    # Optimizer with dual learning rates (Exp-4)
-    mask_params = []
-    base_params = []
-    for name, param in model.named_parameters():
-        if 'bin_logits' in name:
-            mask_params.append(param)
-        else:
-            base_params.append(param)
-            
-    optimizer = torch.optim.Adam([
-        {'params': base_params},
-        {'params': mask_params, 'lr': lr} # Reverted Exp-4 dual LR
-    ], lr=lr)
+    # Optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6
     )

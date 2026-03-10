@@ -5,25 +5,45 @@ Tasks:
 	Log training to wandb
 """
 from pathlib import Path
+import argparse
 import wandb
 import random
 import numpy as np
 import torch
+import os
 
 from train import train_loso
 from model import GumbelMaskSeparableConvCNN
 
 
 def set_seed(seed: int = 42):
-	random.seed(seed)
-	np.random.seed(seed)
-	torch.manual_seed(seed)
-	torch.cuda.manual_seed_all(seed)
-	torch.backends.cudnn.deterministic = True
-	torch.backends.cudnn.benchmark = False
+	# random.seed(seed)
+	# np.random.seed(seed)
+	# torch.manual_seed(seed)
+	# torch.cuda.manual_seed_all(seed)
+	# torch.backends.cudnn.deterministic = True
+	# torch.backends.cudnn.benchmark = False
+
+    random.seed(seed)
+    os.environ['SEED'] = str(seed)
+    np.random.seed(seed)
+    
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed) # Nếu dùng nhiều GPU
+    
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    
+    torch.use_deterministic_algorithms(True)
 
 
 def main():
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct'], default='fft',
+	                    help='Preprocessing applied to signals: fft or dct')
+	args = parser.parse_args()
+
 	set_seed(42)
 
 	project_root = Path(__file__).resolve().parent
@@ -38,7 +58,6 @@ def main():
 
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f"Using device: {device}")
-	print(f"Test subjects ({len(test_subjects)}): {test_subjects}")
 
 	test_accs = []
 	test_f1s = []
@@ -48,13 +67,14 @@ def main():
 		train_subjects = [subject for subject in all_subjects if subject not in val_subjects]
 
 		print("="*50)
-		print(f"Starting Fold: Val Subject {val_subjects[0]}")
+		print(f"Fold: Val Subject {val_subjects[0]}")
 		print(f"Train subjects ({len(train_subjects)}): {train_subjects}")
+		print(f"Test subjects ({len(test_subjects)}): {test_subjects}")
 		
 		# Tracking init
 		wandb_run = wandb.init(
 			project="thesis",
-			name=f"loso-val-{val_subject}-gyro-exp7-lr1e3",
+			name=f"loso-val-{val_subject}-gyro-exp7-lr1e3-{args.preprocessing}",
 			config={
 				"train_subjects": train_subjects,
 				"val_subjects": val_subjects,
@@ -63,6 +83,7 @@ def main():
 				"lr": 1e-3,
 				"batch_size": 64,
 				"model": "GumbelMaskSeparableConvCNN",
+				"preprocessing": args.preprocessing,
 			},
 			reinit=True
 		)
@@ -78,6 +99,7 @@ def main():
 			batch_size=64,
 			device=device,
 			model_path=project_root / "models" / f"best_model_subject{val_subject}_val.pth",
+			preprocessing=args.preprocessing,
 		)
 
 		test_accs.append(metrics["test_acc"])
@@ -97,7 +119,7 @@ def main():
 	print(f"Test F1 Macro: {mean_f1:.4f} ± {std_f1:.4f}")
 
 	# Log the summary results in an overall metrics dictionary (could also write to a file)
-	with open(project_root / "loso_results.txt", "w") as f:
+	with open(project_root / 'log' / "loso_results.txt", "w") as f:
 		f.write("LOSO Cross-Validation Results\n")
 		f.write(f"Test Accuracy: {mean_acc:.2f}% ± {std_acc:.2f}%\n")
 		f.write(f"Test F1 Macro: {mean_f1:.4f} ± {std_f1:.4f}\n")
