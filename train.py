@@ -101,7 +101,7 @@ class MyDataset(Dataset):
             mag = self._compute_dct(signal)
         elif self.preprocessing == 'no':
             mag = self.signals[idx]
-        elif self.preprocessing == 'dct':
+        elif self.preprocessing == 'fft':
             mag = self._compute_fft_magnitude(signal)
         else:
             mag = None
