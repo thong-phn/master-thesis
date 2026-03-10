@@ -57,7 +57,6 @@ def main():
 			"lr": 1e-3,
 			"batch_size": 64,
 			"model": "GumbelMaskSeparableConvCNN",
-			"use_gyro": True,
 		},
 	)
 	# Log code version
@@ -72,7 +71,6 @@ def main():
 		train_subjects=train_subjects,
 		val_subjects=val_subjects,
 		wandb_run=wandb_run,
-		use_gyro=True,
 		epochs=60,
 		lr=1e-3,
 		batch_size=64,

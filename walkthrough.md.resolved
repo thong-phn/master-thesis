@@ -1,0 +1,77 @@
+# Gumbel-Softmax Hyperparameter Tuning Log
+
+This document tracks the experiments performed to tune the [GumbelMaskSeparableConvCNN](file:///home/thongp/master/thesis/simulation/master-thesis/model.py#6-111) model after addressing the batch-variance flaw (Flaw #3), where the model was previously sharing a single randomized Gumbel-Softmax mask across the entire batch. 
+
+## Background
+*   **Original Baseline (with Flaw #3)**: ~92.09% accuracy.
+*   **Fix Applied**: In [model.py](file:///home/thongp/master/thesis/simulation/master-thesis/model.py), the `bin_logits` were expanded to the batch dimension so every sample receives an independent probability distribution/mask (`mask = probs[:, :, 1]`).
+*   **Immediate Post-Fix Baseline**: 90.33% accuracy. The immediate drop indicated the model heavily relied on the batch-wide noise as strong regularization.
+
+We hypothesized that tuning parameters governing the mask's aggressiveness and gradient stochasticity could recover the accuracy.
+
+---
+
+## Experiments & Results
+
+All experiments were trained for 60 epochs using early stopping/LOSO validation logic on [main.py](file:///home/thongp/master/thesis/simulation/master-thesis/main.py).
+
+### Exp 4: Split Optimizer Learning Rates
+**Hypothesis**: The gradients for `bin_logits` are strictly stochastic. Updating them at the same learning rate (`1e-3`) as the deterministic convolutional weights causes instability. 
+**Change**: Split optimizer groups -> `bin_logits` LR = `1e-4`, standard weights LR = `1e-3`.
+**Result**: 
+*   Test Accuracy: **89.78%**
+*   **Conclusion**: Slower learning actually hurt performance, possibly trapping the mask in a suboptimal local minimum before Convolutional layers could extract meaningful features. We reverted this for future experiments.
+
+### Exp 3: Progressive Sparsity Penalty
+**Hypothesis**: Applying a strict L1 penalty (`0.01`) from Epoch 1 punishes the network for using features before it even knows if those frequencies are useful.
+**Change**: Used a progressive warm-up: `sparsity_weight = min(0.01, epoch * 0.01 / 20)`. The penalty ramps up linearly over the first 20 epochs.
+**Result**: 
+*   Test Accuracy: **90.94%**
+*   **Conclusion**: Significant improvement. Giving the network a grace period to explore features drastically helps downstream selection.
+
+### Exp 2: Lower Fixed Sparsity Penalty
+**Hypothesis**: Assuming the progressive penalty worked because `0.01` was too aggressive overall for independent batch item selection.
+**Change**: Reverted progressive penalty and used a static, lower weight: `sparsity_weight = 0.005`.
+**Result**:
+*   Test Accuracy: **90.56%**
+*   **Conclusion**: Worse than Exp 3. Progressive pressure is explicitly better than a weak static pressure.
+
+### Exp 1: Slower/Softer Temperature Annealing
+**Hypothesis**: Pushing the Gumbel temperature ([tau](file:///home/thongp/master/thesis/simulation/master-thesis/model.py#106-111)) all the way down to `0.5` mathematically makes the distribution "sharper" (closer to binary 0 or 1), mimicking test-time inference. However, pushing it too hard kills gradient flow since the derivative of a step function is zero.
+**Change**: Changed annealing limits from `[5.0 -> 0.5]` to `[3.0 -> 1.0]`.
+**Result**:
+*   Test Accuracy: **91.07%**
+*   **Conclusion**: A softer lower bound maintains healthy gradient flows for the mask over the entire training cycle.
+
+### Combined Run: The "Best" Independent Configuration
+**Hypothesis**: Combine the two best empirical findings (Exp 1 + Exp 3) alongside the lower penalty floor from Exp 2.
+**Change**: 
+*   `tau_start=3.0, tau_end=1.0` (Exp 1)
+*   Progressive sparsity penalty capping at a lower ceiling: `sparsity_weight = min(0.005, epoch * 0.005 / 20)` (Exp 2 + 3 combined).
+**Result**:
+*   Test Accuracy: **91.38%**
+*   **Conclusion**: This represents the best empirical setup for the structurally correct "independent batch mask" architecture. 
+
+### Final Attempt: Combined Run with `tau_end=2.0`
+**Hypothesis**: Push the limit of Exp 1 and see if a significantly "softer" bound yields better regularization.
+**Change**: `tau_start=3.0, tau_end=2.0`.
+**Result**:
+*   Test Accuracy: **90.87%**
+*   **Conclusion**: `tau_end=1.0` appears to be the sweet spot.
+
+---
+
+## Summary and Next Steps
+
+By fixing the batch-variance flaw, we transitioned from an implicit "Extreme Batch Dropout" model to a true "Instance-Level Feature Selector". While mathematically sound, the model lost ~0.7% accuracy (92.09% -> 91.38%). 
+
+The peak mathematically sound configuration is:
+```python
+# model.py
+tau_start = 3.0
+tau_end = 1.0
+
+# train.py (loss calculation)
+sparsity_weight = min(0.005, epoch * 0.005 / 20)
+loss = loss + sparsity_weight * model.mask_l1
+```

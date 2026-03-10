@@ -7,13 +7,13 @@ class GumbelMaskSeparableConvCNN(nn.Module):
     """
     SeparableConv-based CNN with Gumbel-Softmax bin on/off masking.
     """
-    def __init__(self, num_classes=6, num_channels=3, freq_bins=65, dropout=0.4, gumbel_tau=2.0, tau_start=5.0, tau_end=0.5):
+    def __init__(self, num_classes=6, num_channels=6, freq_bins=65, dropout=0.4, gumbel_tau=2.0, tau_start=5.0, tau_end=1.0):
         super(GumbelMaskSeparableConvCNN, self).__init__()
 
         # Two-class logits per bin: [off, on]
         self.bin_logits = nn.Parameter(torch.zeros(freq_bins, 2))
         
-        # Exp-G4: Tau annealing configuration
+        # Tau annealing configuration
         self.gumbel_tau = gumbel_tau
         self.tau_start = tau_start
         self.tau_end = tau_end
@@ -51,18 +51,25 @@ class GumbelMaskSeparableConvCNN(nn.Module):
     def forward(self, x):
         # x: (batch, num_channels, freq_bins)
 
+        batch_size = x.size(0)
+
         if self.training:
             # Exp-G4: Use annealed temperature
-            probs = F.gumbel_softmax(self.bin_logits, tau=self.current_tau, hard=True)
+            logits_expanded = self.bin_logits.unsqueeze(0).expand(batch_size, -1, -1)
+            probs = F.gumbel_softmax(logits_expanded, tau=self.current_tau, hard=True)
         else:
             # Exp-G5: Use hard mask in test (argmax) to match training behavior
-            probs_soft = torch.softmax(self.bin_logits, dim=-1)
+            logits_expanded = self.bin_logits.unsqueeze(0).expand(batch_size, -1, -1)
+            probs_soft = torch.softmax(logits_expanded, dim=-1)
             probs = F.one_hot(probs_soft.argmax(dim=-1), num_classes=2).float()
 
-        mask = probs[:, 1]
+        mask = probs[:, :, 1] # shape (batch, freq_bins)
+        
+        # Track statistics based on the expected mask or mean batch mask
         self.mask_l1 = mask.mean()
-        self.last_mask = mask.detach()
-        x = x * mask.view(1, 1, -1)
+        self.last_mask = mask.mean(dim=0).detach() # store the mean frequency mask across the batch
+
+        x = x * mask.unsqueeze(1) # shape (batch, 1, freq_bins)
 
         # Stem
         x = self.bn0(x)
@@ -125,7 +132,7 @@ class SeparableConvCNN(nn.Module):
     SeparableConv-based CNN for UCI-HAR FFT data
     Based on depthwise separable convolutions for efficiency
     """
-    def __init__(self, num_classes=6, num_channels=3, freq_bins=65, dropout=0.4):
+    def __init__(self, num_classes=6, num_channels=6, freq_bins=65, dropout=0.4):
         super(SeparableConvCNN, self).__init__()
         
         # Input shape: (batch, num_channels, 31) where num_channels is 3 (accel) or 6 (accel+gyro)

@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
+from sklearn.metrics import f1_score
 
 
 # Dataset 
@@ -12,7 +13,6 @@ class MyDataset(Dataset):
         root_path,
         split='train',
         subject_ids=None,
-        use_gyro=False,
     ):
         """
         Load UCI-HAR data, compute FFT
@@ -20,14 +20,10 @@ class MyDataset(Dataset):
             root_path: Path to dataset
             split: 'train' or 'test'
             subject_ids: List of subject IDs to filter (optional)
-            use_gyro: Whether to include gyro (angular velocity) data (default: False)
-            log_fft: Apply log1p to FFT magnitudes
-            fft_norm_stats: Tuple (mu, sigma) for FFT normalization, both shape (num_channels, num_freq_bins)
         """
         self.root_path = Path(root_path)
         self.split_path = self.root_path / split
         self.inertial_path = self.split_path/"Inertial Signals"
-        self.use_gyro = use_gyro
 
         # Load Y (label) and subjects
         path_to_y_file = self.split_path/f"y_{split}.txt"
@@ -38,28 +34,27 @@ class MyDataset(Dataset):
         
         # Load accelerometer data (body acceleration)
         # body has better result than total
-        signal_files = {       
+        accel_files = {       
             "X": f"body_acc_x_{split}.txt",
             "Y": f"body_acc_y_{split}.txt",
             "Z": f"body_acc_z_{split}.txt",
         }
         signals = []
         for axis in ["X", "Y", "Z"]:
-            data = np.loadtxt(self.inertial_path/signal_files[axis])
+            data = np.loadtxt(self.inertial_path/accel_files[axis])
             signals.append(data)
 
-        # Load gyro data if requested
-        if use_gyro:
-            gyro_files = {
-                "X": f"body_gyro_x_{split}.txt",
-                "Y": f"body_gyro_y_{split}.txt",
-                "Z": f"body_gyro_z_{split}.txt",
-            }
-            for axis in ["X", "Y", "Z"]:
-                data = np.loadtxt(self.inertial_path/gyro_files[axis])
-                signals.append(data)
+        # Load gyro data
+        gyro_files = {
+            "X": f"body_gyro_x_{split}.txt",
+            "Y": f"body_gyro_y_{split}.txt",
+            "Z": f"body_gyro_z_{split}.txt",
+        }
+        for axis in ["X", "Y", "Z"]:
+            data = np.loadtxt(self.inertial_path/gyro_files[axis])
+            signals.append(data)
 
-        all_signals = np.stack(signals, axis=1) # Stack to shape (samples, num_channels, 128) where num_channels is 3 or 6
+        all_signals = np.stack(signals, axis=1) # Stack to shape (samples, num_channels, 128) 
 
         # Return
         if subject_ids is None:
@@ -90,7 +85,7 @@ class MyDataset(Dataset):
         return mag
 
     def __getitem__(self, idx):
-        # Get time-domain signal (3, 128) for accel only, or (6, 128) with gyro
+        # Get time-domain signal (6, 128) for accel + gyro
         signal = self.signals[idx]
 
         # Apply FFT to each axis -> shape: (num_channels, num_freq_bins)
@@ -99,7 +94,7 @@ class MyDataset(Dataset):
         return torch.FloatTensor(fft_mag), torch.LongTensor([self.labels[idx]])[0]
         
 # Training function
-def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=None, use_gyro=False, **train_kwargs):
+def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
     """
     Args:
         root_path: path to UCI-HAR
@@ -107,7 +102,6 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         train_subjects
         val_subjects
         wandb_run:
-        use_gyro: Whether to include gyro data (default: False)
         **train_kwargs
     """
     # Hyperparameters 
@@ -126,20 +120,17 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         root_path,
         split='train',
         subject_ids=train_subjects,
-        use_gyro=use_gyro,
     )
 
     val_dataset = MyDataset(
         root_path,
         split='train',
         subject_ids=val_subjects,
-        use_gyro=use_gyro,
     )
     test_dataset = MyDataset(
         root_path,
         split='test',
         subject_ids=None,
-        use_gyro=use_gyro,
     )
 
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -150,14 +141,24 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     print(f"Val samples: {len(val_dataset)}")
     print(f"Test samples: {len(test_dataset)}")
 
-    # Determine number of channels based on use_gyro
-    num_channels = 6 if use_gyro else 3
-    print(f"Using {num_channels} channels ({'accel + gyro' if use_gyro else 'accel only'})")
+
 
     # Training loop configuration
-    model = model_class(num_channels=num_channels).to(device)
+    model = model_class().to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    # Optimizer with dual learning rates (Exp-4)
+    mask_params = []
+    base_params = []
+    for name, param in model.named_parameters():
+        if 'bin_logits' in name:
+            mask_params.append(param)
+        else:
+            base_params.append(param)
+            
+    optimizer = torch.optim.Adam([
+        {'params': base_params},
+        {'params': mask_params, 'lr': lr} # Reverted Exp-4 dual LR
+    ], lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6
     )
@@ -186,9 +187,10 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
             outputs = model(fft_mag) # 1. forward 
             loss = criterion(outputs, labels) # 2. loss
             
-            # Exp-G3: Best accuracy configuration
+            # Exp-G3/Combined: Progressive up to Lower Weight (Exp 2 + Exp 3)
             # L1 penalty on fraction of bins kept
             if hasattr(model, 'mask_l1') and model.mask_l1 is not None:
+                # sparsity_weight = min(0.005, epoch * 0.005 / 20)
                 sparsity_weight = 0.01
                 loss = loss + sparsity_weight * model.mask_l1
             
@@ -270,6 +272,8 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     model.eval()
 
     test_loss_sum, test_correct, test_total = 0.0, 0, 0
+    all_preds = []
+    all_labels = []
     with torch.no_grad():
         for fft_mag, labels in test_dataloader:
             fft_mag, labels = fft_mag.to(device), labels.to(device)
@@ -281,14 +285,18 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
             _, preds = outputs.max(1)
             test_total += bs
             test_correct += preds.eq(labels).sum().item()
+            
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
 
     test_loss = test_loss_sum / max(test_total, 1)
     test_acc = 100.0 * test_correct / max(test_total, 1)
+    test_f1_macro = f1_score(all_labels, all_preds, average='macro')
     
     print("-"*50)
     print(f"Summary:")
     print(f"Best Val Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
-    print(f"Test Loss: {test_loss:.4f} | Test Acc: {test_acc:.2f}%")
+    print(f"Test Loss: {test_loss:.4f} | Test Acc: {test_acc:.2f}% | Test F1 Macro: {test_f1_macro:.4f}")
     
     # Exp-G1: Print final learned mask if available
     if hasattr(model, 'last_mask') and model.last_mask is not None:
@@ -305,12 +313,14 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
             "best_epoch": best_epoch,
             "test_loss": test_loss,
             "test_acc": test_acc,
+            "test_f1_macro": test_f1_macro,
         })
 
     return {
         "best_val_loss": best_val_loss,
         "test_loss": test_loss,
         "test_acc": test_acc,
+        "test_f1_macro": test_f1_macro,
         "model_path": str(model_path),
     }
 
