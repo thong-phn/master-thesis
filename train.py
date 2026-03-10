@@ -99,8 +99,12 @@ class MyDataset(Dataset):
 
         if self.preprocessing == 'dct':
             mag = self._compute_dct(signal)
-        else:
+        elif self.preprocessing == 'no':
+            mag = self.signals[idx]
+        elif self.preprocessing == 'dct':
             mag = self._compute_fft_magnitude(signal)
+        else:
+            mag = None
 
         return torch.FloatTensor(mag), torch.LongTensor([self.labels[idx]])[0]
         
@@ -312,6 +316,8 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         print(f"\nFinal Mask Statistics:")
         print(f"  Bins kept: {bins_kept}/{total_bins} ({bins_kept/total_bins:.1%})")
         print(f"  All mask values: {final_mask}")
+    else:
+        final_mask = None
 
     if wandb_run is not None: # tracking
         wandb_run.log({
@@ -328,6 +334,7 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
         "test_acc": test_acc,
         "test_f1_macro": test_f1_macro,
         "model_path": str(model_path),
+        "final_mask": final_mask,
     }
 
 

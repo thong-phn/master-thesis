@@ -40,7 +40,7 @@ def set_seed(seed: int = 42):
 
 def main():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct'], default='fft',
+	parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'no'], default='fft',
 	                    help='Preprocessing applied to signals: fft or dct')
 	args = parser.parse_args()
 
@@ -70,6 +70,15 @@ def main():
 		print(f"Fold: Val Subject {val_subjects[0]}")
 		print(f"Train subjects ({len(train_subjects)}): {train_subjects}")
 		print(f"Test subjects ({len(test_subjects)}): {test_subjects}")
+		
+		# Open file in append mode to log each fold's results incrementally
+		fold_log_path = project_root / 'log' / f"loso_results_{args.preprocessing}.txt"
+		if not fold_log_path.parent.exists():
+			fold_log_path.parent.mkdir(parents=True)
+			
+		if not fold_log_path.exists():
+			with open(fold_log_path, "w") as f:
+				f.write("LOSO Results\n")
 		
 		# Tracking init
 		wandb_run = wandb.init(
@@ -102,8 +111,18 @@ def main():
 			preprocessing=args.preprocessing,
 		)
 
-		test_accs.append(metrics["test_acc"])
-		test_f1s.append(metrics["test_f1_macro"])
+		test_f1_macro = metrics["test_f1_macro"]
+		final_mask = metrics.get("final_mask", None)
+
+		test_accs.append(test_acc)
+		test_f1s.append(test_f1_macro)
+
+		with open(fold_log_path, "a") as f:
+			f.write(f"\nFold Val Subject {val_subjects[0]}:\n")
+			f.write(f"  Test Accuracy: {test_acc:.2f}%\n")
+			f.write(f"  Test F1 Macro: {test_f1_macro:.4f}\n")
+			if final_mask is not None:
+				f.write(f"  Final Mask: {final_mask.tolist()}\n")
 
 		if wandb_run is not None:
 			wandb_run.finish()
@@ -119,8 +138,9 @@ def main():
 	print(f"Test F1 Macro: {mean_f1:.4f} ± {std_f1:.4f}")
 
 	# Log the summary results in an overall metrics dictionary (could also write to a file)
-	with open(project_root / 'log' / "loso_results.txt", "w") as f:
-		f.write("LOSO Cross-Validation Results\n")
+	with open(project_root / 'log' / f"loso_results_{args.preprocessing}.txt", "a") as f:
+		f.write("\n" + "="*50 + "\n")
+		f.write("Overall LOSO Results\n")
 		f.write(f"Test Accuracy: {mean_acc:.2f}% ± {std_acc:.2f}%\n")
 		f.write(f"Test F1 Macro: {mean_f1:.4f} ± {std_f1:.4f}\n")
 
