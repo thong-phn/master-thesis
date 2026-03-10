@@ -111,6 +111,7 @@ def main():
 			preprocessing=args.preprocessing,
 		)
 
+		test_acc = metrics["test_acc"]
 		test_f1_macro = metrics["test_f1_macro"]
 		final_mask = metrics.get("final_mask", None)
 
