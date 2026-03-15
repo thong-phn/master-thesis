@@ -1,7 +1,7 @@
 """
 Tasks:
 	Init model and dataset
-	Run Leave-One-Subject-Out cross validation
+	Run Leave-One-Subject-Out cross validation (without Gumbel mask)
 	Log training to wandb
 """
 from pathlib import Path
@@ -13,7 +13,7 @@ import torch
 import os
 
 from train import train_loso
-from model import GumbelMaskSeparableConvCNN
+from model import SeparableConvCNN
 
 
 def set_seed(seed: int = 42):
@@ -63,18 +63,18 @@ def main():
 		print(f"Test subjects ({len(test_subjects)}): {test_subjects}")
 		
 		# Open file in append mode to log each fold's results incrementally
-		fold_log_path = project_root / 'log' / f"loso_results_{args.preprocessing}.txt"
+		fold_log_path = project_root / 'log' / f"loso_no_gumbel_results_{args.preprocessing}.txt"
 		if not fold_log_path.parent.exists():
 			fold_log_path.parent.mkdir(parents=True)
 			
 		if not fold_log_path.exists():
 			with open(fold_log_path, "w") as f:
-				f.write("LOSO Results\n")
+				f.write("LOSO Results (No Gumbel)\n")
 		
 		# Tracking init
 		wandb_run = wandb.init(
 			project="thesis",
-			name=f"loso-val-{val_subject}-gyro-exp7-lr1e3-{args.preprocessing}",
+			name=f"loso-no-gumbel-val-{val_subject}-gyro-{args.preprocessing}",
 			config={
 				"train_subjects": train_subjects,
 				"val_subjects": val_subjects,
@@ -82,7 +82,7 @@ def main():
 				"epochs": 60,
 				"lr": 1e-3,
 				"batch_size": 64,
-				"model": "GumbelMaskSeparableConvCNN",
+				"model": "SeparableConvCNN",
 				"preprocessing": args.preprocessing,
 			},
 			reinit=True
@@ -90,7 +90,7 @@ def main():
 
 		metrics = train_loso(
 			root_path=root_path,
-			model_class=GumbelMaskSeparableConvCNN,
+			model_class=SeparableConvCNN,
 			train_subjects=train_subjects,
 			val_subjects=val_subjects,
 			wandb_run=wandb_run,
@@ -98,13 +98,12 @@ def main():
 			lr=1e-3,
 			batch_size=64,
 			device=device,
-			model_path=project_root / "models" / f"best_model_subject{val_subject}_val.pth",
+			model_path=project_root / "models" / f"best_model_no_gumbel_subject{val_subject}_val.pth",
 			preprocessing=args.preprocessing,
 		)
 
 		test_acc = metrics["test_acc"]
 		test_f1_macro = metrics["test_f1_macro"]
-		final_mask = metrics.get("final_mask", None)
 
 		test_accs.append(test_acc)
 		test_f1s.append(test_f1_macro)
@@ -113,8 +112,6 @@ def main():
 			f.write(f"\nFold Val Subject {val_subjects[0]}:\n")
 			f.write(f"  Test Accuracy: {test_acc:.2f}%\n")
 			f.write(f"  Test F1 Macro: {test_f1_macro:.4f}\n")
-			if final_mask is not None:
-				f.write(f"  Final Mask: {final_mask.tolist()}\n")
 
 		if wandb_run is not None:
 			wandb_run.finish()
@@ -125,14 +122,14 @@ def main():
 	std_f1 = np.std(test_f1s)
 
 	print("="*50)
-	print("LOSO Cross-Validation Results")
+	print("LOSO Cross-Validation Results (No Gumbel)")
 	print(f"Test Accuracy: {mean_acc:.2f}% ± {std_acc:.2f}%")
 	print(f"Test F1 Macro: {mean_f1:.4f} ± {std_f1:.4f}")
 
 	# Log the summary results in an overall metrics dictionary (could also write to a file)
-	with open(project_root / 'log' / f"loso_results_{args.preprocessing}.txt", "a") as f:
+	with open(project_root / 'log' / f"loso_no_gumbel_results_{args.preprocessing}.txt", "a") as f:
 		f.write("\n" + "="*50 + "\n")
-		f.write("Overall LOSO Results\n")
+		f.write("Overall LOSO Results (No Gumbel)\n")
 		f.write(f"Test Accuracy: {mean_acc:.2f}% ± {std_acc:.2f}%\n")
 		f.write(f"Test F1 Macro: {mean_f1:.4f} ± {std_f1:.4f}\n")
 
