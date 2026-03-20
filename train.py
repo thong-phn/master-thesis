@@ -8,7 +8,7 @@ from scipy.fftpack import dct
 
 
 # Dataset 
-class MyDataset(Dataset):
+class UCIHAR_Dataset(Dataset):
     def __init__(
         self,
         root_path,
@@ -134,20 +134,20 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
 
     # Create dataset and dataloader
     # Exp-5: log1p only, no z-score normalization
-    train_dataset = MyDataset(
+    train_dataset = UCIHAR_Dataset(
         root_path,
         split='train',
         subject_ids=train_subjects,
         preprocessing=preprocessing,
     )
 
-    val_dataset = MyDataset(
+    val_dataset = UCIHAR_Dataset(
         root_path,
         split='train',
         subject_ids=val_subjects,
         preprocessing=preprocessing,
     )
-    test_dataset = MyDataset(
+    test_dataset = UCIHAR_Dataset(
         root_path,
         split='test',
         subject_ids=None,
