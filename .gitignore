@@ -6,6 +6,7 @@ models/
 uci-har/
 img/
 log/
+wear/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

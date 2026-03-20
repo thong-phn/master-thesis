@@ -12,8 +12,10 @@ import numpy as np
 import torch
 import os
 
-from train import train_loso
-from model import GumbelMaskSeparableConvCNN
+from lib.train import train_loso
+from lib.model import GumbelMaskSeparableConvCNN
+from lib.train import UCIHAR_Dataset
+from lib.wear_data import WearDataset
 
 
 def set_seed(seed: int = 42):
@@ -30,7 +32,12 @@ def set_seed(seed: int = 42):
 
 
 def main():
+	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	print(f"Using device: {device}")
+
 	parser = argparse.ArgumentParser()
+	parser.add_argument('--dataset', type=str, choices=['uci-har', 'wear'], default='uci-har',
+	                    help='Dataset to use')
 	parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'no'], default='fft',
 	                    help='Preprocessing applied to signals: fft or dct')
 	parser.add_argument('--sparsity_weight', type=float, default=0.01)
@@ -39,8 +46,21 @@ def main():
 	set_seed(42)
 
 	project_root = Path(__file__).resolve().parent
-	root_path = project_root / "uci-har"
+	# Select root path, dataset class, and parameters based on --dataset argument
+	if args.dataset == 'wear':
+		root_path = project_root / "wear"
+		dataset_class = WearDataset
+		num_classes = 8  # WEAR: 0-7
+		num_channels = 3  # WEAR: left arm (x, y, z)
+		print(f"Using WEAR dataset from {root_path}")
+	else:  # 'uci-har' (default)
+		root_path = project_root / "uci-har"
+		dataset_class = UCIHAR_Dataset
+		num_classes = 6  # UCI-HAR: 6 activities
+		num_channels = 6  # UCI-HAR: 3 accel + 3 gyro
+		print(f"Using UCI-HAR dataset from {root_path}")
 
+	# Load subject IDs (both datasets have train/test structure)
 	subject_train_path = root_path / "train" / "subject_train.txt"
 	all_subjects = sorted(np.unique(np.loadtxt(subject_train_path, dtype=int)).tolist())
 
@@ -48,10 +68,7 @@ def main():
 	all_test_subjects = sorted(np.unique(np.loadtxt(subject_test_path, dtype=int)).tolist())
 	test_subjects = [subject for subject in all_test_subjects]
 
-	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-	print(f"Using device: {device}")
-
-	results_log_path = project_root / 'log' / f"loso_results_{args.preprocessing}_{args.sparsity_weight}.txt"
+	results_log_path = project_root / 'log' / f"{args.dataset}_loso_results_{args.preprocessing}_{args.sparsity_weight}.txt"
 	results_log_path.parent.mkdir(parents=True, exist_ok=True)
 	with open(results_log_path, "w") as f:
 		f.write("LOSO Results\n")
@@ -79,7 +96,7 @@ def main():
 				"val_subjects": val_subjects,
 				"test_subjects": test_subjects,
 				"epochs": 60,
-				"lr": 1e-3,
+				"lr": 1e-5,
 				"batch_size": 64,
 				"model": "GumbelMaskSeparableConvCNN",
 				"preprocessing": args.preprocessing,
@@ -93,6 +110,9 @@ def main():
 			train_subjects=train_subjects,
 			val_subjects=val_subjects,
 			wandb_run=wandb_run,
+			dataset_class=dataset_class,
+			num_classes=num_classes,
+			num_channels=num_channels,
 			epochs=60,
 			lr=1e-3,
 			batch_size=64,
