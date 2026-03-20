@@ -51,6 +51,11 @@ def main():
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f"Using device: {device}")
 
+	results_log_path = project_root / 'log' / f"loso_results_{args.preprocessing}_{args.sparsity_weight}.txt"
+	results_log_path.parent.mkdir(parents=True, exist_ok=True)
+	with open(results_log_path, "w") as f:
+		f.write("LOSO Results\n")
+
 	test_accs = []
 	test_f1s = []
 
@@ -63,14 +68,7 @@ def main():
 		print(f"Train subjects ({len(train_subjects)}): {train_subjects}")
 		print(f"Test subjects ({len(test_subjects)}): {test_subjects}")
 		
-		# Open file in append mode to log each fold's results incrementally
-		fold_log_path = project_root / 'log' / f"loso_results_{args.preprocessing}.txt"
-		if not fold_log_path.parent.exists():
-			fold_log_path.parent.mkdir(parents=True)
-			
-		if not fold_log_path.exists():
-			with open(fold_log_path, "w") as f:
-				f.write("LOSO Results\n")
+		# Append each fold's metrics to the same run-specific results file.
 		
 		# Tracking init
 		wandb_run = wandb.init(
@@ -111,7 +109,7 @@ def main():
 		test_accs.append(test_acc)
 		test_f1s.append(test_f1_macro)
 
-		with open(fold_log_path, "a") as f:
+		with open(results_log_path, "a") as f:
 			f.write(f"\nFold Val Subject {val_subjects[0]}:\n")
 			f.write(f"  Test Accuracy: {test_acc:.2f}%\n")
 			f.write(f"  Test F1 Macro: {test_f1_macro:.4f}\n")
@@ -132,7 +130,7 @@ def main():
 	print(f"Test F1 Macro: {mean_f1:.4f} ± {std_f1:.4f}")
 
 	# Log the summary results in an overall metrics dictionary (could also write to a file)
-	with open(project_root / 'log' / f"loso_results_{args.preprocessing}_{args.sparsity_weight}.txt", "a") as f:
+	with open(results_log_path, "a") as f:
 		f.write("\n" + "="*50 + "\n")
 		f.write("Overall LOSO Results\n")
 		f.write(f"Test Accuracy: {mean_acc:.2f}% ± {std_acc:.2f}%\n")
