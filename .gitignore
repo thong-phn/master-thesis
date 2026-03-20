@@ -4,6 +4,7 @@ models/
 
 # Dataset
 uci-har/
+wear/
 img/
 log/
 
