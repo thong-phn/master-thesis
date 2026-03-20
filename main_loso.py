@@ -12,8 +12,8 @@ import numpy as np
 import torch
 import os
 
-from train import train_loso
-from model import GumbelMaskSeparableConvCNN
+from lib.train import train_loso
+from lib.model import GumbelMaskSeparableConvCNN
 
 
 def set_seed(seed: int = 42):

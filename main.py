@@ -10,8 +10,8 @@ import random
 import numpy as np
 import torch
 
-from train import train_loso
-from model import SeparableConvCNN, GumbelMaskSeparableConvCNN
+from lib.train import train_loso
+from lib.model import SeparableConvCNN, GumbelMaskSeparableConvCNN
 
 
 def set_seed(seed: int = 42):
