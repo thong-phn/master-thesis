@@ -126,6 +126,7 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
     device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
     patience = train_kwargs.get('patience', 10)
     min_delta = train_kwargs.get('min_delta', 1e-3)
+    sparsity_weight = train_kwargs.get('sparsity_weight', 0.01)
     model_path = Path(train_kwargs.get('model_path', './models/best_model.pth'))
     model_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -201,7 +202,7 @@ def train_loso(root_path, model_class, train_subjects, val_subjects, wandb_run=N
             # L1 penalty on fraction of bins kept
             if hasattr(model, 'mask_l1') and model.mask_l1 is not None:
                 # sparsity_weight = min(0.005, epoch * 0.005 / 20)
-                sparsity_weight = 0.01
+                # sparsity_weight = 0.01
                 loss = loss + sparsity_weight * model.mask_l1
             
             optimizer.zero_grad() # 3. backward: zero_grad

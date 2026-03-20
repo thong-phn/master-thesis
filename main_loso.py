@@ -33,6 +33,7 @@ def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'no'], default='fft',
 	                    help='Preprocessing applied to signals: fft or dct')
+	parser.add_argument('--sparsity_weight', type=float, default=0.01)
 	args = parser.parse_args()
 
 	set_seed(42)
@@ -100,6 +101,7 @@ def main():
 			device=device,
 			model_path=project_root / "models" / f"best_model_subject{val_subject}_val.pth",
 			preprocessing=args.preprocessing,
+			sparsity_weight=args.sparsity_weight,
 		)
 
 		test_acc = metrics["test_acc"]
@@ -130,7 +132,7 @@ def main():
 	print(f"Test F1 Macro: {mean_f1:.4f} ± {std_f1:.4f}")
 
 	# Log the summary results in an overall metrics dictionary (could also write to a file)
-	with open(project_root / 'log' / f"loso_results_{args.preprocessing}.txt", "a") as f:
+	with open(project_root / 'log' / f"loso_results_{args.preprocessing}_{args.sparsity_weight}.txt", "a") as f:
 		f.write("\n" + "="*50 + "\n")
 		f.write("Overall LOSO Results\n")
 		f.write(f"Test Accuracy: {mean_acc:.2f}% ± {std_acc:.2f}%\n")
