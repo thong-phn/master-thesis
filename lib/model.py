@@ -109,7 +109,6 @@ class GumbelMaskSeparableConvCNN(nn.Module):
         progress = epoch / max(max_epochs, 1)
         self.current_tau = self.tau_start - (self.tau_start - self.tau_end) * progress
 
-
 class SeparableConv1d(nn.Module):
     """Depthwise Separable Convolution (Depthwise + Pointwise)"""
     def __init__(self, in_channels, out_channels, kernel_size, padding=0):

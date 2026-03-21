@@ -1,0 +1,10 @@
+WEAR LOSO Results
+
+Fold Val Subject 0:
+  Test Accuracy: 71.06%
+  Test F1 Macro: 0.6566
+
+==================================================
+Overall WEAR LOSO Results
+Test Accuracy: 71.06% ± 0.00%
+Test F1 Macro: 0.6566 ± 0.0000
