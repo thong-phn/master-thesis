@@ -33,7 +33,7 @@ LABEL_MAP = {
 }
 
 
-def _remove_gravity(signal, cutoff=0.3, fs=50, order=3):
+def remove_gravity(signal, cutoff=0.3, fs=50, order=3):
     """High-pass filter to remove gravity (same as UCI-HAR preprocessing)."""
     nyq = fs / 2
     b, a = butter(order, cutoff / nyq, btype='high')
@@ -96,7 +96,7 @@ def _load_and_window_subject_csv(file_path, window_size=100, step_size=50):
     # Step 1: Filter gravity (0.3Hz high-pass)
     # -----------------------------
     if len(acc_data) > 0:
-        acc_data = _remove_gravity(acc_data)
+        acc_data = remove_gravity(acc_data)
 
         # Step 2: Min-Max normalization per channel to [-1, 1]
         # This standardizes the data to be bounded in [-1, 1] similar to UCI-HAR,
@@ -493,16 +493,11 @@ def _load_stage1_weights_to_gumbel_model(gumbel_model, stage1_state_dict):
     return gumbel_model
 
 
-def train_loso_wear_two_stage(root_path, 
-                              train_subjects, 
-                              val_subjects, 
-                              wandb_run=None, 
-                              **train_kwargs):
+def train_loso_wear_two_stage(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
     """
     Two-stage LOSO training for WEAR dataset:
     Stage 1: Train base model without Gumbel mask and save best weights
-    Stage 2: Load stage 1 weights into corresponding Gumbel model, reduce LR
-             ,and train with Gumbel mask
+    Stage 2: Load stage 1 weights into corresponding Gumbel model and train with Gumbel mask
     
     Args:
         root_path: path to WEAR dataset root
@@ -515,38 +510,36 @@ def train_loso_wear_two_stage(root_path,
     from lib.model import (
         SeparableConvCNN,
         GumbelMaskSeparableConvCNN,
+        DeepConvLSTM,
+        GumbelMaskDeepConvLSTM,
     )
-    # Preprocessing
-    preprocessing = train_kwargs.get('preprocessing', 'fft')
-    model_family = train_kwargs.get('model', 'Separable')
-    # Hyperparameters: Stage 1
-    epochs_stage1 = train_kwargs.get('epochs_stage1', 60)
+    
+    # Hyperparameters
+    epochs_stage1 = train_kwargs.get('epochs_stage1', 30)
     epochs_stage2 = train_kwargs.get('epochs_stage2', 60)
-    epochs_stage3 = train_kwargs.get('epochs_stage3', 20)
-    lr = train_kwargs.get('lr', 1e-3) # lr_stage1
+    lr = train_kwargs.get('lr', 1e-3)
     batch_size = train_kwargs.get('batch_size', 64)
     device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
     patience = train_kwargs.get('patience', 10)
     min_delta = train_kwargs.get('min_delta', 1e-3)
     sparsity_weight = train_kwargs.get('sparsity_weight', 0.01)
-    dropout = train_kwargs.get('dropout', 0.4)
-    # Hyperparameters: Stage 2
-    tau_start = train_kwargs.get('tau_start', 5.0)
-    tau_end = train_kwargs.get('tau_end', 1.0)
-    stage2_backbone_lr_factor = train_kwargs.get('stage2_backbone_lr_factor', 0.1)  # lr_stage2=lr_stage1*0.1
-    stage3_backbone_lr_factor = train_kwargs.get('stage3_backbone_lr_factor', 0.05)
-    stage3_min_kept_bins = train_kwargs.get('stage3_min_kept_bins', 1)
-    # Model path
     model_path = Path(train_kwargs.get('model_path', './models/best_wear_model_two_stage.pth'))
     model_path.parent.mkdir(parents=True, exist_ok=True)
+    preprocessing = train_kwargs.get('preprocessing', 'fft')
     
-    # Stage 1/2/3 specific model paths
+    # Stage 1 and 2 specific model paths
     stage1_model_path = model_path.parent / f"{model_path.stem}_stage1.pth"
     stage2_model_path = model_path
-    stage3_model_path = model_path.parent / f"{model_path.stem}_stage3_pruned.pth"
     
+    dropout = train_kwargs.get('dropout', 0.4)
+    tau_start = train_kwargs.get('tau_start', 5.0)
+    tau_end = train_kwargs.get('tau_end', 1.0)
+    stage2_backbone_lr_factor = train_kwargs.get('stage2_backbone_lr_factor', 0.1)
+    model_family = train_kwargs.get('model', 'Separable')
+
     model_registry = {
         'Separable': (SeparableConvCNN, GumbelMaskSeparableConvCNN, 'SeparableConvCNN', 'GumbelMaskSeparableConvCNN'),
+        'DeepConvLSTM': (DeepConvLSTM, GumbelMaskDeepConvLSTM, 'DeepConvLSTM', 'GumbelMaskDeepConvLSTM'),
     }
     if model_family not in model_registry:
         raise ValueError(f"Unsupported model family: {model_family}")
@@ -581,13 +574,13 @@ def train_loso_wear_two_stage(root_path,
     print(f"Train samples: {len(train_dataset)}")
     print(f"Val samples: {len(val_dataset)}")
     print(f"Test samples: {len(test_dataset)}")
-    print(f"Input shape: {train_dataset.signals.shape}")
+
     freq_bins = train_dataset[0][0].shape[-1]
     
     # ============================================================
     # STAGE 1: Train SeparableConvCNN (no Gumbel mask)
     # ============================================================
-    print("="*60)
+    print("\n" + "="*60)
     print(f"STAGE 1: Training {stage1_name} (without Gumbel mask)")
     print("="*60)
     
@@ -608,6 +601,7 @@ def train_loso_wear_two_stage(root_path,
     best_epoch = 0
     epochs_no_improve = 0
 
+    print("-" * 50)
     # Training loop for stage 1
     for epoch in range(epochs_stage1):
         # Train one epoch
@@ -666,7 +660,7 @@ def train_loso_wear_two_stage(root_path,
         else:
             epochs_no_improve += 1
 
-        print(f'S1: Epoch [{epoch+1}/{epochs_stage1}]: '
+        print(f'Epoch [{epoch+1}/{epochs_stage1}]: '
               f'Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; '
               f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}')
 
@@ -716,9 +710,7 @@ def train_loso_wear_two_stage(root_path,
     print(f"Stage 1 Summary:")
     print(f"Best Val Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
     print(f"Test Loss: {test_loss_stage1:.4f} | Test Acc: {test_acc_stage1:.2f}% | Test F1 Macro: {test_f1_stage1:.4f}")
-    stage1_best_val_loss = best_val_loss
-    stage1_best_epoch = best_epoch
-
+    
     if wandb_run is not None:
         wandb_run.log({
             "stage1_test_loss": test_loss_stage1,
@@ -772,6 +764,7 @@ def train_loso_wear_two_stage(root_path,
     best_epoch = 0
     epochs_no_improve = 0
 
+    print("-" * 50)
     # Training loop for stage 2
     for epoch in range(epochs_stage2):
         # Tau annealing (GumbelMask)
@@ -847,7 +840,7 @@ def train_loso_wear_two_stage(root_path,
                 tau_info = f' (tau={model_stage2.current_tau:.2f})'
             mask_info = f'; Mask: {mask_fraction:.2%}' + tau_info
 
-        print(f'S2: Epoch [{epoch+1}/{epochs_stage2}]: '
+        print(f'Epoch [{epoch+1}/{epochs_stage2}]: '
               f'Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; '
               f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}' + mask_info)
 
@@ -898,17 +891,13 @@ def train_loso_wear_two_stage(root_path,
     print(f"Stage 2 Summary:")
     print(f"Best Val Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
     print(f"Test Loss: {test_loss_stage2:.4f} | Test Acc: {test_acc_stage2:.2f}% | Test F1 Macro: {test_f1_stage2:.4f}")
-    stage2_best_val_loss = best_val_loss
-    stage2_best_epoch = best_epoch
 
     # Print final learned mask if available
-    if hasattr(model_stage2, 'get_hard_bin_mask'):
-        final_mask = model_stage2.get_hard_bin_mask().detach().cpu().numpy().astype(np.int32)
-    # if hasattr(model_stage2, 'last_mask') and model_stage2.last_mask is not None:
-    #     final_mask = model_stage2.last_mask.cpu().numpy()
+    if hasattr(model_stage2, 'last_mask') and model_stage2.last_mask is not None:
+        final_mask = model_stage2.last_mask.cpu().numpy()
         bins_kept = (final_mask > 0.5).sum()
         total_bins = len(final_mask)
-        print(f"Final Mask Statistics:")
+        print(f"\nFinal Mask Statistics:")
         print(f"  Bins kept: {bins_kept}/{total_bins} ({bins_kept/total_bins:.1%})")
         print(f"  All mask values: {final_mask}")
     else:
@@ -920,175 +909,18 @@ def train_loso_wear_two_stage(root_path,
             "stage2_test_acc": test_acc_stage2,
             "stage2_test_f1": test_f1_stage2,
         })
-
-    # ============================================================
-    # STAGE 3: Fine-tune with physically pruned bin dimension
-    # ============================================================
+    
     print("\n" + "="*60)
-    print(f"STAGE 3: Fine-tuning {stage2_name} with bin-level pruned input")
-    print("="*60)
-
-    model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
-    model_stage2.eval()
-
-    if hasattr(model_stage2, 'enable_pruned_input'):
-        keep_indices = model_stage2.enable_pruned_input(
-            threshold=0.5,
-            min_kept_bins=stage3_min_kept_bins,
-        )
-        hard_mask = model_stage2.get_hard_bin_mask().detach().cpu().numpy().astype(np.int32)
-    else:
-        raise RuntimeError("Stage-3 pruning requires model methods: enable_pruned_input/get_hard_bin_mask")
-
-    bins_kept = int(len(keep_indices))
-    total_bins = int(freq_bins)
-    print(f"Stage 3 pruning: kept {bins_kept}/{total_bins} bins ({bins_kept/max(total_bins, 1):.1%})")
-    print(f"Kept indices: {keep_indices.tolist()}")
-
-    if hasattr(model_stage2, 'bin_logits'):
-        model_stage2.bin_logits.requires_grad_(False)
-
-    stage3_backbone_lr = lr * stage3_backbone_lr_factor
-    stage3_params = [
-        p for n, p in model_stage2.named_parameters()
-        if p.requires_grad and n != 'bin_logits'
-    ]
-    optimizer_stage3 = torch.optim.Adam(stage3_params, lr=stage3_backbone_lr)
-    scheduler_stage3 = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer_stage3, mode="min", factor=0.5, patience=10, min_lr=1e-6
-    )
-
-    best_val_loss = float('inf')
-    best_epoch = 0
-    epochs_no_improve = 0
-
-    for epoch in range(epochs_stage3):
-        train_loss_sum = 0.0
-        train_correct = 0
-        train_total = 0
-
-        model_stage2.train()
-
-        for fft_mag, labels in train_dataloader:
-            fft_mag, labels = fft_mag.to(device), labels.to(device)
-
-            outputs = model_stage2(fft_mag)
-            loss = criterion(outputs, labels)
-
-            optimizer_stage3.zero_grad()
-            loss.backward()
-            optimizer_stage3.step()
-
-            train_loss_sum += loss.item() * labels.size(0)
-            _, predicted = outputs.max(1)
-            train_total += labels.size(0)
-            train_correct += predicted.eq(labels).sum().item()
-
-        train_loss = train_loss_sum / max(train_total, 1)
-        train_acc = train_correct / max(train_total, 1) * 100.0
-
-        model_stage2.eval()
-        val_loss_sum = 0.0
-        val_correct = 0
-        val_total = 0
-        with torch.no_grad():
-            for fft_mag, labels in val_dataloader:
-                fft_mag, labels = fft_mag.to(device), labels.to(device)
-
-                outputs = model_stage2(fft_mag)
-                loss = criterion(outputs, labels)
-
-                val_loss_sum += loss.item() * labels.size(0)
-                _, predicted = outputs.max(1)
-                val_total += labels.size(0)
-                val_correct += predicted.eq(labels).sum().item()
-
-        val_loss = val_loss_sum / max(val_total, 1)
-        val_acc = 100. * val_correct / max(val_total, 1)
-        scheduler_stage3.step(val_loss)
-
-        if val_loss < best_val_loss - min_delta:
-            best_val_loss = val_loss
-            torch.save(model_stage2.state_dict(), stage3_model_path)
-            best_epoch = epoch + 1
-            epochs_no_improve = 0
-        else:
-            epochs_no_improve += 1
-
-        print(f'S3: Epoch [{epoch+1}/{epochs_stage3}]: '
-              f'Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; '
-              f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}')
-
-        if wandb_run is not None:
-            wandb_run.log({
-                "stage": 3,
-                "epoch": epoch + 1,
-                "stage3_train_loss": train_loss,
-                "stage3_train_acc": train_acc,
-                "stage3_val_loss": val_loss,
-                "stage3_val_acc": val_acc,
-                "stage3_lr": optimizer_stage3.param_groups[0]["lr"],
-                "stage3_bins_kept": bins_kept,
-            })
-
-        if epochs_no_improve >= patience:
-            print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage3}] (patience={patience}).")
-            break
-
-    model_stage2.load_state_dict(torch.load(stage3_model_path, map_location=device))
-    model_stage2.eval()
-    model_stage2.enable_pruned_input(keep_indices=keep_indices)
-
-    test_loss_sum, test_correct, test_total = 0.0, 0, 0
-    all_preds_stage3 = []
-    all_labels_stage3 = []
-    with torch.no_grad():
-        for fft_mag, labels in test_dataloader:
-            fft_mag, labels = fft_mag.to(device), labels.to(device)
-            outputs = model_stage2(fft_mag)
-            loss = criterion(outputs, labels)
-
-            bs = labels.size(0)
-            test_loss_sum += loss.item() * bs
-            _, preds = outputs.max(1)
-            test_total += bs
-            test_correct += preds.eq(labels).sum().item()
-
-            all_preds_stage3.extend(preds.cpu().numpy())
-            all_labels_stage3.extend(labels.cpu().numpy())
-
-    test_loss_stage3 = test_loss_sum / max(test_total, 1)
-    test_acc_stage3 = 100.0 * test_correct / max(test_total, 1)
-    test_f1_stage3 = f1_score(all_labels_stage3, all_preds_stage3, average='macro')
-    stage3_best_val_loss = best_val_loss
-    stage3_best_epoch = best_epoch
-
-    print("-" * 50)
-    print("Stage 3 Summary:")
-    print(f"Best Val Loss: {stage3_best_val_loss:.4f} at Epoch {stage3_best_epoch}")
-    print(f"Test Loss: {test_loss_stage3:.4f} | Test Acc: {test_acc_stage3:.2f}% | Test F1 Macro: {test_f1_stage3:.4f}")
-
-    if wandb_run is not None:
-        wandb_run.log({
-            "stage3_test_loss": test_loss_stage3,
-            "stage3_test_acc": test_acc_stage3,
-            "stage3_test_f1": test_f1_stage3,
-        })
-
-    print("\n" + "="*60)
-    print("THREE-STAGE TRAINING COMPLETE")
+    print("TWO-STAGE TRAINING COMPLETE")
     print("="*60)
     print(f"Stage 1 ({stage1_name}): Test Acc: {test_acc_stage1:.2f}% | F1: {test_f1_stage1:.4f}")
     print(f"Stage 2 ({stage2_name}): Test Acc: {test_acc_stage2:.2f}% | F1: {test_f1_stage2:.4f}")
-    print(f"Stage 3 ({stage2_name}+BinPrune): Test Acc: {test_acc_stage3:.2f}% | F1: {test_f1_stage3:.4f}")
-    print(f"Improvement (S2-S1): {test_acc_stage2 - test_acc_stage1:.2f}%")
-    print(f"Improvement (S3-S2): {test_acc_stage3 - test_acc_stage2:.2f}%")
+    print(f"Improvement: {test_acc_stage2 - test_acc_stage1:.2f}%")
 
     return {
         "stage1": {
             "model": stage1_name,
-            "best_val_loss": stage1_best_val_loss,
-            "best_epoch": stage1_best_epoch,
+            "best_val_loss": best_val_loss,
             "test_loss": test_loss_stage1,
             "test_acc": test_acc_stage1,
             "test_f1_macro": test_f1_stage1,
@@ -1096,23 +928,11 @@ def train_loso_wear_two_stage(root_path,
         },
         "stage2": {
             "model": stage2_name,
-            "best_val_loss": stage2_best_val_loss,
-            "best_epoch": stage2_best_epoch,
+            "best_val_loss": best_val_loss,
             "test_loss": test_loss_stage2,
             "test_acc": test_acc_stage2,
             "test_f1_macro": test_f1_stage2,
             "model_path": str(stage2_model_path),
             "final_mask": final_mask,
-        },
-        "stage3": {
-            "model": stage2_name,
-            "best_val_loss": stage3_best_val_loss,
-            "best_epoch": stage3_best_epoch,
-            "test_loss": test_loss_stage3,
-            "test_acc": test_acc_stage3,
-            "test_f1_macro": test_f1_stage3,
-            "model_path": str(stage3_model_path),
-            "hard_mask": hard_mask,
-            "keep_indices": keep_indices.tolist(),
         }
     }

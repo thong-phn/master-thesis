@@ -1,23 +1,7 @@
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-class SeparableConv1d(nn.Module):
-    """Depthwise Separable Convolution (Depthwise + Pointwise)"""
-    def __init__(self, in_channels, out_channels, kernel_size, padding=0):
-        super(SeparableConv1d, self).__init__()
-        # Depthwise convolution
-        self.depthwise = nn.Conv1d(
-            in_channels, in_channels, kernel_size=kernel_size,
-            padding=padding, groups=in_channels, bias=False
-        )
-        # Pointwise convolution
-        self.pointwise = nn.Conv1d(in_channels, out_channels, kernel_size=1, bias=False)
-    
-    def forward(self, x):
-        x = self.depthwise(x)
-        x = self.pointwise(x)
-        return x
 
 class GumbelMaskSeparableConvCNN(nn.Module):
     """
@@ -36,8 +20,6 @@ class GumbelMaskSeparableConvCNN(nn.Module):
         self.current_tau = tau_start  # Initialize with tau_start
         self.mask_l1 = None
         self.last_mask = None
-        self.use_pruned_input = False
-        self.register_buffer('keep_indices', torch.arange(freq_bins, dtype=torch.long))
 
         # Stem block
         self.bn0 = nn.BatchNorm1d(num_channels)
@@ -66,87 +48,28 @@ class GumbelMaskSeparableConvCNN(nn.Module):
         self.fc1 = nn.Linear(128, 64)
         self.fc2 = nn.Linear(64, num_classes)
 
-    @torch.no_grad()
-    def get_hard_bin_mask(self):
-        probs_soft = torch.softmax(self.bin_logits, dim=-1)
-        probs = F.one_hot(probs_soft.argmax(dim=-1), num_classes=2).float()
-        return probs[:, 1]
-
-    @torch.no_grad()
-    def derive_keep_indices(self, threshold=0.5, min_kept_bins=1):
-        hard_mask = self.get_hard_bin_mask()
-        keep = torch.nonzero(hard_mask > threshold, as_tuple=False).squeeze(1)
-
-        if keep.numel() < min_kept_bins:
-            probs_on = torch.softmax(self.bin_logits, dim=-1)[:, 1]
-            k = max(int(min_kept_bins), 1)
-            keep = torch.topk(probs_on, k=k, largest=True).indices.sort().values
-
-        if keep.numel() == 0:
-            keep = torch.tensor([0], device=self.bin_logits.device, dtype=torch.long)
-
-        return keep
-
-    @torch.no_grad()
-    def enable_pruned_input(self, keep_indices=None, threshold=0.5, min_kept_bins=1):
-        if keep_indices is None:
-            keep = self.derive_keep_indices(threshold=threshold, min_kept_bins=min_kept_bins)
-        else:
-            keep = torch.as_tensor(keep_indices, device=self.bin_logits.device, dtype=torch.long)
-
-        self.keep_indices = keep.to(device=self.keep_indices.device, dtype=torch.long)
-        self.use_pruned_input = True
-        return self.keep_indices.detach().cpu()
-
-    def disable_pruned_input(self):
-        self.use_pruned_input = False
-
     def forward(self, x):
         # x: (batch, num_channels, freq_bins)
 
         batch_size = x.size(0)
 
         if self.training:
+            # Exp-G4: Use annealed temperature
             logits_expanded = self.bin_logits.unsqueeze(0).expand(batch_size, -1, -1)
-
-            # Hard sample for forward path (straight-through)
             probs = F.gumbel_softmax(logits_expanded, tau=self.current_tau, hard=True)
-            mask = probs[:, :, 1]  # (batch, freq_bins)
-
-            # Soft probabilities for a stabler sparsity regularizer
-            probs_soft = torch.softmax(logits_expanded / max(self.current_tau, 1e-6), dim=-1)
-            soft_on = probs_soft[:, :, 1]
-            self.mask_l1 = soft_on.mean()
         else:
+            # Exp-G5: Use hard mask in test (argmax) to match training behavior
             logits_expanded = self.bin_logits.unsqueeze(0).expand(batch_size, -1, -1)
             probs_soft = torch.softmax(logits_expanded, dim=-1)
             probs = F.one_hot(probs_soft.argmax(dim=-1), num_classes=2).float()
-            mask = probs[:, :, 1]
 
-            # Eval: keep mask statistic interpretable as hard kept-bin fraction
-            self.mask_l1 = mask.mean()
-
-        self.last_mask = mask.mean(dim=0).detach()
-        # if self.training:
-        #     # Exp-G4: Use annealed temperature
-        #     logits_expanded = self.bin_logits.unsqueeze(0).expand(batch_size, -1, -1)
-        #     probs = F.gumbel_softmax(logits_expanded, tau=self.current_tau, hard=True)
-        # else:
-        #     # Exp-G5: Use hard mask in test (argmax) to match training behavior
-        #     logits_expanded = self.bin_logits.unsqueeze(0).expand(batch_size, -1, -1)
-        #     probs_soft = torch.softmax(logits_expanded, dim=-1)
-        #     probs = F.one_hot(probs_soft.argmax(dim=-1), num_classes=2).float()
-
-        # mask = probs[:, :, 1] # shape (batch, freq_bins)
+        mask = probs[:, :, 1] # shape (batch, freq_bins)
         
         # Track statistics based on the expected mask or mean batch mask
         self.mask_l1 = mask.mean()
         self.last_mask = mask.mean(dim=0).detach() # store the mean frequency mask across the batch
-        
-        if self.use_pruned_input:
-            x = x.index_select(dim=2, index=self.keep_indices.to(x.device))
-        else:
-            x = x * mask.unsqueeze(1) # shape (batch, 1, freq_bins)
+
+        x = x * mask.unsqueeze(1) # shape (batch, 1, freq_bins)
 
         # Stem
         x = self.bn0(x)
@@ -185,6 +108,23 @@ class GumbelMaskSeparableConvCNN(nn.Module):
         # Linear annealing
         progress = epoch / max(max_epochs, 1)
         self.current_tau = self.tau_start - (self.tau_start - self.tau_end) * progress
+
+class SeparableConv1d(nn.Module):
+    """Depthwise Separable Convolution (Depthwise + Pointwise)"""
+    def __init__(self, in_channels, out_channels, kernel_size, padding=0):
+        super(SeparableConv1d, self).__init__()
+        # Depthwise convolution
+        self.depthwise = nn.Conv1d(
+            in_channels, in_channels, kernel_size=kernel_size,
+            padding=padding, groups=in_channels, bias=False
+        )
+        # Pointwise convolution
+        self.pointwise = nn.Conv1d(in_channels, out_channels, kernel_size=1, bias=False)
+    
+    def forward(self, x):
+        x = self.depthwise(x)
+        x = self.pointwise(x)
+        return x
 
 class SeparableConvCNN(nn.Module):
     """
@@ -258,3 +198,119 @@ class SeparableConvCNN(nn.Module):
         
         return x
 
+
+class DeepConvLSTM(nn.Module):
+    """
+    DeepConvLSTM baseline for sensor sequence classification.
+    """
+    def __init__(self, num_classes=6, num_channels=6, freq_bins=65, dropout=0.4, lstm_hidden=128, lstm_layers=2):
+        super(DeepConvLSTM, self).__init__()
+
+        self.conv1 = nn.Conv1d(num_channels, 64, kernel_size=5, padding=2)
+        self.bn1 = nn.BatchNorm1d(64)
+        self.conv2 = nn.Conv1d(64, 64, kernel_size=5, padding=2)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.conv3 = nn.Conv1d(64, 64, kernel_size=5, padding=2)
+        self.bn3 = nn.BatchNorm1d(64)
+        self.conv4 = nn.Conv1d(64, 64, kernel_size=5, padding=2)
+        self.bn4 = nn.BatchNorm1d(64)
+
+        self.dropout = nn.Dropout(dropout)
+        self.lstm = nn.LSTM(
+            input_size=64,
+            hidden_size=lstm_hidden,
+            num_layers=lstm_layers,
+            batch_first=True,
+            dropout=dropout if lstm_layers > 1 else 0.0,
+        )
+        self.fc = nn.Linear(lstm_hidden, num_classes)
+
+    def forward(self, x):
+        # x: (batch, num_channels, freq_bins)
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.relu(self.bn4(self.conv4(x)))
+
+        # LSTM expects (batch, seq_len, features)
+        x = x.transpose(1, 2)
+        x = self.dropout(x)
+        x, _ = self.lstm(x)
+
+        # Use last timestep representation
+        x = x[:, -1, :]
+        x = self.fc(x)
+        return x
+
+
+class GumbelMaskDeepConvLSTM(nn.Module):
+    """
+    DeepConvLSTM with Gumbel-Softmax bin on/off masking.
+    """
+    def __init__(self, num_classes=6, num_channels=6, freq_bins=65, dropout=0.4, gumbel_tau=2.0, tau_start=5.0, tau_end=1.0, lstm_hidden=128, lstm_layers=2):
+        super(GumbelMaskDeepConvLSTM, self).__init__()
+
+        # Two-class logits per bin: [off, on]
+        self.bin_logits = nn.Parameter(torch.zeros(freq_bins, 2))
+
+        # Tau annealing configuration
+        self.gumbel_tau = gumbel_tau
+        self.tau_start = tau_start
+        self.tau_end = tau_end
+        self.current_tau = tau_start
+        self.mask_l1 = None
+        self.last_mask = None
+
+        self.conv1 = nn.Conv1d(num_channels, 64, kernel_size=5, padding=2)
+        self.bn1 = nn.BatchNorm1d(64)
+        self.conv2 = nn.Conv1d(64, 64, kernel_size=5, padding=2)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.conv3 = nn.Conv1d(64, 64, kernel_size=5, padding=2)
+        self.bn3 = nn.BatchNorm1d(64)
+        self.conv4 = nn.Conv1d(64, 64, kernel_size=5, padding=2)
+        self.bn4 = nn.BatchNorm1d(64)
+
+        self.dropout = nn.Dropout(dropout)
+        self.lstm = nn.LSTM(
+            input_size=64,
+            hidden_size=lstm_hidden,
+            num_layers=lstm_layers,
+            batch_first=True,
+            dropout=dropout if lstm_layers > 1 else 0.0,
+        )
+        self.fc = nn.Linear(lstm_hidden, num_classes)
+
+    def forward(self, x):
+        # x: (batch, num_channels, freq_bins)
+        batch_size = x.size(0)
+
+        if self.training:
+            logits_expanded = self.bin_logits.unsqueeze(0).expand(batch_size, -1, -1)
+            probs = F.gumbel_softmax(logits_expanded, tau=self.current_tau, hard=True)
+        else:
+            logits_expanded = self.bin_logits.unsqueeze(0).expand(batch_size, -1, -1)
+            probs_soft = torch.softmax(logits_expanded, dim=-1)
+            probs = F.one_hot(probs_soft.argmax(dim=-1), num_classes=2).float()
+
+        mask = probs[:, :, 1]
+        self.mask_l1 = mask.mean()
+        self.last_mask = mask.mean(dim=0).detach()
+
+        x = x * mask.unsqueeze(1)
+
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.relu(self.bn4(self.conv4(x)))
+
+        x = x.transpose(1, 2)
+        x = self.dropout(x)
+        x, _ = self.lstm(x)
+        x = x[:, -1, :]
+        x = self.fc(x)
+        return x
+
+    def set_tau(self, epoch, max_epochs):
+        """Anneal temperature from tau_start to tau_end over training."""
+        progress = epoch / max(max_epochs, 1)
+        self.current_tau = self.tau_start - (self.tau_start - self.tau_end) * progress

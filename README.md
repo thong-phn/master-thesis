@@ -51,6 +51,7 @@ Add WEAR debug:
 Add WEAR debug 2: Try with 2 stage training (pre-trained the model without Gumbel)
         FFT with Gumbel stop at epoch 2; Accuracy: 70.63%; Mask: 80%
         FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; Accuracy: 71.18%; Mask: 90%
+        FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; sparsity weight: 0.01; Accuracy: 71.18%; Mask: 90%
         FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; sparsity weight: 0.1; Accuracy: 70.46%; Mask: 60
         FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; sparsity weight: 0.5; Accuracy: 45.80%; Mask: 60
         FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; sparsity weight: 1; Accuracy: 20.46%; Mask: 0 -> limit

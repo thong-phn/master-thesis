@@ -1,0 +1,98 @@
+WEAR LOSO Three-Stage Training Results
+Preprocessing: fft
+Model Family: Separable
+Sparsity Weight: 0.01
+Epochs Stage 1: 60
+Epochs Stage 2: 60
+Epochs Stage 3: 20
+Stage 2 Backbone LR Factor: 0.1
+Stage 3 Backbone LR Factor: 0.05
+
+
+==================================================
+Fold Val Subject 0:
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 71.06%
+  Test F1 Macro: 0.6566
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 71.29%
+  Test F1 Macro: 0.6520
+  Improvement vs Stage 1: 0.24%
+  Bin kept: 96.08%
+  Final Mask: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0]
+
+Stage 3 (GumbelMaskSeparableConvCNN+BinPrune):
+  Test Accuracy: 72.11%
+  Test F1 Macro: 0.6604
+  Improvement vs Stage 2: 0.81%
+  Improvement vs Stage 1: 1.05%
+  Kept Indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48]
+  Stage 3 kept bins fraction: 0.9608
+
+==================================================
+Fold Val Subject 1:
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 70.42%
+  Test F1 Macro: 0.6459
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 68.65%
+  Test F1 Macro: 0.6513
+  Improvement vs Stage 1: -1.77%
+  Bin kept: 94.12%
+  Final Mask: [1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0]
+
+Stage 3 (GumbelMaskSeparableConvCNN+BinPrune):
+  Test Accuracy: 70.07%
+  Test F1 Macro: 0.6542
+  Improvement vs Stage 2: 1.42%
+  Improvement vs Stage 1: -0.35%
+  Kept Indices: [0, 1, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
+  Stage 3 kept bins fraction: 0.9412
+
+==================================================
+Fold Val Subject 2:
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 66.84%
+  Test F1 Macro: 0.6121
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 66.99%
+  Test F1 Macro: 0.6280
+  Improvement vs Stage 1: 0.14%
+  Bin kept: 62.75%
+  Final Mask: [1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+Stage 3 (GumbelMaskSeparableConvCNN+BinPrune):
+  Test Accuracy: 68.59%
+  Test F1 Macro: 0.6313
+  Improvement vs Stage 2: 1.61%
+  Improvement vs Stage 1: 1.75%
+  Kept Indices: [0, 1, 2, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 35]
+  Stage 3 kept bins fraction: 0.6275
+
+==================================================
+Fold Val Subject 3:
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 65.28%
+  Test F1 Macro: 0.6315
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 71.43%
+  Test F1 Macro: 0.6619
+  Improvement vs Stage 1: 6.15%
+  Bin kept: 98.04%
+  Final Mask: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0]
+
+Stage 3 (GumbelMaskSeparableConvCNN+BinPrune):
+  Test Accuracy: 72.57%
+  Test F1 Macro: 0.6629
+  Improvement vs Stage 2: 1.14%
+  Improvement vs Stage 1: 7.30%
+  Kept Indices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
+  Stage 3 kept bins fraction: 0.9804
