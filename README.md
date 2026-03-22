@@ -45,8 +45,24 @@ Add WEAR debug:
             Std	0.035	0.198	1.156
             Max	0.685	1.955	6.133
             DC (bin 0)	0.022	0.557	—
-    Solution
-        Gravity filter
+    Solution: Gravity filter
         Raw FFT without Gummbel stop at epoch 4; Accuracy: 71.06% 
-        FFT with Gumbel stop at epoch 4; Accuracy: 51.88% -> Using UCI-HAR give comparable accuracy
-Add WEAR debug 2:
+        FFT with Gumbel stop at epoch 4; Accuracy: 57.88% -> Using UCI-HAR give comparable accuracy
+Add WEAR debug 2: Try with 2 stage training (pre-trained the model without Gumbel)
+        FFT with Gumbel stop at epoch 2; Accuracy: 70.63%; Mask: 80%
+        FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; Accuracy: 71.18%; Mask: 90%
+        FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; sparsity weight: 0.1; Accuracy: 70.46%; Mask: 60
+        FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; sparsity weight: 0.5; Accuracy: 45.80%; Mask: 60
+        FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; sparsity weight: 1; Accuracy: 20.46%; Mask: 0 -> limit
+
+Note: Typical pipeline: Accel -> Remove g -> FFT -> Normalized
+TODO: 
+- Add LRReduce
+- Try with different model
+- Why joint optimization not work but 2 stage work?
+Dataset: 
+UCI-HAR: Locomotion
+Wetlab: Controlled Experiment
+Handwashing: Daily life
+
+WEAR: Sport

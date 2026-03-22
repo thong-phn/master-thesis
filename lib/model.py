@@ -198,3 +198,120 @@ class SeparableConvCNN(nn.Module):
         
         return x
 
+
+class DeepConvLSTM(nn.Module):
+    """
+    DeepConvLSTM baseline for sensor sequence classification.
+    """
+    def __init__(self, num_classes=6, num_channels=6, freq_bins=65, dropout=0.4, lstm_hidden=128, lstm_layers=2):
+        super(DeepConvLSTM, self).__init__()
+
+        self.conv1 = nn.Conv1d(num_channels, 64, kernel_size=5, padding=2)
+        self.bn1 = nn.BatchNorm1d(64)
+        self.conv2 = nn.Conv1d(64, 64, kernel_size=5, padding=2)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.conv3 = nn.Conv1d(64, 64, kernel_size=5, padding=2)
+        self.bn3 = nn.BatchNorm1d(64)
+        self.conv4 = nn.Conv1d(64, 64, kernel_size=5, padding=2)
+        self.bn4 = nn.BatchNorm1d(64)
+
+        self.dropout = nn.Dropout(dropout)
+        self.lstm = nn.LSTM(
+            input_size=64,
+            hidden_size=lstm_hidden,
+            num_layers=lstm_layers,
+            batch_first=True,
+            dropout=dropout if lstm_layers > 1 else 0.0,
+        )
+        self.fc = nn.Linear(lstm_hidden, num_classes)
+
+    def forward(self, x):
+        # x: (batch, num_channels, freq_bins)
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.relu(self.bn4(self.conv4(x)))
+
+        # LSTM expects (batch, seq_len, features)
+        x = x.transpose(1, 2)
+        x = self.dropout(x)
+        x, _ = self.lstm(x)
+
+        # Use last timestep representation
+        x = x[:, -1, :]
+        x = self.fc(x)
+        return x
+
+
+class GumbelMaskDeepConvLSTM(nn.Module):
+    """
+    DeepConvLSTM with Gumbel-Softmax bin on/off masking.
+    """
+    def __init__(self, num_classes=6, num_channels=6, freq_bins=65, dropout=0.4, gumbel_tau=2.0, tau_start=5.0, tau_end=1.0, lstm_hidden=128, lstm_layers=2):
+        super(GumbelMaskDeepConvLSTM, self).__init__()
+
+        # Two-class logits per bin: [off, on]
+        self.bin_logits = nn.Parameter(torch.zeros(freq_bins, 2))
+
+        # Tau annealing configuration
+        self.gumbel_tau = gumbel_tau
+        self.tau_start = tau_start
+        self.tau_end = tau_end
+        self.current_tau = tau_start
+        self.mask_l1 = None
+        self.last_mask = None
+
+        self.conv1 = nn.Conv1d(num_channels, 64, kernel_size=5, padding=2)
+        self.bn1 = nn.BatchNorm1d(64)
+        self.conv2 = nn.Conv1d(64, 64, kernel_size=5, padding=2)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.conv3 = nn.Conv1d(64, 64, kernel_size=5, padding=2)
+        self.bn3 = nn.BatchNorm1d(64)
+        self.conv4 = nn.Conv1d(64, 64, kernel_size=5, padding=2)
+        self.bn4 = nn.BatchNorm1d(64)
+
+        self.dropout = nn.Dropout(dropout)
+        self.lstm = nn.LSTM(
+            input_size=64,
+            hidden_size=lstm_hidden,
+            num_layers=lstm_layers,
+            batch_first=True,
+            dropout=dropout if lstm_layers > 1 else 0.0,
+        )
+        self.fc = nn.Linear(lstm_hidden, num_classes)
+
+    def forward(self, x):
+        # x: (batch, num_channels, freq_bins)
+        batch_size = x.size(0)
+
+        if self.training:
+            logits_expanded = self.bin_logits.unsqueeze(0).expand(batch_size, -1, -1)
+            probs = F.gumbel_softmax(logits_expanded, tau=self.current_tau, hard=True)
+        else:
+            logits_expanded = self.bin_logits.unsqueeze(0).expand(batch_size, -1, -1)
+            probs_soft = torch.softmax(logits_expanded, dim=-1)
+            probs = F.one_hot(probs_soft.argmax(dim=-1), num_classes=2).float()
+
+        mask = probs[:, :, 1]
+        self.mask_l1 = mask.mean()
+        self.last_mask = mask.mean(dim=0).detach()
+
+        x = x * mask.unsqueeze(1)
+
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = F.relu(self.bn2(self.conv2(x)))
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = F.relu(self.bn4(self.conv4(x)))
+
+        x = x.transpose(1, 2)
+        x = self.dropout(x)
+        x, _ = self.lstm(x)
+        x = x[:, -1, :]
+        x = self.fc(x)
+        return x
+
+    def set_tau(self, epoch, max_epochs):
+        """Anneal temperature from tau_start to tau_end over training."""
+        progress = epoch / max(max_epochs, 1)
+        self.current_tau = self.tau_start - (self.tau_start - self.tau_end) * progress
+

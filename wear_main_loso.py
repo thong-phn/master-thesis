@@ -86,7 +86,7 @@ def main():
 				"val_subjects": val_subjects,
 				"test_subjects": test_subjects,
 				"epochs": 60,
-				"lr": 1e-4,
+				"lr": 1e-3,
 				"batch_size": 64,
 				"model": args.model,
 				"preprocessing": args.preprocessing,

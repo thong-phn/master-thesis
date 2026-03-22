@@ -101,11 +101,11 @@ def _load_and_window_subject_csv(file_path, window_size=100, step_size=50):
         # Step 2: Min-Max normalization per channel to [-1, 1]
         # This standardizes the data to be bounded in [-1, 1] similar to UCI-HAR,
         # preventing large inputs from destabilizing the Gumbel mask gradients.
-        min_vals = np.min(acc_data, axis=0)
-        max_vals = np.max(acc_data, axis=0)
-        range_vals = max_vals - min_vals
-        range_vals[range_vals == 0] = 1.0
-        acc_data = 2.0 * (acc_data - min_vals) / range_vals - 1.0
+        # min_vals = np.min(acc_data, axis=0)
+        # max_vals = np.max(acc_data, axis=0)
+        # range_vals = max_vals - min_vals
+        # range_vals[range_vals == 0] = 1.0
+        # acc_data = 2.0 * (acc_data - min_vals) / range_vals - 1.0
 
     num_samples = len(acc_data)
 
@@ -291,7 +291,7 @@ def train_loso_wear(root_path, model_class, train_subjects, val_subjects, wandb_
     freq_bins = train_dataset[0][0].shape[-1]
     
     # Check if model supports tau parameters
-    tau_start = train_kwargs.get('tau_start', 5.0)
+    tau_start = train_kwargs.get('tau_start', 20.0)
     tau_end = train_kwargs.get('tau_end', 1.0)
     dropout = train_kwargs.get('dropout', 0.4)
     if model_class.__name__ == 'GumbelMaskSeparableConvCNN':
@@ -462,4 +462,477 @@ def train_loso_wear(root_path, model_class, train_subjects, val_subjects, wandb_
         "test_f1_macro": test_f1_macro,
         "model_path": str(model_path),
         "final_mask": final_mask,
+    }
+
+
+def _load_stage1_weights_to_gumbel_model(gumbel_model, stage1_state_dict):
+    """
+    Load weights from SeparableConvCNN (stage 1) into GumbelMaskSeparableConvCNN (stage 2).
+    
+    The Gumbel model has an additional 'bin_logits' parameter that doesn't exist in the
+    base SeparableConvCNN model, so we selectively load weights.
+    
+    Args:
+        gumbel_model: GumbelMaskSeparableConvCNN model to load weights into
+        stage1_state_dict: State dict from trained SeparableConvCNN model
+    """
+    gumbel_state_dict = gumbel_model.state_dict()
+    
+    # Load all weights that exist in both models
+    for name, param in stage1_state_dict.items():
+        if name in gumbel_state_dict:
+            gumbel_state_dict[name] = param
+            print(f"  Loaded: {name}")
+        else:
+            print(f"  Skipped (not in Gumbel model): {name}")
+    
+    # The bin_logits will be initialized randomly (not loaded from stage 1)
+    print(f"  Kept random initialization: bin_logits (Gumbel-specific parameter)")
+    
+    gumbel_model.load_state_dict(gumbel_state_dict)
+    return gumbel_model
+
+
+def train_loso_wear_two_stage(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
+    """
+    Two-stage LOSO training for WEAR dataset:
+    Stage 1: Train base model without Gumbel mask and save best weights
+    Stage 2: Load stage 1 weights into corresponding Gumbel model and train with Gumbel mask
+    
+    Args:
+        root_path: path to WEAR dataset root
+        train_subjects: list of subject IDs for training
+        val_subjects: list of subject IDs for validation
+        wandb_run: optional wandb run for logging
+        **train_kwargs: epochs, lr, batch_size, device, patience, min_delta,
+                        sparsity_weight, model_path, preprocessing, etc.
+    """
+    from lib.model import (
+        SeparableConvCNN,
+        GumbelMaskSeparableConvCNN,
+        DeepConvLSTM,
+        GumbelMaskDeepConvLSTM,
+    )
+    
+    # Hyperparameters
+    epochs_stage1 = train_kwargs.get('epochs_stage1', 30)
+    epochs_stage2 = train_kwargs.get('epochs_stage2', 60)
+    lr = train_kwargs.get('lr', 1e-3)
+    batch_size = train_kwargs.get('batch_size', 64)
+    device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    patience = train_kwargs.get('patience', 10)
+    min_delta = train_kwargs.get('min_delta', 1e-3)
+    sparsity_weight = train_kwargs.get('sparsity_weight', 0.01)
+    model_path = Path(train_kwargs.get('model_path', './models/best_wear_model_two_stage.pth'))
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    preprocessing = train_kwargs.get('preprocessing', 'fft')
+    
+    # Stage 1 and 2 specific model paths
+    stage1_model_path = model_path.parent / f"{model_path.stem}_stage1.pth"
+    stage2_model_path = model_path
+    
+    dropout = train_kwargs.get('dropout', 0.4)
+    tau_start = train_kwargs.get('tau_start', 5.0)
+    tau_end = train_kwargs.get('tau_end', 1.0)
+    stage2_backbone_lr_factor = train_kwargs.get('stage2_backbone_lr_factor', 0.1)
+    model_family = train_kwargs.get('model', 'Separable')
+
+    model_registry = {
+        'Separable': (SeparableConvCNN, GumbelMaskSeparableConvCNN, 'SeparableConvCNN', 'GumbelMaskSeparableConvCNN'),
+        'DeepConvLSTM': (DeepConvLSTM, GumbelMaskDeepConvLSTM, 'DeepConvLSTM', 'GumbelMaskDeepConvLSTM'),
+    }
+    if model_family not in model_registry:
+        raise ValueError(f"Unsupported model family: {model_family}")
+
+    stage1_class, stage2_class, stage1_name, stage2_name = model_registry[model_family]
+    
+    # Create datasets
+    train_dataset = WEAR_Dataset(
+        root_path,
+        split='train',
+        subject_ids=train_subjects,
+        preprocessing=preprocessing,
+    )
+
+    val_dataset = WEAR_Dataset(
+        root_path,
+        split='train',
+        subject_ids=val_subjects,
+        preprocessing=preprocessing,
+    )
+    test_dataset = WEAR_Dataset(
+        root_path,
+        split='test',
+        subject_ids=None,
+        preprocessing=preprocessing,
+    )
+
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    print(f"Train samples: {len(train_dataset)}")
+    print(f"Val samples: {len(val_dataset)}")
+    print(f"Test samples: {len(test_dataset)}")
+
+    freq_bins = train_dataset[0][0].shape[-1]
+    
+    # ============================================================
+    # STAGE 1: Train SeparableConvCNN (no Gumbel mask)
+    # ============================================================
+    print("\n" + "="*60)
+    print(f"STAGE 1: Training {stage1_name} (without Gumbel mask)")
+    print("="*60)
+    
+    model_stage1 = stage1_class(
+        num_classes=8, 
+        num_channels=6, 
+        freq_bins=freq_bins, 
+        dropout=dropout
+    ).to(device)
+    
+    criterion = nn.CrossEntropyLoss()
+    optimizer_stage1 = torch.optim.Adam(model_stage1.parameters(), lr=lr)
+    scheduler_stage1 = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer_stage1, mode="min", factor=0.5, patience=10, min_lr=1e-6
+    )
+
+    best_val_loss = float('inf')
+    best_epoch = 0
+    epochs_no_improve = 0
+
+    print("-" * 50)
+    # Training loop for stage 1
+    for epoch in range(epochs_stage1):
+        # Train one epoch
+        train_loss_sum = 0.0
+        train_correct = 0
+        train_total = 0
+
+        model_stage1.train()
+
+        for fft_mag, labels in train_dataloader:
+            fft_mag, labels = fft_mag.to(device), labels.to(device)
+
+            outputs = model_stage1(fft_mag)
+            loss = criterion(outputs, labels)
+
+            optimizer_stage1.zero_grad()
+            loss.backward()
+            optimizer_stage1.step()
+
+            train_loss_sum += loss.item() * labels.size(0)
+            _, predicted = outputs.max(1)
+            train_total += labels.size(0)
+            train_correct += predicted.eq(labels).sum().item()
+
+        train_loss = train_loss_sum / train_total
+        train_acc = train_correct / train_total * 100.0
+
+        # Val one epoch
+        model_stage1.eval()
+        val_loss_sum = 0.0
+        val_correct = 0
+        val_total = 0
+
+        with torch.no_grad():
+            for fft_mag, labels in val_dataloader:
+                fft_mag, labels = fft_mag.to(device), labels.to(device)
+
+                outputs = model_stage1(fft_mag)
+                loss = criterion(outputs, labels)
+
+                val_loss_sum += loss.item() * labels.size(0)
+                _, predicted = outputs.max(1)
+                val_total += labels.size(0)
+                val_correct += predicted.eq(labels).sum().item()
+
+        val_loss = val_loss_sum / max(val_total, 1)
+        val_acc = 100. * val_correct / max(val_total, 1)
+        scheduler_stage1.step(val_loss)
+
+        # Save best model based on val_loss
+        if val_loss < best_val_loss - min_delta:
+            best_val_loss = val_loss
+            torch.save(model_stage1.state_dict(), stage1_model_path)
+            best_epoch = epoch + 1
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+
+        print(f'Epoch [{epoch+1}/{epochs_stage1}]: '
+              f'Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; '
+              f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}')
+
+        if wandb_run is not None:
+            wandb_run.log({
+                "stage": 1,
+                "epoch": epoch + 1,
+                "train_loss": train_loss,
+                "train_acc": train_acc,
+                "val_loss": val_loss,
+                "val_acc": val_acc,
+                "best_val_loss": best_val_loss,
+                "lr": optimizer_stage1.param_groups[0]["lr"],
+            })
+
+        if epochs_no_improve >= patience:
+            print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage1}] (patience={patience}).")
+            break
+
+    # Load best stage 1 model for evaluation
+    model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
+    model_stage1.eval()
+
+    test_loss_sum, test_correct, test_total = 0.0, 0, 0
+    all_preds_stage1 = []
+    all_labels_stage1 = []
+    with torch.no_grad():
+        for fft_mag, labels in test_dataloader:
+            fft_mag, labels = fft_mag.to(device), labels.to(device)
+            outputs = model_stage1(fft_mag)
+            loss = criterion(outputs, labels)
+
+            bs = labels.size(0)
+            test_loss_sum += loss.item() * bs
+            _, preds = outputs.max(1)
+            test_total += bs
+            test_correct += preds.eq(labels).sum().item()
+
+            all_preds_stage1.extend(preds.cpu().numpy())
+            all_labels_stage1.extend(labels.cpu().numpy())
+
+    test_loss_stage1 = test_loss_sum / max(test_total, 1)
+    test_acc_stage1 = 100.0 * test_correct / max(test_total, 1)
+    test_f1_stage1 = f1_score(all_labels_stage1, all_preds_stage1, average='macro')
+
+    print("-" * 50)
+    print(f"Stage 1 Summary:")
+    print(f"Best Val Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
+    print(f"Test Loss: {test_loss_stage1:.4f} | Test Acc: {test_acc_stage1:.2f}% | Test F1 Macro: {test_f1_stage1:.4f}")
+    
+    if wandb_run is not None:
+        wandb_run.log({
+            "stage1_test_loss": test_loss_stage1,
+            "stage1_test_acc": test_acc_stage1,
+            "stage1_test_f1": test_f1_stage1,
+        })
+
+    # ============================================================
+    # STAGE 2: Train GumbelMaskSeparableConvCNN with loaded weights
+    # ============================================================
+    print("\n" + "="*60)
+    print(f"STAGE 2: Training {stage2_name} (with Gumbel mask)")
+    print("="*60)
+    
+    model_stage2 = stage2_class(
+        num_classes=8,
+        num_channels=6,
+        freq_bins=freq_bins,
+        dropout=dropout,
+        tau_start=tau_start,
+        tau_end=tau_end
+    ).to(device)
+    
+    # Load stage 1 weights into stage 2 model
+    print("\nLoading Stage 1 weights into Stage 2 model:")
+    stage1_state_dict = torch.load(stage1_model_path, map_location=device)
+    _load_stage1_weights_to_gumbel_model(model_stage2, stage1_state_dict)
+    
+    # Use higher LR for Gumbel logits and reduced LR for all other parameters.
+    stage2_backbone_lr = lr * stage2_backbone_lr_factor
+    gumbel_params = [model_stage2.bin_logits]
+    gumbel_param_ids = {id(p) for p in gumbel_params}
+    backbone_params = [p for p in model_stage2.parameters() if id(p) not in gumbel_param_ids]
+
+    optimizer_stage2 = torch.optim.Adam(
+        [
+            {"params": backbone_params, "lr": stage2_backbone_lr},
+            {"params": gumbel_params, "lr": lr},
+        ]
+    )
+    scheduler_stage2 = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer_stage2, mode="min", factor=0.5, patience=10, min_lr=1e-6
+    )
+
+    print(
+        f"Stage 2 LR setup -> backbone: {stage2_backbone_lr:.2e}, "
+        f"gumbel(bin_logits): {lr:.2e}"
+    )
+
+    best_val_loss = float('inf')
+    best_epoch = 0
+    epochs_no_improve = 0
+
+    print("-" * 50)
+    # Training loop for stage 2
+    for epoch in range(epochs_stage2):
+        # Tau annealing (GumbelMask)
+        if hasattr(model_stage2, 'set_tau'):
+            model_stage2.set_tau(epoch, epochs_stage2)
+
+        # Train one epoch
+        train_loss_sum = 0.0
+        train_correct = 0
+        train_total = 0
+
+        model_stage2.train()
+
+        for fft_mag, labels in train_dataloader:
+            fft_mag, labels = fft_mag.to(device), labels.to(device)
+
+            outputs = model_stage2(fft_mag)
+            loss = criterion(outputs, labels)
+
+            # L1 penalty on mask fraction (GumbelMask)
+            if hasattr(model_stage2, 'mask_l1') and model_stage2.mask_l1 is not None:
+                loss = loss + sparsity_weight * model_stage2.mask_l1
+
+            optimizer_stage2.zero_grad()
+            loss.backward()
+            optimizer_stage2.step()
+
+            train_loss_sum += loss.item() * labels.size(0)
+            _, predicted = outputs.max(1)
+            train_total += labels.size(0)
+            train_correct += predicted.eq(labels).sum().item()
+
+        train_loss = train_loss_sum / train_total
+        train_acc = train_correct / train_total * 100.0
+
+        # Val one epoch
+        model_stage2.eval()
+        val_loss_sum = 0.0
+        val_correct = 0
+        val_total = 0
+
+        with torch.no_grad():
+            for fft_mag, labels in val_dataloader:
+                fft_mag, labels = fft_mag.to(device), labels.to(device)
+
+                outputs = model_stage2(fft_mag)
+                loss = criterion(outputs, labels)
+
+                val_loss_sum += loss.item() * labels.size(0)
+                _, predicted = outputs.max(1)
+                val_total += labels.size(0)
+                val_correct += predicted.eq(labels).sum().item()
+
+        val_loss = val_loss_sum / max(val_total, 1)
+        val_acc = 100. * val_correct / max(val_total, 1)
+        scheduler_stage2.step(val_loss)
+
+        # Save best model based on val_loss
+        if val_loss < best_val_loss - min_delta:
+            best_val_loss = val_loss
+            torch.save(model_stage2.state_dict(), stage2_model_path)
+            best_epoch = epoch + 1
+            epochs_no_improve = 0
+        else:
+            epochs_no_improve += 1
+
+        # Print mask statistics if model has masking
+        mask_info = ""
+        if hasattr(model_stage2, 'mask_l1') and model_stage2.mask_l1 is not None:
+            mask_fraction = model_stage2.mask_l1.item()
+            tau_info = ""
+            if hasattr(model_stage2, 'current_tau'):
+                tau_info = f' (tau={model_stage2.current_tau:.2f})'
+            mask_info = f'; Mask: {mask_fraction:.2%}' + tau_info
+
+        print(f'Epoch [{epoch+1}/{epochs_stage2}]: '
+              f'Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; '
+              f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}' + mask_info)
+
+        if wandb_run is not None:
+            wandb_run.log({
+                "stage": 2,
+                "epoch": epoch + 1,
+                "train_loss": train_loss,
+                "train_acc": train_acc,
+                "val_loss": val_loss,
+                "val_acc": val_acc,
+                "best_val_loss": best_val_loss,
+                "lr_backbone": optimizer_stage2.param_groups[0]["lr"],
+                "lr_gumbel": optimizer_stage2.param_groups[1]["lr"],
+            })
+
+        if epochs_no_improve >= patience:
+            print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage2}] (patience={patience}).")
+            break
+
+    # Load best stage 2 model for evaluation
+    model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
+    model_stage2.eval()
+
+    test_loss_sum, test_correct, test_total = 0.0, 0, 0
+    all_preds_stage2 = []
+    all_labels_stage2 = []
+    with torch.no_grad():
+        for fft_mag, labels in test_dataloader:
+            fft_mag, labels = fft_mag.to(device), labels.to(device)
+            outputs = model_stage2(fft_mag)
+            loss = criterion(outputs, labels)
+
+            bs = labels.size(0)
+            test_loss_sum += loss.item() * bs
+            _, preds = outputs.max(1)
+            test_total += bs
+            test_correct += preds.eq(labels).sum().item()
+
+            all_preds_stage2.extend(preds.cpu().numpy())
+            all_labels_stage2.extend(labels.cpu().numpy())
+
+    test_loss_stage2 = test_loss_sum / max(test_total, 1)
+    test_acc_stage2 = 100.0 * test_correct / max(test_total, 1)
+    test_f1_stage2 = f1_score(all_labels_stage2, all_preds_stage2, average='macro')
+
+    print("-" * 50)
+    print(f"Stage 2 Summary:")
+    print(f"Best Val Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
+    print(f"Test Loss: {test_loss_stage2:.4f} | Test Acc: {test_acc_stage2:.2f}% | Test F1 Macro: {test_f1_stage2:.4f}")
+
+    # Print final learned mask if available
+    if hasattr(model_stage2, 'last_mask') and model_stage2.last_mask is not None:
+        final_mask = model_stage2.last_mask.cpu().numpy()
+        bins_kept = (final_mask > 0.5).sum()
+        total_bins = len(final_mask)
+        print(f"\nFinal Mask Statistics:")
+        print(f"  Bins kept: {bins_kept}/{total_bins} ({bins_kept/total_bins:.1%})")
+        print(f"  All mask values: {final_mask}")
+    else:
+        final_mask = None
+
+    if wandb_run is not None:
+        wandb_run.log({
+            "stage2_test_loss": test_loss_stage2,
+            "stage2_test_acc": test_acc_stage2,
+            "stage2_test_f1": test_f1_stage2,
+        })
+    
+    print("\n" + "="*60)
+    print("TWO-STAGE TRAINING COMPLETE")
+    print("="*60)
+    print(f"Stage 1 ({stage1_name}): Test Acc: {test_acc_stage1:.2f}% | F1: {test_f1_stage1:.4f}")
+    print(f"Stage 2 ({stage2_name}): Test Acc: {test_acc_stage2:.2f}% | F1: {test_f1_stage2:.4f}")
+    print(f"Improvement: {test_acc_stage2 - test_acc_stage1:.2f}%")
+
+    return {
+        "stage1": {
+            "model": stage1_name,
+            "best_val_loss": best_val_loss,
+            "test_loss": test_loss_stage1,
+            "test_acc": test_acc_stage1,
+            "test_f1_macro": test_f1_stage1,
+            "model_path": str(stage1_model_path),
+        },
+        "stage2": {
+            "model": stage2_name,
+            "best_val_loss": best_val_loss,
+            "test_loss": test_loss_stage2,
+            "test_acc": test_acc_stage2,
+            "test_f1_macro": test_f1_stage2,
+            "model_path": str(stage2_model_path),
+            "final_mask": final_mask,
+        }
     }

@@ -1,11 +1,11 @@
 WEAR LOSO Results
 
 Fold Val Subject 0:
-  Test Accuracy: 59.99%
-  Test F1 Macro: 0.5264
+  Test Accuracy: 71.06%
+  Test F1 Macro: 0.6566
 
 ==================================================
 Overall WEAR LOSO Results
 Model: SeparableConvCNN
-Test Accuracy: 59.99% ± 0.00%
-Test F1 Macro: 0.5264 ± 0.0000
+Test Accuracy: 71.06% ± 0.00%
+Test F1 Macro: 0.6566 ± 0.0000
