@@ -13,7 +13,7 @@ import os
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="torch.cuda")
 
-from lib.wear_train import train_loso_wear_two_stage
+from lib.wear_train import train_loso_wear_two_stage_channel
 
 
 def set_seed(seed: int = 42):
@@ -35,8 +35,8 @@ def main():
     )
     parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'no'], default='fft',
                         help='Preprocessing applied to signals: fft, dct, or no')
-    parser.add_argument('--model', type=str, choices=['Separable', 'DeepConvLSTM'], default='Separable',
-                        help="Model family: 'Separable' or 'DeepConvLSTM' for two-stage training")
+    parser.add_argument('--model', type=str, choices=['Separable'], default='Separable',
+                        help="Model family for this script: 'Separable' (channel-pruning stage 2)")
     parser.add_argument('--sparsity_weight', type=float, default=0.01,
                         help='Weight for sparsity loss in stage 2 (Gumbel mask)')
     parser.add_argument('--epochs_stage1', type=int, default=60,
@@ -95,16 +95,12 @@ def main():
     test_accs_stage2 = []
     test_f1s_stage2 = []
 
-    if args.model == 'Separable':
-        stage1_label = 'SeparableConvCNN'
-        stage2_label = 'GumbelMaskSeparableConvCNN'
-    else:
-        stage1_label = 'DeepConvLSTM'
-        stage2_label = 'GumbelMaskDeepConvLSTM'
+    stage1_label = 'SeparableConvCNN'
+    stage2_label = 'GumbelChannelPruningCNN'
 
     # Run LOSO on first subject as example (can be extended to all subjects)
     # for val_subject in all_subjects:
-    for val_subject in all_subjects:
+    for val_subject in [0]:
         val_subjects = [val_subject]
         train_subjects = [subject for subject in all_subjects if subject not in val_subjects]
 
@@ -136,7 +132,7 @@ def main():
             reinit=True
         )
 
-        metrics = train_loso_wear_two_stage(
+        metrics = train_loso_wear_two_stage_channel(
             root_path=root_path,
             train_subjects=train_subjects,
             val_subjects=val_subjects,
@@ -153,7 +149,6 @@ def main():
             tau_end=args.tau_end,
             dropout=args.dropout,
             stage2_backbone_lr_factor=args.stage2_backbone_lr_factor,
-            model=args.model,
             stage1_model_path=args.stage1_model_path,
         )
 
@@ -164,6 +159,7 @@ def main():
         test_acc_stage2 = metrics["stage2"]["test_acc"]
         test_f1_stage2 = metrics["stage2"]["test_f1_macro"]
         final_mask = metrics["stage2"].get("final_mask", None)
+        pruning_stats = metrics["stage2"].get("pruning_stats", None)
 
         test_accs_stage1.append(test_acc_stage1)
         test_f1s_stage1.append(test_f1_stage1)
@@ -181,8 +177,16 @@ def main():
             f.write(f"  Test Accuracy: {test_acc_stage2:.2f}%\n")
             f.write(f"  Test F1 Macro: {test_f1_stage2:.4f}\n")
             f.write(f"  Improvement: {test_acc_stage2 - test_acc_stage1:.2f}%\n")
-            if final_mask is not None:
+            if isinstance(final_mask, dict):
+                f.write("  Final Masks:\n")
+                for block_name, block_mask in final_mask.items():
+                    f.write(f"    {block_name}: {block_mask.tolist()}\n")
+            elif final_mask is not None:
                 f.write(f"  Final Mask: {final_mask.tolist()}\n")
+            if pruning_stats is not None:
+                f.write("  Pruning Stats:\n")
+                for k, v in pruning_stats.items():
+                    f.write(f"    {k}: {v:.2f}\n")
 
         if wandb_run is not None:
             wandb_run.finish()

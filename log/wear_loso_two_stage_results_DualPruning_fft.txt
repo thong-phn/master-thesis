@@ -1,0 +1,10 @@
+WEAR LOSO Two-Stage Training Results
+Preprocessing: fft
+Model Family: DualPruning
+Sparsity Weight: 0.01
+Lambda Bin: 0.01
+Lambda Chan: 0.1
+Epochs Stage 1: 60
+Epochs Stage 2: 60
+Stage 2 Backbone LR Factor: 0.1
+
