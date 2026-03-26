@@ -1,0 +1,11 @@
+WEAR LOSO Four-Stage Training Results
+Preprocessing: fft
+Epochs Stage 1: 60
+Epochs Stage 2: 60
+Epochs Stage 3: 60
+Epochs Stage 4: 60
+Sparsity Weight Bin: 0.025232315101760883
+Sparsity Weight Channel: 0.3922997889838683
+Stage 2 Backbone LR Factor: 0.1
+Stage 4 Backbone LR Factor: 0.1
+

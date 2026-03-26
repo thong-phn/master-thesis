@@ -1,0 +1,57 @@
+# W&B Sweep for WEAR four-stage training
+# Tunes sparsity penalties and Gumbel temperature start.
+name: wear-four-stage-sparsity-tau-sweep
+project: thesis
+method: bayes
+
+metric:
+  name: stage4_test_f1
+  goal: maximize
+
+early_terminate:
+  type: hyperband
+  min_iter: 10
+
+parameters:
+  sparsity_weight_bin:
+    distribution: log_uniform_values
+    min: 0.01
+    max: 1
+
+  sparsity_weight_channel:
+    distribution: log_uniform_values
+    min: 0.01
+    max: 1
+
+  tau_start:
+    distribution: q_uniform
+    min: 2.0
+    max: 30.0
+    q: 1.0
+
+  lr:
+    values: [0.001]
+
+  stage2_backbone_lr_factor:
+    values: [0.1]
+
+  stage4_backbone_lr_factor:
+    values: [0.1]
+
+  tau_end:
+    values: [1.0]
+
+program: wear_main_loso_four_stage.py
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - --preprocessing=fft
+  - --single_subject_only
+  - --epochs_stage1=60
+  - --epochs_stage2=60
+  - --epochs_stage3=60
+  - --epochs_stage4=60
+  - --batch_size=64
+  - --dropout=0.4
+  - ${args_no_boolean_flags}
