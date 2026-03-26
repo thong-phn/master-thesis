@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
+#SBATCH --time=0:30:00
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=2
+#SBATCH --partition=gpu
+#SBATCH --gres=shard:2
+#SBATCH --exclude=gpu-node[001-004],gpu-node[009-010]
 
 # Usage:
 #   ./scripts/run_wandb_sweep_four_stage.sh [agent_count]
@@ -10,6 +16,8 @@ set -euo pipefail
 #   SWEEP_CONFIG  : path to sweep yaml (default: scripts/wandb_sweep_four_stage.yaml)
 #   WANDB_PROJECT : wandb project name override
 #   WANDB_ENTITY  : wandb entity/team override
+
+
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
