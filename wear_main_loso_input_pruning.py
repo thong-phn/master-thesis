@@ -69,8 +69,13 @@ def main():
 
     set_seed(42)
 
-    project_root = Path(__file__).resolve().parent
-    root_path = project_root / "wear"
+    # Detect if running on Kaggle and set appropriate path
+    if os.path.exists('/kaggle/input'):
+        root_path = Path('/kaggle/input/datasets/thongp/wearthesis/wear')
+        project_root = Path('/kaggle/working')
+    else:
+        project_root = Path(__file__).resolve().parent
+        root_path = project_root / "wear"
 
     subject_train_path = root_path / "train" / "subject_train.txt"
     all_subjects = sorted(np.atleast_1d(np.loadtxt(subject_train_path, dtype=int)).astype(int).tolist())
@@ -110,7 +115,7 @@ def main():
     stage2_label = 'GumbelMaskSeparableConvCNN'
     stage3_label = 'SeparableConvCNN (Pruned Input)'
 
-    fold_subjects = [all_subjects[0]] if args.single_subject_only else all_subjects
+    fold_subjects = [all_subjects[12]] if args.single_subject_only else all_subjects
 
     for val_subject in fold_subjects:
         val_subjects = [val_subject]
