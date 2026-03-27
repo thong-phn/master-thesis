@@ -119,7 +119,7 @@ def main():
     stage_names = ["stage1", "stage2", "stage3", "stage4"]
     metrics_history = {s: {"acc": [], "f1": []} for s in stage_names}
 
-    fold_subjects = [all_subjects[0]] if args.single_subject_only else all_subjects
+    fold_subjects = [all_subjects[12]] if args.single_subject_only else all_subjects
 
     for val_subject in fold_subjects:
     # for val_subject in [0]:
