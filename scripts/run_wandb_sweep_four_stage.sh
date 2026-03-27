@@ -7,10 +7,12 @@ set -euo pipefail
 #SBATCH --gres=shard:2
 #SBATCH --exclude=gpu-node[001-004],gpu-node[009-010]
 
+
+
 # Usage:
-#   ./scripts/run_wandb_sweep_four_stage.sh [agent_count]
+#   ./scripts/run_wandb_sweep_four_stage.sh [agent_count] [sweep_config]
 # Example:
-#   ./scripts/run_wandb_sweep_four_stage.sh 20
+#   ./scripts/run_wandb_sweep_four_stage.sh 20 scripts/wandb_sweep_four_stage.yaml
 #
 # Environment variables (optional):
 #   SWEEP_CONFIG  : path to sweep yaml (default: scripts/wandb_sweep_four_stage.yaml)
@@ -23,7 +25,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 AGENT_COUNT="${1:-20}"
-SWEEP_CONFIG="${SWEEP_CONFIG:-scripts/wandb_sweep_four_stage.yaml}"
+SWEEP_CONFIG="${2:-${SWEEP_CONFIG:-scripts/wandb_sweep_four_stage.yaml}}"
 
 if ! command -v wandb >/dev/null 2>&1; then
   echo "Error: wandb CLI not found. Install with: pip install wandb"
