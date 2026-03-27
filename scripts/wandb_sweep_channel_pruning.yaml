@@ -1,11 +1,11 @@
 # W&B Sweep for WEAR four-stage training
 # Tunes sparsity penalties and Gumbel temperature start.
-name: wear-input_pruning
+name: wear-channel_pruning
 project: thesis-sweep
 method: bayes
 
 metric:
-  name: stage3_test_f1
+  name: stage2_test_f1
   goal: maximize
 
 early_terminate:
@@ -13,7 +13,7 @@ early_terminate:
   min_iter: 10
 
 parameters:
-  sparsity_weight_bin:
+  sparsity_weight:
     values: [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
 
   tau_start:
@@ -28,7 +28,7 @@ parameters:
   tau_end:
     values: [1.0]
 
-program: wear_main_loso_input_pruning.py
+program: wear_main_loso_channel_pruning.py
 command:
   - ${env}
   - ${interpreter}
@@ -37,7 +37,6 @@ command:
   - --single_subject_only
   - --epochs_stage1=60
   - --epochs_stage2=60
-  - --epochs_stage3=60
   - --batch_size=64
   - --dropout=0.4
   - ${args_no_boolean_flags}
