@@ -1,8 +1,7 @@
-WEAR LOSO Three-Stage Training Results
+WEAR LOSO Two-Stage Channel-Pruning Training Results
 Preprocessing: fft
-Sparsity Weight Bin: 0.2
 Epochs Stage 1: 60
 Epochs Stage 2: 60
-Epochs Stage 3: 60
+Sparsity Weight: 0.7
 Stage 2 Backbone LR Factor: 0.1
 
