@@ -81,8 +81,13 @@ def main():
 
     set_seed(42)
 
-    project_root = Path(__file__).resolve().parent
-    root_path = project_root / "wear"
+    # Detect if running on Kaggle and set appropriate path
+    if os.path.exists('/kaggle/input'):
+        root_path = Path('/kaggle/input/datasets/thongp/wearthesis/wear')
+        project_root = Path('/kaggle/working')
+    else:
+        project_root = Path(__file__).resolve().parent
+        root_path = project_root / "wear"
 
     subject_train_path = root_path / "train" / "subject_train.txt"
     all_subjects = _load_subject_ids(subject_train_path)
