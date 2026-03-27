@@ -47,5 +47,4 @@ command:
   - --epochs_stage4=60
   - --batch_size=64
   - --dropout=0.4
-  - --stage1_model_path=models/wear_best_model_four_stage_subject0_val_stage1.pth
   - ${args_no_boolean_flags}
