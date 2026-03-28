@@ -1,6 +1,6 @@
 WEAR LOSO Three-Stage Training Results
 Preprocessing: fft
-Sparsity Weight Bin: 0.05
+Sparsity Weight Bin: 0.1
 Epochs Stage 1: 60
 Epochs Stage 2: 60
 Epochs Stage 3: 60

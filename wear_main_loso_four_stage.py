@@ -36,6 +36,42 @@ def _load_subject_ids(path):
     return sorted(np.atleast_1d(np.loadtxt(path, dtype=int)).astype(int).tolist())
 
 
+def _upload_results_log_to_wandb(log_path: Path, preprocessing: str, single_subject_only: bool):
+    if not log_path.exists():
+        print(f"Skipping W&B upload: log file not found at {log_path}")
+        return
+
+    upload_run = None
+    try:
+        run_suffix = "single-subject" if single_subject_only else "all-subjects"
+        upload_run = wandb.init(
+            project="thesis",
+            name=f"wear-loso-four-stage-log-{preprocessing}-{run_suffix}",
+            job_type="results_log_upload",
+            reinit=True,
+            config={
+                "dataset": "WEAR",
+                "training_type": "four_stage",
+                "preprocessing": preprocessing,
+                "single_subject_only": single_subject_only,
+                "results_log_file": str(log_path),
+            },
+        )
+
+        artifact = wandb.Artifact(
+            name=f"wear-loso-four-stage-results-{preprocessing}-{run_suffix}",
+            type="results-log",
+        )
+        artifact.add_file(str(log_path))
+        upload_run.log_artifact(artifact)
+        print(f"Uploaded results log to W&B artifact: {log_path}")
+    except Exception as e:
+        print(f"Failed to upload results log to W&B: {e}")
+    finally:
+        if upload_run is not None:
+            upload_run.finish()
+
+
 def main():
     parser = argparse.ArgumentParser(description='Four-stage LOSO training on WEAR dataset')
     parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'no'], default='fft',
@@ -258,6 +294,12 @@ def main():
         f.write("\nImprovement (Stage4 - Stage1):\n")
         f.write(f"  Accuracy: {improve_acc:.2f}%\n")
         f.write(f"  F1 Macro: {improve_f1:.4f}\n")
+
+    _upload_results_log_to_wandb(
+        log_path=results_log_path,
+        preprocessing=args.preprocessing,
+        single_subject_only=args.single_subject_only,
+    )
 
 
 if __name__ == "__main__":
