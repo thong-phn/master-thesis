@@ -1,6 +1,6 @@
 # W&B Sweep for WEAR four-stage training
 # Tunes sparsity penalties and Gumbel temperature start.
-name: wear-input_pruning-subject0-with-tau
+name: wear-input_pruning-subject12-with-tau
 project: thesis-sweep
 method: grid
 
