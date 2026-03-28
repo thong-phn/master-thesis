@@ -2,7 +2,7 @@
 # Tunes sparsity penalties and Gumbel temperature start.
 name: wear-input_pruning-subject12-with-tau
 project: thesis-sweep
-method: grid
+method: bayes
 
 metric:
   name: stage3_test_f1
