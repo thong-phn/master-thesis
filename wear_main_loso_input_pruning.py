@@ -115,7 +115,7 @@ def main():
     stage2_label = 'GumbelMaskSeparableConvCNN'
     stage3_label = 'SeparableConvCNN (Pruned Input)'
 
-    fold_subjects = [all_subjects[12]] if args.single_subject_only else all_subjects
+    fold_subjects = [all_subjects[0]] if args.single_subject_only else all_subjects
 
     for val_subject in fold_subjects:
         val_subjects = [val_subject]
