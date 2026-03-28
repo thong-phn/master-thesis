@@ -174,7 +174,7 @@ def main():
         print(f"Test subjects ({len(test_subjects)}): {test_subjects}")
 
         wandb_run = wandb.init(
-            project="thesis",
+            project="thesis-analysis",
             name=f"wear-loso-four-stage-val-{val_subject}-{args.preprocessing}",
             config={
                 "dataset": "WEAR",
