@@ -1,47 +1,8 @@
 WEAR LOSO Three-Stage Training Results
 Preprocessing: fft
-Sparsity Weight Bin: 0.2
+Sparsity Weight Bin: 0.05
 Epochs Stage 1: 60
 Epochs Stage 2: 60
 Epochs Stage 3: 60
 Stage 2 Backbone LR Factor: 0.1
 
-
-==================================================
-Fold Val Subject 12:
-
-Stage 1 (SeparableConvCNN):
-  Test Accuracy: 70.37%
-  Test F1 Macro: 0.6537
-
-Stage 2 (GumbelMaskSeparableConvCNN):
-  Test Accuracy: 72.67%
-  Test F1 Macro: 0.6672
-
-Stage 3 (SeparableConvCNN (Pruned Input)):
-  Test Accuracy: 73.04%
-  Test F1 Macro: 0.6720
-
-  Improvement Stage2 - Stage1: 2.31%
-  Improvement Stage3 - Stage1: 2.68%
-  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-==================================================
-Overall WEAR LOSO Three-Stage Results
-==================================================
-
-Stage 1 (SeparableConvCNN):
-  Test Accuracy: 70.37% ± 0.00%
-  Test F1 Macro: 0.6537 ± 0.0000
-
-Stage 2 (GumbelMaskSeparableConvCNN):
-  Test Accuracy: 72.67% ± 0.00%
-  Test F1 Macro: 0.6672 ± 0.0000
-
-Stage 3 (SeparableConvCNN (Pruned Input)):
-  Test Accuracy: 73.04% ± 0.00%
-  Test F1 Macro: 0.6720 ± 0.0000
-
-Improvement (Stage 3 - Stage 1):
-  Accuracy: 2.68%
-  F1 Macro: 0.0182
