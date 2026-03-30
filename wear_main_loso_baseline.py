@@ -72,8 +72,8 @@ def main():
 
 	model_class = globals()[args.model]
 
-	# for val_subject in all_subjects:
-	for val_subject in [0]:
+	for val_subject in all_subjects:
+	# for val_subject in [0]:
 		val_subjects = [val_subject]
 		train_subjects = [subject for subject in all_subjects if subject not in val_subjects]
 
