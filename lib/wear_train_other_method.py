@@ -147,13 +147,13 @@ class WEAR_Dataset(Dataset):
         step_size=50,
     ):
         """
-        Load WEAR data for specific subjects, apply sliding window, then FFT/DCT/no.
+        Load WEAR data for specific subjects, apply sliding window, then FFT/DCT/IHW/no.
 
         Args:
             root_path: Path to WEAR dataset root (containing train/ and test/ subdirs)
             split: 'train' or 'test'
             subject_ids: List of subject IDs to load (None = all in split)
-            preprocessing: 'fft', 'dct', or 'no'
+            preprocessing: 'fft', 'dct', 'ihw', or 'no'
             window_size: samples per window (default 100 = 2s at 50Hz)
             step_size: sliding step (default 50 = 50% overlap)
         """
@@ -217,17 +217,40 @@ class WEAR_Dataset(Dataset):
         dct_vals = dct(signal, type=2, axis=-1, norm='ortho')
         return np.abs(dct_vals)
 
+    @staticmethod
+    def _compute_ihw(signal, fixed_point_scale=1024):
+        # Fixed-point scaling keeps sub-integer precision while using integer Haar lifting.
+        current = np.rint(signal * fixed_point_scale).astype(np.int64)
+        details = []
+
+        # Apply dyadic levels while the current length is even.
+        while current.shape[-1] > 1 and current.shape[-1] % 2 == 0:
+            even = current[..., 0::2]
+            odd = current[..., 1::2]
+
+            detail = odd - even
+            approx = even + (detail // 2)
+
+            details.append(detail)
+            current = approx
+
+        coeffs = [current] + details[::-1]
+        ihw = np.concatenate(coeffs, axis=-1)
+        return ihw.astype(np.float32) / float(fixed_point_scale)
+
     def __getitem__(self, idx):
         signal = self.signals[idx]  # (3, window_size)
 
         if self.preprocessing == 'dct':
             mag = self._compute_dct(signal)
+        elif self.preprocessing == 'ihw':
+            mag = self._compute_ihw(signal)
         elif self.preprocessing == 'no':
             mag = signal
         elif self.preprocessing == 'fft':
             mag = self._compute_fft_magnitude(signal)
         else:
-            mag = None
+            raise ValueError(f"Unsupported preprocessing: {self.preprocessing}")
 
         return torch.FloatTensor(mag), torch.LongTensor([self.labels[idx]])[0]
 

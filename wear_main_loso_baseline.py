@@ -33,8 +33,8 @@ def set_seed(seed: int = 42):
 
 def main():
 	parser = argparse.ArgumentParser()
-	parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'no'], default='fft',
-	                    help='Preprocessing applied to signals: fft or dct')
+	parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'ihw', 'no'], default='fft',
+	                    help='Preprocessing applied to signals: fft, dct, ihw, or no')
 	parser.add_argument('--sparsity_weight', type=float, default=0.01)
 	parser.add_argument('--model', type=str, choices=['GumbelMaskSeparableConvCNN', 'SeparableConvCNN'], 
 	                    default='GumbelMaskSeparableConvCNN', help='Model architectur to use')
@@ -43,9 +43,13 @@ def main():
 	args = parser.parse_args()
 
 	set_seed(42)
-
-	project_root = Path(__file__).resolve().parent
-	root_path = project_root / "wear"
+	# Detect if running on Kaggle and set appropriate path
+	if os.path.exists('/kaggle/input'):
+		root_path = Path('/kaggle/input/datasets/thongp/wearthesis/wear')
+		project_root = Path('/kaggle/working')
+	else:
+		project_root = Path(__file__).resolve().parent
+		root_path = project_root / "wear"
 
 	# Load train and test subject IDs
 	subject_train_path = root_path / "train" / "subject_train.txt"

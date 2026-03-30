@@ -1,7 +1,7 @@
 WEAR LOSO Three-Stage Training Results
 WANDB run name: SparsityAndTauScanS0
 Preprocessing: fft
-Sparsity Weight Bin: 0.7
+Sparsity Weight Bin: 0.5
 Epochs Stage 1: 60
 Epochs Stage 2: 60
 Stage 2 Backbone LR Factor: 0.1

@@ -37,8 +37,8 @@ def main():
     parser = argparse.ArgumentParser(
         description='Two-stage channel-pruning LOSO training on WEAR dataset'
     )
-    parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'no'], default='fft',
-                        help='Preprocessing applied to signals: fft, dct, or no')
+    parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'ihw', 'no'], default='fft',
+                        help='Preprocessing applied to signals: fft, dct, ihw, or no')
     parser.add_argument('--epochs_stage1', type=int, default=60,
                         help='Number of epochs for stage 1 (SeparableConvCNN)')
     parser.add_argument('--epochs_stage2', type=int, default=60,

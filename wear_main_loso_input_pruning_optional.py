@@ -34,8 +34,8 @@ def main():
     parser = argparse.ArgumentParser(
         description='Three-stage LOSO training on WEAR dataset (input pruning)'
     )
-    parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'no'], default='fft',
-                        help='Preprocessing applied to signals: fft, dct, or no')
+    parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'ihw', 'no'], default='fft',
+                        help='Preprocessing applied to signals: fft, dct, ihw, or no')
     parser.add_argument('--sparsity_weight_bin', '--sparsity_weight', dest='sparsity_weight_bin', type=float, default=0.1,
                         help='Sparsity weight for stage 2 input-bin pruning')
     parser.add_argument('--epochs_stage1', type=int, default=60,
