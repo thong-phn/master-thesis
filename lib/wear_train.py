@@ -1501,6 +1501,319 @@ def _get_hard_bin_mask_from_model(model):
         hard = torch.softmax(model.bin_logits, dim=-1).argmax(dim=-1).float()
     return hard
 
+def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
+    """
+    Two-stage LOSO training for WEAR dataset:
+    Stage 1: Train SeparableConvCNN on full input.
+    Stage 2: Load stage-1 weights into GumbelMaskSeparableConvCNN and learn input-bin pruning.
+    """
+    from lib.model import SeparableConvCNN, GumbelMaskSeparableConvCNN
+
+    epochs_stage1 = train_kwargs.get('epochs_stage1', 60)
+    epochs_stage2 = train_kwargs.get('epochs_stage2', 60)
+    lr = train_kwargs.get('lr', 1e-3)
+    batch_size = train_kwargs.get('batch_size', 64)
+    device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    patience = train_kwargs.get('patience', 10)
+    min_delta = train_kwargs.get('min_delta', 1e-3)
+    preprocessing = train_kwargs.get('preprocessing', 'fft')
+    dropout = train_kwargs.get('dropout', 0.4)
+    tau_start = train_kwargs.get('tau_start', 10.0)
+    tau_end = train_kwargs.get('tau_end', 1.0)
+    sparsity_weight_bin = train_kwargs.get('sparsity_weight_bin', train_kwargs.get('sparsity_weight', 0.01))
+    stage2_backbone_lr_factor = train_kwargs.get('stage2_backbone_lr_factor', 0.1)
+
+    model_path = Path(train_kwargs.get('model_path', './models/best_wear_model_three_stage.pth'))
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+
+    stage1_model_path_arg = train_kwargs.get('stage1_model_path')
+    if stage1_model_path_arg is not None:
+        stage1_model_path = Path(stage1_model_path_arg).expanduser()
+    else:
+        stage1_model_path = model_path.parent / f"{model_path.stem}_stage1.pth"
+    stage1_model_path.parent.mkdir(parents=True, exist_ok=True)
+
+    stage2_model_path_arg = train_kwargs.get('stage2_model_path')
+    if stage2_model_path_arg is not None:
+        stage2_model_path = Path(stage2_model_path_arg).expanduser()
+    else:
+        stage2_model_path = model_path.parent / f"{model_path.stem}_stage2_bin.pth"
+    stage2_model_path.parent.mkdir(parents=True, exist_ok=True)
+
+    use_pretrained_stage1 = stage1_model_path_arg is not None
+    use_pretrained_stage2 = stage2_model_path_arg is not None
+
+    if use_pretrained_stage1 and not stage1_model_path.exists():
+        raise FileNotFoundError(f"Provided stage1 model path does not exist: {stage1_model_path}")
+    if use_pretrained_stage2 and not stage2_model_path.exists():
+        raise FileNotFoundError(f"Provided stage2 model path does not exist: {stage2_model_path}")
+
+    train_dataset = WEAR_Dataset(root_path, split='train', subject_ids=train_subjects, preprocessing=preprocessing)
+    val_dataset = WEAR_Dataset(root_path, split='train', subject_ids=val_subjects, preprocessing=preprocessing)
+    test_dataset = WEAR_Dataset(root_path, split='test', subject_ids=None, preprocessing=preprocessing)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+    print(f"Train samples: {len(train_dataset)}")
+    print(f"Val samples: {len(val_dataset)}")
+    print(f"Test samples: {len(test_dataset)}")
+
+    freq_bins = train_dataset[0][0].shape[-1]
+    criterion = nn.CrossEntropyLoss()
+
+    # ============================================================
+    # STAGE 1
+    # ============================================================
+    print("\n" + "=" * 60)
+    if use_pretrained_stage1:
+        print("STAGE 1: Loading pretrained SeparableConvCNN")
+        print(f"Checkpoint: {stage1_model_path}")
+    else:
+        print("STAGE 1: Training SeparableConvCNN")
+    print("=" * 60)
+
+    model_stage1 = SeparableConvCNN(num_classes=8, num_channels=6, freq_bins=freq_bins, dropout=dropout).to(device)
+    stage1_best_val_loss = None
+    stage1_best_epoch = None
+
+    if not use_pretrained_stage1:
+        optimizer = torch.optim.Adam(model_stage1.parameters(), lr=lr)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6)
+        stage1_best_val_loss = float('inf')
+        stage1_best_epoch = 0
+        no_improve = 0
+
+        for epoch in range(epochs_stage1):
+            model_stage1.train()
+            train_loss_sum, train_correct, train_total = 0.0, 0, 0
+
+            for x, y in train_loader:
+                x, y = x.to(device), y.to(device)
+                out = model_stage1(x)
+                loss = criterion(out, y)
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                bs = y.size(0)
+                train_loss_sum += loss.item() * bs
+                _, pred = out.max(1)
+                train_total += bs
+                train_correct += pred.eq(y).sum().item()
+
+            train_loss = train_loss_sum / max(train_total, 1)
+            train_acc = 100.0 * train_correct / max(train_total, 1)
+
+            val_loss, val_acc, _ = _evaluate_classifier(model_stage1, val_loader, criterion, device)
+            scheduler.step(val_loss)
+
+            if val_loss < stage1_best_val_loss - min_delta:
+                stage1_best_val_loss = val_loss
+                stage1_best_epoch = epoch + 1
+                torch.save(model_stage1.state_dict(), stage1_model_path)
+                no_improve = 0
+            else:
+                no_improve += 1
+
+            print(
+                f"Epoch [{epoch+1}/{epochs_stage1}]: "
+                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
+            )
+
+            if wandb_run is not None:
+                wandb_run.log({
+                    "stage": 1,
+                    "epoch": epoch + 1,
+                    "train_loss": train_loss,
+                    "train_acc": train_acc,
+                    "val_loss": val_loss,
+                    "val_acc": val_acc,
+                    "best_val_loss": stage1_best_val_loss,
+                    "lr": optimizer.param_groups[0]["lr"],
+                })
+
+            if no_improve >= patience:
+                print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage1}] (patience={patience}).")
+                break
+
+    model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
+    stage1_test_loss, stage1_test_acc, stage1_test_f1 = _evaluate_classifier(model_stage1, test_loader, criterion, device)
+    print("-" * 50)
+    print("Stage 1 Summary:")
+    if stage1_best_val_loss is not None:
+        print(f"Best Val Loss: {stage1_best_val_loss:.4f} at Epoch {stage1_best_epoch}")
+    else:
+        print("Best Val Loss: not available (loaded pretrained stage1 checkpoint)")
+    print(f"Test Loss: {stage1_test_loss:.4f} | Test Acc: {stage1_test_acc:.2f}% | Test F1 Macro: {stage1_test_f1:.4f}")
+
+    # ============================================================
+    # STAGE 2
+    # ============================================================
+    print("\n" + "=" * 60)
+    if use_pretrained_stage2:
+        print("STAGE 2: Loading pretrained GumbelMaskSeparableConvCNN (input-bin pruning)")
+        print(f"Checkpoint: {stage2_model_path}")
+    else:
+        print("STAGE 2: Training GumbelMaskSeparableConvCNN (input-bin pruning)")
+    print("=" * 60)
+
+    model_stage2 = GumbelMaskSeparableConvCNN(
+        num_classes=8,
+        num_channels=6,
+        freq_bins=freq_bins,
+        dropout=dropout,
+        tau_start=tau_start,
+        tau_end=tau_end,
+    ).to(device)
+
+    stage2_best_val_loss = None
+    stage2_best_epoch = None
+
+    if use_pretrained_stage2:
+        model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
+    else:
+        print("\nLoading Stage 1 weights into Stage 2 model:")
+        _load_stage1_weights_to_gumbel_model(model_stage2, torch.load(stage1_model_path, map_location=device))
+
+        stage2_backbone_lr = lr * stage2_backbone_lr_factor
+        gumbel_params = [model_stage2.bin_logits]
+        gumbel_ids = {id(p) for p in gumbel_params}
+        backbone_params = [p for p in model_stage2.parameters() if id(p) not in gumbel_ids]
+
+        optimizer = torch.optim.Adam(
+            [
+                {"params": backbone_params, "lr": stage2_backbone_lr},
+                {"params": gumbel_params, "lr": lr},
+            ]
+        )
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6)
+
+        stage2_best_val_loss = float('inf')
+        stage2_best_epoch = 0
+        no_improve = 0
+
+        for epoch in range(epochs_stage2):
+            model_stage2.train()
+            if hasattr(model_stage2, 'set_tau'):
+                model_stage2.set_tau(epoch, epochs_stage2)
+
+            train_loss_sum, train_correct, train_total = 0.0, 0, 0
+            for x, y in train_loader:
+                x, y = x.to(device), y.to(device)
+                out = model_stage2(x)
+                loss = criterion(out, y)
+                if model_stage2.mask_l1 is not None:
+                    loss = loss + sparsity_weight_bin * model_stage2.mask_l1
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                bs = y.size(0)
+                train_loss_sum += loss.item() * bs
+                _, pred = out.max(1)
+                train_total += bs
+                train_correct += pred.eq(y).sum().item()
+
+            train_loss = train_loss_sum / max(train_total, 1)
+            train_acc = 100.0 * train_correct / max(train_total, 1)
+            val_loss, val_acc, _ = _evaluate_classifier(model_stage2, val_loader, criterion, device)
+            scheduler.step(val_loss)
+
+            if val_loss < stage2_best_val_loss - min_delta:
+                stage2_best_val_loss = val_loss
+                stage2_best_epoch = epoch + 1
+                torch.save(model_stage2.state_dict(), stage2_model_path)
+                no_improve = 0
+            else:
+                no_improve += 1
+
+            mask_info = f"; Mask: {model_stage2.mask_l1.item():.2%}" if model_stage2.mask_l1 is not None else ""
+            print(
+                f"Epoch [{epoch+1}/{epochs_stage2}]: "
+                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}" + mask_info
+            )
+
+            if wandb_run is not None:
+                wandb_run.log({
+                    "stage": 2,
+                    "epoch": epoch + 1,
+                    "train_loss": train_loss,
+                    "train_acc": train_acc,
+                    "val_loss": val_loss,
+                    "val_acc": val_acc,
+                    "best_val_loss": stage2_best_val_loss,
+                    "lr_backbone": optimizer.param_groups[0]["lr"],
+                    "lr_gumbel_bin": optimizer.param_groups[1]["lr"],
+                    "mask_l1": model_stage2.mask_l1.item() if model_stage2.mask_l1 is not None else None,
+                })
+
+            if no_improve >= patience:
+                print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage2}] (patience={patience}).")
+                break
+
+    if not use_pretrained_stage2:
+        model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
+    stage2_test_loss, stage2_test_acc, stage2_test_f1 = _evaluate_classifier(model_stage2, test_loader, criterion, device)
+    hard_bin_mask = _get_hard_bin_mask_from_model(model_stage2).detach().cpu()
+    bin_keep_ratio = hard_bin_mask.mean().item()
+
+    print("-" * 50)
+    print("Stage 2 Summary:")
+    if stage2_best_val_loss is not None:
+        print(f"Best Val Loss: {stage2_best_val_loss:.4f} at Epoch {stage2_best_epoch}")
+    else:
+        print("Best Val Loss: not available (loaded pretrained stage2 checkpoint)")
+    print(f"Test Loss: {stage2_test_loss:.4f} | Test Acc: {stage2_test_acc:.2f}% | Test F1 Macro: {stage2_test_f1:.4f}")
+    print(f"Hard input bins kept: {(hard_bin_mask > 0.5).sum().item()}/{hard_bin_mask.numel()} ({bin_keep_ratio:.1%})")
+
+
+    if wandb_run is not None:
+        wandb_run.log({
+            "stage1_test_loss": stage1_test_loss,
+            "stage1_test_acc": stage1_test_acc,
+            "stage1_test_f1": stage1_test_f1,
+            "stage2_test_loss": stage2_test_loss,
+            "stage2_test_acc": stage2_test_acc,
+            "stage2_test_f1": stage2_test_f1,
+            "bin_keep_ratio": bin_keep_ratio,
+        })
+
+    print("\n" + "=" * 60)
+    print("TWO-STAGE TRAINING COMPLETE")
+    print("=" * 60)
+    print(f"Stage 1 (SeparableConvCNN): Test Acc: {stage1_test_acc:.2f}% | F1: {stage1_test_f1:.4f}")
+    print(f"Stage 2 (Input Bin Pruning): Test Acc: {stage2_test_acc:.2f}% | F1: {stage2_test_f1:.4f}")
+
+    return {
+        "stage1": {
+            "model": "SeparableConvCNN",
+            "best_val_loss": stage1_best_val_loss,
+            "best_epoch": stage1_best_epoch,
+            "test_loss": stage1_test_loss,
+            "test_acc": stage1_test_acc,
+            "test_f1_macro": stage1_test_f1,
+            "model_path": str(stage1_model_path),
+            "loaded_from_checkpoint": use_pretrained_stage1,
+        },
+        "stage2": {
+            "model": "GumbelMaskSeparableConvCNN",
+            "best_val_loss": stage2_best_val_loss,
+            "best_epoch": stage2_best_epoch,
+            "test_loss": stage2_test_loss,
+            "test_acc": stage2_test_acc,
+            "test_f1_macro": stage2_test_f1,
+            "model_path": str(stage2_model_path),
+            "hard_bin_mask": hard_bin_mask.numpy(),
+            "bin_keep_ratio": bin_keep_ratio,
+            "loaded_from_checkpoint": use_pretrained_stage2,
+        },
+    }
 
 def train_loso_wear_three_stage(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
     """
