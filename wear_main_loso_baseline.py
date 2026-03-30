@@ -38,6 +38,8 @@ def main():
 	parser.add_argument('--sparsity_weight', type=float, default=0.01)
 	parser.add_argument('--model', type=str, choices=['GumbelMaskSeparableConvCNN', 'SeparableConvCNN'], 
 	                    default='GumbelMaskSeparableConvCNN', help='Model architectur to use')
+	parser.add_argument('--wandb_run_name', type=str, default=None,
+	                    help='Optional base W&B run name. If provided, fold and summary suffixes are appended.')
 	args = parser.parse_args()
 
 	set_seed(42)
@@ -77,9 +79,14 @@ def main():
 		print(f"Test subjects ({len(test_subjects)}): {test_subjects}")
 
 		# Tracking init
+		run_name = (
+			f"{args.wandb_run_name}-val-{val_subject}"
+			if args.wandb_run_name is not None
+			else f"wear-loso-val-{val_subject}-{args.preprocessing}"
+		)
 		wandb_run = wandb.init(
 			project="thesis",
-			name=f"wear-loso-val-{val_subject}-{args.preprocessing}",
+			name=run_name,
 			config={
 				"dataset": "WEAR",
 				"train_subjects": train_subjects,
@@ -145,6 +152,38 @@ def main():
 		f.write(f"Model: {args.model}\n")
 		f.write(f"Test Accuracy: {mean_acc:.2f}% ± {std_acc:.2f}%\n")
 		f.write(f"Test F1 Macro: {mean_f1:.4f} ± {std_f1:.4f}\n")
+
+	# Upload final training log as a W&B artifact.
+	artifact_run_name = (
+		f"{args.wandb_run_name}-summary" if args.wandb_run_name is not None
+		else f"wear-loso-summary-{args.model}-{args.preprocessing}"
+	)
+	artifact_name = (
+		f"wear-loso-log-{args.model}-{args.preprocessing}-{args.sparsity_weight}"
+		.replace(".", "_")
+	)
+	artifact_run = wandb.init(
+		project="thesis",
+		name=artifact_run_name,
+		job_type="log-upload",
+		reinit=True,
+		config={
+			"dataset": "WEAR",
+			"model": args.model,
+			"preprocessing": args.preprocessing,
+			"sparsity_weight": args.sparsity_weight,
+			"log_path": str(results_log_path),
+		}
+	)
+	artifact = wandb.Artifact(
+		name=artifact_name,
+		type="training-log",
+		description="Final WEAR LOSO training log file"
+	)
+	artifact.add_file(str(results_log_path))
+	artifact_run.log_artifact(artifact)
+	artifact_run.finish()
+	print(f"Uploaded log artifact '{artifact_name}' from: {results_log_path}")
 
 
 if __name__ == "__main__":
