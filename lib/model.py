@@ -300,17 +300,6 @@ class GumbelChannelPruningCNN(nn.Module):
         x = self.fc2(x)
         return x
 
-    def set_tau(self, epoch, max_epochs):
-        progress = epoch / max(max_epochs, 1)
-        self.current_tau = self.tau_start - (self.tau_start - self.tau_end) * progress
-
-    def get_sparsity_loss(self):
-        tau = max(self.current_tau, 1e-6)
-        p2 = torch.softmax(self.chan_logits_2 / tau, dim=-1)[:, 1].mean()
-        p3 = torch.softmax(self.chan_logits_3 / tau, dim=-1)[:, 1].mean()
-        p4 = torch.softmax(self.chan_logits_4 / tau, dim=-1)[:, 1].mean()
-        return (p2 + p3 + p4) / 3.0
-
     @torch.no_grad()
     def get_hard_masks(self):
         """Return deterministic hard channel masks from logits via argmax([off, on])."""
@@ -338,3 +327,123 @@ class GumbelChannelPruningCNN(nn.Module):
         }
 
 
+class RandomChannelPruningCNN(nn.Module):
+    """
+    SeparableConv-based CNN with random channel masking after conv blocks.
+    Masks are sampled once and kept constant during training
+    """
+
+    def __init__(
+            self, 
+            num_classes=6, 
+            num_channels=6, 
+            freq_bins=65, 
+            dropout=0.4,
+            pruning_ratio=0.3, 
+            mask_seed=42 # for mask random sampling
+        ):
+        super(RandomChannelPruningCNN, self).__init__()
+        self.pruning_ratio = float(pruning_ratio)
+        self.mask_seed = int(mask_seed)
+
+        # # Compatibility with existing training logs that inspect model.mask_l1.
+        # self.mask_l1 = None # sparsity mask for l1 regularization
+
+        # Block 1: Stem block (no pruning due to feature extract & not much params compared to Block 2,3,4)
+        self.bn0 = nn.BatchNorm1d(num_channels)
+        self.sep_conv1 = SeparableConv1d(num_channels, 32, kernel_size=5, padding=2)
+        self.bn1 = nn.BatchNorm1d(32)
+        self.pool1 = nn.MaxPool1d(2)
+
+        # Block 2
+        self.sep_conv2 = SeparableConv1d(32, 64, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm1d(64)
+        self.pool2 = nn.MaxPool1d(2)
+        self.chan_logits_2 = nn.Parameter(torch.zeros(64, 2))
+
+        # Block 3
+        self.sep_conv3 = SeparableConv1d(64, 128, kernel_size=3, padding=1)
+        self.bn3 = nn.BatchNorm1d(128)
+        self.pool3 = nn.MaxPool1d(2)
+        self.chan_logits_3 = nn.Parameter(torch.zeros(128, 2))
+
+        # Block 4
+        self.sep_conv4 = SeparableConv1d(128, 128, kernel_size=3, padding=1)
+        self.bn4 = nn.BatchNorm1d(128)
+        self.pool4 = nn.MaxPool1d(2)
+        self.chan_logits_4 = nn.Parameter(torch.zeros(128, 2))
+
+        # Classification head
+        self.global_avg_pool = nn.AdaptiveAvgPool1d(1)
+        self.dropout = nn.Dropout(dropout)
+        self.fc1 = nn.Linear(128, 64)
+        self.fc2 = nn.Linear(64, num_classes)
+
+        # Mask tracing
+        self.register_buffer('mask_2', self._make_mask(64, self.pruning_ratio, self.mask_seed+2))
+        self.register_buffer('mask_3', self._make_mask(128, self.pruning_ratio, self.mask_seed+3))
+        self.register_buffer('mask_4', self._make_mask(128, self.pruning_ratio, self.mask_seed+4))
+        self.register_buffer('last_mask_2', self.mask2.clone())
+        self.register_buffer('last_mask_3', self.mask3.clone())
+        self.register_buffer('last_mask_4', self.mask3.clone())
+    
+    @staticmethod
+    def _make_mask(channels, pruning_ratio, seed):
+        keep = max(1, int(round(channels * (1.0 - pruning_ratio))))
+        g = torch.Generator()
+        g.manual_seed(seed)
+        perm = torch.randperm(channels, generator=g)
+        mask = torch.zeros(channels, dtype=torch.float32)
+        mask[perm[:keep]] = 1.0
+        return mask
+
+    def forward(self, x):
+        # Stem
+        x = self.bn0(x)
+        x = F.relu(self.bn1(self.sep_conv1(x)))
+        x = self.pool1(x)
+
+        # Block 2
+        x = F.relu(self.bn2(self.sep_conv2(x)))
+        x = x * self.mask2.unsqueeze(-1)
+        self.last_mask_2 = self.mask2.detach()
+        x = self.pool2(x)
+
+        # Block 3
+        x = F.relu(self.bn3(self.sep_conv3(x)))
+        x = x * self.mask3.unsqueeze(-1)
+        self.last_mask_3 = self.mask3.detach()
+        x = self.pool3(x)
+
+        # Block 4
+        x = F.relu(self.bn4(self.sep_conv4(x)))
+        x = x * self.mask4.unsqueeze(-1)
+        self.last_mask_4 = self.mask4.detach()
+        x = self.pool4(x)
+
+        x = self.global_avg_pool(x).squeeze(-1)
+        x = self.dropout(x)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+    @torch.no_grad()
+    def get_hard_masks(self):
+        return {
+            'block2': self.mask2,
+            'block3': self.mask3,
+            'block4': self.mask4,
+        }
+
+    @torch.no_grad()
+    def get_pruning_stats(self):
+        c2 = self.mask2.sum().item()
+        c3 = self.mask3.sum().item()
+        c4 = self.mask4.sum().item()
+        total = 64 + 128 + 128
+        return {
+            'Block2_Pruned_%': (1 - c2 / 64.0) * 100.0,
+            'Block3_Pruned_%': (1 - c3 / 128.0) * 100.0,
+            'Block4_Pruned_%': (1 - c4 / 128.0) * 100.0,
+            'Total_Pruned_%': (1 - (c2 + c3 + c4) / total) * 100.0,
+        }

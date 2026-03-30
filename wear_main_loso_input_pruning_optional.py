@@ -14,7 +14,7 @@ import os
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="torch.cuda")
 
-from lib.wear_train import train_loso_wear_three_stage
+from lib.wear_train import train_loso_wear_two_stage_input_pruning
 
 
 def set_seed(seed: int = 42):
@@ -42,8 +42,6 @@ def main():
                         help='Number of epochs for stage 1 (SeparableConvCNN)')
     parser.add_argument('--epochs_stage2', type=int, default=60,
                         help='Number of epochs for stage 2 (input-bin Gumbel pruning)')
-    parser.add_argument('--epochs_stage3', type=int, default=60,
-                        help='Number of epochs for stage 3 (retrain on pruned input)')
     parser.add_argument('--lr', type=float, default=1e-3,
                         help='Base learning rate')
     parser.add_argument('--stage2_backbone_lr_factor', type=float, default=0.1,
@@ -60,22 +58,16 @@ def main():
                         help='Optional path to a pretrained Stage 1 checkpoint. If provided, Stage 1 training is skipped.')
     parser.add_argument('--stage2_model_path', type=str, default=None,
                         help='Optional path to a pretrained Stage 2 checkpoint. If provided, Stage 2 training is skipped.')
-    parser.add_argument('--stage3_model_path', type=str, default=None,
-                        help='Optional path to a pretrained Stage 3 checkpoint. If provided, Stage 3 training is skipped.')
     parser.add_argument('--single_subject_only', action='store_true',
                         help='Run only one LOSO fold (subject 0 if available).')
+    parser.add_argument('--wandb_run_name', type=str)
     
     args = parser.parse_args()
 
     set_seed(42)
 
-    # Detect if running on Kaggle and set appropriate path
-    if os.path.exists('/kaggle/input'):
-        root_path = Path('/kaggle/input/datasets/thongp/wearthesis/wear')
-        project_root = Path('/kaggle/working')
-    else:
-        project_root = Path(__file__).resolve().parent
-        root_path = project_root / "wear"
+    project_root = Path(__file__).resolve().parent
+    root_path = project_root / "wear"
 
     subject_train_path = root_path / "train" / "subject_train.txt"
     all_subjects = sorted(np.atleast_1d(np.loadtxt(subject_train_path, dtype=int)).astype(int).tolist())
@@ -90,18 +82,16 @@ def main():
     results_log_path.parent.mkdir(parents=True, exist_ok=True)
     with open(results_log_path, "w") as f:
         f.write("WEAR LOSO Three-Stage Training Results\n")
+        f.write(f"WANDB run name: {args.wandb_run_name}\n")
         f.write(f"Preprocessing: {args.preprocessing}\n")
         f.write(f"Sparsity Weight Bin: {args.sparsity_weight_bin}\n")
         f.write(f"Epochs Stage 1: {args.epochs_stage1}\n")
         f.write(f"Epochs Stage 2: {args.epochs_stage2}\n")
-        f.write(f"Epochs Stage 3: {args.epochs_stage3}\n")
         f.write(f"Stage 2 Backbone LR Factor: {args.stage2_backbone_lr_factor}\n")
         if args.stage1_model_path is not None:
             f.write(f"Stage 1 Checkpoint Override: {args.stage1_model_path}\n")
         if args.stage2_model_path is not None:
             f.write(f"Stage 2 Checkpoint Override: {args.stage2_model_path}\n")
-        if args.stage3_model_path is not None:
-            f.write(f"Stage 3 Checkpoint Override: {args.stage3_model_path}\n")
         f.write("\n")
 
     test_accs_stage1 = []
@@ -115,7 +105,7 @@ def main():
     stage2_label = 'GumbelMaskSeparableConvCNN'
     stage3_label = 'SeparableConvCNN (Pruned Input)'
 
-    fold_subjects = [all_subjects[12]] if args.single_subject_only else all_subjects
+    fold_subjects = [all_subjects[0]] if args.single_subject_only else all_subjects
 
     for val_subject in fold_subjects:
         val_subjects = [val_subject]
@@ -129,7 +119,7 @@ def main():
         # Tracking init
         wandb_run = wandb.init(
             project="thesis-analysis",
-            name=f"wear-loso-three-stage-val-{val_subject}-{args.preprocessing}",
+            name=f"wear-loso-{args.wandb_run_name}-{val_subject}-{args.preprocessing}",
             config={
                 "dataset": "WEAR",
                 "train_subjects": train_subjects,
@@ -137,7 +127,6 @@ def main():
                 "test_subjects": test_subjects,
                 "epochs_stage1": args.epochs_stage1,
                 "epochs_stage2": args.epochs_stage2,
-                "epochs_stage3": args.epochs_stage3,
                 "lr": args.lr,
                 "stage2_backbone_lr_factor": args.stage2_backbone_lr_factor,
                 "batch_size": args.batch_size,
@@ -146,19 +135,17 @@ def main():
                 "training_type": "three_stage",
                 "stage1_model_path": args.stage1_model_path,
                 "stage2_model_path": args.stage2_model_path,
-                "stage3_model_path": args.stage3_model_path,
             },
             reinit=True
         )
 
-        metrics = train_loso_wear_three_stage(
+        metrics = train_loso_wear_two_stage_input_pruning(
             root_path=root_path,
             train_subjects=train_subjects,
             val_subjects=val_subjects,
             wandb_run=wandb_run,
             epochs_stage1=args.epochs_stage1,
             epochs_stage2=args.epochs_stage2,
-            epochs_stage3=args.epochs_stage3,
             lr=args.lr,
             batch_size=args.batch_size,
             device=device,
@@ -171,7 +158,6 @@ def main():
             stage2_backbone_lr_factor=args.stage2_backbone_lr_factor,
             stage1_model_path=args.stage1_model_path,
             stage2_model_path=args.stage2_model_path,
-            stage3_model_path=args.stage3_model_path,
         )
 
         # Extract metrics from all three stages
@@ -181,17 +167,12 @@ def main():
         test_acc_stage2 = metrics["stage2"]["test_acc"]
         test_f1_stage2 = metrics["stage2"]["test_f1_macro"]
 
-        test_acc_stage3 = metrics["stage3"]["test_acc"]
-        test_f1_stage3 = metrics["stage3"]["test_f1_macro"]
-
         hard_bin_mask = metrics["stage2"].get("hard_bin_mask", None)
 
         test_accs_stage1.append(test_acc_stage1)
         test_f1s_stage1.append(test_f1_stage1)
         test_accs_stage2.append(test_acc_stage2)
         test_f1s_stage2.append(test_f1_stage2)
-        test_accs_stage3.append(test_acc_stage3)
-        test_f1s_stage3.append(test_f1_stage3)
 
         # Log results
         with open(results_log_path, "a") as f:
@@ -204,12 +185,7 @@ def main():
             f.write(f"  Test Accuracy: {test_acc_stage2:.2f}%\n")
             f.write(f"  Test F1 Macro: {test_f1_stage2:.4f}\n")
 
-            f.write(f"\nStage 3 ({stage3_label}):\n")
-            f.write(f"  Test Accuracy: {test_acc_stage3:.2f}%\n")
-            f.write(f"  Test F1 Macro: {test_f1_stage3:.4f}\n")
-
             f.write(f"\n  Improvement Stage2 - Stage1: {test_acc_stage2 - test_acc_stage1:.2f}%\n")
-            f.write(f"  Improvement Stage3 - Stage1: {test_acc_stage3 - test_acc_stage1:.2f}%\n")
 
             if hard_bin_mask is not None:
                 f.write(f"  Hard Bin Mask: {hard_bin_mask.tolist()}\n")
@@ -228,11 +204,6 @@ def main():
     mean_f1_stage2 = np.mean(test_f1s_stage2)
     std_f1_stage2 = np.std(test_f1s_stage2)
 
-    mean_acc_stage3 = np.mean(test_accs_stage3)
-    std_acc_stage3 = np.std(test_accs_stage3)
-    mean_f1_stage3 = np.mean(test_f1s_stage3)
-    std_f1_stage3 = np.std(test_f1s_stage3)
-
     print("=" * 50)
     print("WEAR LOSO Three-Stage Cross-Validation Results")
     print("=" * 50)
@@ -242,12 +213,9 @@ def main():
     print(f"\nStage 2 ({stage2_label}):")
     print(f"  Test Accuracy: {mean_acc_stage2:.2f}% ± {std_acc_stage2:.2f}%")
     print(f"  Test F1 Macro: {mean_f1_stage2:.4f} ± {std_f1_stage2:.4f}")
-    print(f"\nStage 3 ({stage3_label}):")
-    print(f"  Test Accuracy: {mean_acc_stage3:.2f}% ± {std_acc_stage3:.2f}%")
-    print(f"  Test F1 Macro: {mean_f1_stage3:.4f} ± {std_f1_stage3:.4f}")
-    print(f"\nImprovement (Stage 3 - Stage 1):")
-    print(f"  Accuracy: {mean_acc_stage3 - mean_acc_stage1:.2f}%")
-    print(f"  F1 Macro: {mean_f1_stage3 - mean_f1_stage1:.4f}")
+    print(f"\nImprovement (Stage 2 - Stage 1):")
+    print(f"  Accuracy: {mean_acc_stage2 - mean_acc_stage1:.2f}%")
+    print(f"  F1 Macro: {mean_f1_stage2 - mean_f1_stage1:.4f}")
 
     # Write overall results
     with open(results_log_path, "a") as f:
@@ -260,17 +228,14 @@ def main():
         f.write(f"\nStage 2 ({stage2_label}):\n")
         f.write(f"  Test Accuracy: {mean_acc_stage2:.2f}% ± {std_acc_stage2:.2f}%\n")
         f.write(f"  Test F1 Macro: {mean_f1_stage2:.4f} ± {std_f1_stage2:.4f}\n")
-        f.write(f"\nStage 3 ({stage3_label}):\n")
-        f.write(f"  Test Accuracy: {mean_acc_stage3:.2f}% ± {std_acc_stage3:.2f}%\n")
-        f.write(f"  Test F1 Macro: {mean_f1_stage3:.4f} ± {std_f1_stage3:.4f}\n")
-        f.write(f"\nImprovement (Stage 3 - Stage 1):\n")
-        f.write(f"  Accuracy: {mean_acc_stage3 - mean_acc_stage1:.2f}%\n")
-        f.write(f"  F1 Macro: {mean_f1_stage3 - mean_f1_stage1:.4f}\n")
+        f.write(f"\nImprovement (Stage 2 - Stage 1):\n")
+        f.write(f"  Accuracy: {mean_acc_stage2 - mean_acc_stage1:.2f}%\n")
+        f.write(f"  F1 Macro: {mean_f1_stage2 - mean_f1_stage1:.4f}\n")
 
     # Upload the final consolidated log file as a W&B artifact.
     artifact_run = wandb.init(
         project="thesis-analysis",
-        name=f"wear-loso-three-stage-log-artifact-{args.preprocessing}",
+        name=f"wear-loso-{args.wandb_run_name}-artifact-{args.preprocessing}",
         config={
             "dataset": "WEAR",
             "training_type": "three_stage",
@@ -285,7 +250,7 @@ def main():
 
     if artifact_run is not None:
         artifact = wandb.Artifact(
-            name=f"wear-loso-three-stage-results-{args.preprocessing}",
+            name=f"wear-loso-{args.wandb_run_name}-results-{args.preprocessing}",
             type="results-log",
             metadata={
                 "dataset": "WEAR",
@@ -293,7 +258,6 @@ def main():
                 "sparsity_weight_bin": args.sparsity_weight_bin,
                 "epochs_stage1": args.epochs_stage1,
                 "epochs_stage2": args.epochs_stage2,
-                "epochs_stage3": args.epochs_stage3,
             },
         )
         artifact.add_file(str(results_log_path))
