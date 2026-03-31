@@ -14,20 +14,7 @@ import os
 
 from lib.train import train_loso
 from lib.model import SeparableConvCNN
-
-
-def set_seed(seed: int = 42):
-    random.seed(seed)
-    os.environ['SEED'] = str(seed)
-    np.random.seed(seed)
-    
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed) # Nếu dùng nhiều GPU
-    
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
-
+from wear_main_loso_baseline import set_seed
 
 def main():
 	parser = argparse.ArgumentParser()

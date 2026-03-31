@@ -98,12 +98,10 @@ def main():
     test_f1s_stage1 = []
     test_accs_stage2 = []
     test_f1s_stage2 = []
-    test_accs_stage3 = []
-    test_f1s_stage3 = []
+    stage2_hard_bin_masks = []
 
     stage1_label = 'SeparableConvCNN'
     stage2_label = 'GumbelMaskSeparableConvCNN'
-    stage3_label = 'SeparableConvCNN (Pruned Input)'
 
     fold_subjects = [all_subjects[0]] if args.single_subject_only else all_subjects
 
@@ -169,6 +167,12 @@ def main():
 
         hard_bin_mask = metrics["stage2"].get("hard_bin_mask", None)
 
+        if hard_bin_mask is not None:
+            stage2_hard_bin_masks.append({
+                "val_subject": int(val_subject),
+                "hard_bin_mask": hard_bin_mask.tolist() if hasattr(hard_bin_mask, "tolist") else hard_bin_mask,
+            })
+
         test_accs_stage1.append(test_acc_stage1)
         test_f1s_stage1.append(test_f1_stage1)
         test_accs_stage2.append(test_acc_stage2)
@@ -232,6 +236,23 @@ def main():
         f.write(f"  Accuracy: {mean_acc_stage2 - mean_acc_stage1:.2f}%\n")
         f.write(f"  F1 Macro: {mean_f1_stage2 - mean_f1_stage1:.4f}\n")
 
+    final_summary_metrics = {
+        "summary/stage1/test_acc_mean": float(mean_acc_stage1),
+        "summary/stage1/test_acc_std": float(std_acc_stage1),
+        "summary/stage1/test_f1_macro_mean": float(mean_f1_stage1),
+        "summary/stage1/test_f1_macro_std": float(std_f1_stage1),
+        "summary/stage2/test_acc_mean": float(mean_acc_stage2),
+        "summary/stage2/test_acc_std": float(std_acc_stage2),
+        "summary/stage2/test_f1_macro_mean": float(mean_f1_stage2),
+        "summary/stage2/test_f1_macro_std": float(std_f1_stage2),
+        "summary/improvement/test_acc": float(mean_acc_stage2 - mean_acc_stage1),
+        "summary/improvement/test_f1_macro": float(mean_f1_stage2 - mean_f1_stage1),
+    }
+
+    final_stage2_hard_bin_mask_metrics = {
+        "summary/stage2/hard_bin_masks": stage2_hard_bin_masks,
+    }
+
     # Upload the final consolidated log file as a W&B artifact.
     artifact_run = wandb.init(
         project="thesis-analysis",
@@ -249,6 +270,11 @@ def main():
     )
 
     if artifact_run is not None:
+        # Log final cross-fold summary metrics so they are visible in W&B charts/tables.
+        artifact_run.log(final_summary_metrics)
+        artifact_run.summary.update(final_summary_metrics)
+        artifact_run.summary.update(final_stage2_hard_bin_mask_metrics)
+
         artifact = wandb.Artifact(
             name=f"wear-loso-{args.wandb_run_name}-results-{args.preprocessing}",
             type="results-log",

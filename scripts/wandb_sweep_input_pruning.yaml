@@ -1,11 +1,11 @@
 # W&B Sweep for WEAR four-stage training
 # Tunes sparsity penalties and Gumbel temperature start.
-name: wear-input_pruning-subject12-grid
+name: wear-input_pruning-subject0-grid
 project: thesis-sweep
 method: grid
 
 metric:
-  name: stage3_test_f1
+  name: stage2_test_f1
   goal: maximize
 
 early_terminate:
@@ -28,7 +28,7 @@ parameters:
   tau_end:
     values: [1.0]
 
-program: wear_main_loso_input_pruning.py
+program: wear_main_loso_input_pruning_optional.py
 command:
   - ${env}
   - ${interpreter}
@@ -37,7 +37,7 @@ command:
   - --single_subject_only
   - --epochs_stage1=60
   - --epochs_stage2=60
-  - --epochs_stage3=60
   - --batch_size=64
   - --dropout=0.4
+  - --wandb_run_name=SparsityScanOnly
   - ${args_no_boolean_flags}

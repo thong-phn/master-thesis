@@ -55,7 +55,7 @@ def main():
                         help='Initial temperature for Gumbel-Softmax in stage 2')
     parser.add_argument('--tau_end', type=float, default=1.0,
                         help='Final temperature for Gumbel-Softmax in stage 2')
-    parser.add_argument('--sparsity_weight', type=float, default=0.1,
+    parser.add_argument('--sparsity_weight', type=float, default=0.01,
                         help='Sparsity weight for stage 2 channel pruning')
     parser.add_argument('--stage1_model_path', type=str, default=None,
                         help='Optional pretrained Stage 1 checkpoint path; if set, Stage 1 training is skipped.')

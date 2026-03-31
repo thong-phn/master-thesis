@@ -299,6 +299,17 @@ class GumbelChannelPruningCNN(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.fc2(x)
         return x
+    
+    def set_tau(self, epoch, max_epochs):
+        progress = epoch / max(max_epochs, 1)
+        self.current_tau = self.tau_start - (self.tau_start - self.tau_end) * progress
+
+    def get_sparsity_loss(self):
+        tau = max(self.current_tau, 1e-6)
+        p2 = torch.softmax(self.chan_logits_2 / tau, dim=-1)[:, 1].mean()
+        p3 = torch.softmax(self.chan_logits_3 / tau, dim=-1)[:, 1].mean()
+        p4 = torch.softmax(self.chan_logits_4 / tau, dim=-1)[:, 1].mean()
+        return (p2 + p3 + p4) / 3.0
 
     @torch.no_grad()
     def get_hard_masks(self):
