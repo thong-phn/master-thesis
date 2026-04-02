@@ -14,7 +14,7 @@ import os
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="torch.cuda")
 
-from lib.wear_train import train_loso_wear_two_stage_channel
+from lib.wear_train_other_method import train_loso_wear_two_stage_random_pruning
 
 
 def set_seed(seed: int = 42):
@@ -52,12 +52,8 @@ def main():
                         help='Batch size')
     parser.add_argument('--dropout', type=float, default=0.4,
                         help='Dropout rate')
-    parser.add_argument('--tau_start', type=float, default=10.0,
-                        help='Initial temperature for Gumbel-Softmax in stage 2')
-    parser.add_argument('--tau_end', type=float, default=1.0,
-                        help='Final temperature for Gumbel-Softmax in stage 2')
-    parser.add_argument('--sparsity_weight', type=float, default=0.01,
-                        help='Sparsity weight for stage 2 channel pruning')
+    parser.add_argument('--pruning_ratio', type=float, default=0.3,
+                        help='Amount of channels to prune randomly in stage 2')
     parser.add_argument('--stage1_model_path', type=str, default=None,
                         help='Optional pretrained Stage 1 checkpoint path; if set, Stage 1 training is skipped.')
     parser.add_argument('--stage2_model_path', type=str, default=None,
@@ -84,14 +80,14 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    results_log_path = project_root / 'log' / f"wear_loso_two_stage_channel_results_{args.preprocessing}.txt"
+    results_log_path = project_root / 'log' / f"wear_loso_two_stage_channel_random_results_{args.preprocessing}.txt"
     results_log_path.parent.mkdir(parents=True, exist_ok=True)
     with open(results_log_path, "w") as f:
-        f.write("WEAR LOSO Two-Stage Channel-Pruning Training Results\n")
+        f.write("WEAR LOSO Two-Stage Random Channel-Pruning Training Results\n")
         f.write(f"Preprocessing: {args.preprocessing}\n")
         f.write(f"Epochs Stage 1: {args.epochs_stage1}\n")
         f.write(f"Epochs Stage 2: {args.epochs_stage2}\n")
-        f.write(f"Sparsity Weight: {args.sparsity_weight}\n")
+        f.write(f"Pruning Ratio: {args.pruning_ratio}\n")
         f.write(f"Stage 2 Backbone LR Factor: {args.stage2_backbone_lr_factor}\n")
         if args.stage1_model_path is not None:
             f.write(f"Stage 1 Checkpoint Override: {args.stage1_model_path}\n")
@@ -115,7 +111,7 @@ def main():
 
         wandb_run = wandb.init(
             project="thesis",
-            name=f"wear-loso-two-stage-channel-val-{val_subject}-{args.preprocessing}",
+            name=f"wear-loso-two-stage-channel-random-val-{val_subject}-{args.preprocessing}",
             config={
                 "dataset": "WEAR",
                 "train_subjects": train_subjects,
@@ -127,8 +123,8 @@ def main():
                 "stage2_backbone_lr_factor": args.stage2_backbone_lr_factor,
                 "batch_size": args.batch_size,
                 "preprocessing": args.preprocessing,
-                "sparsity_weight": args.sparsity_weight,
-                "training_type": "two_stage_channel_pruning",
+                "pruning_ratio": args.pruning_ratio,
+                "training_type": "two_stage_channel_random_pruning",
                 "stage1_model_path": args.stage1_model_path,
                 "stage2_model_path": args.stage2_model_path,
             },
@@ -138,10 +134,10 @@ def main():
         fold_model_path = (
             Path(args.stage2_model_path).expanduser()
             if args.stage2_model_path is not None
-            else project_root / "models" / f"wear_best_model_two_stage_channel_subject{val_subject}_val.pth"
+            else project_root / "models" / f"wear_best_model_two_stage_channel_random_subject{val_subject}_val.pth"
         )
 
-        metrics = train_loso_wear_two_stage_channel(
+        metrics = train_loso_wear_two_stage_random_pruning(
             root_path=root_path,
             train_subjects=train_subjects,
             val_subjects=val_subjects,
@@ -153,9 +149,7 @@ def main():
             device=device,
             model_path=fold_model_path,
             preprocessing=args.preprocessing,
-            sparsity_weight=args.sparsity_weight,
-            tau_start=args.tau_start,
-            tau_end=args.tau_end,
+            pruning_ratio=args.pruning_ratio,
             dropout=args.dropout,
             stage2_backbone_lr_factor=args.stage2_backbone_lr_factor,
             stage1_model_path=args.stage1_model_path,
@@ -189,18 +183,21 @@ def main():
             if pruning_stats is not None:
                 f.write("  Pruning Stats:\n")
                 for k, v in pruning_stats.items():
-                    f.write(f"    {k}: {v:.2f}\n")
+                    if 'params' in k:
+                        f.write(f"    {k}: {v}\n")
+                    else:
+                        f.write(f"    {k}: {v:.2f}\n")
 
         if wandb_run is not None:
             wandb_run.finish()
 
     print("=" * 50)
-    print("WEAR LOSO Two-Stage Channel-Pruning Cross-Validation Results")
+    print("WEAR LOSO Two-Stage Random Channel-Pruning Cross-Validation Results")
     print("=" * 50)
 
     with open(results_log_path, "a") as f:
         f.write("\n" + "=" * 50 + "\n")
-        f.write("Overall WEAR LOSO Two-Stage Channel-Pruning Results\n")
+        f.write("Overall WEAR LOSO Two-Stage Random Channel-Pruning Results\n")
         f.write("=" * 50 + "\n")
 
     for stage in stage_names:

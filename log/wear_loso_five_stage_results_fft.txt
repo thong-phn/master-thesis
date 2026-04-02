@@ -1,0 +1,82 @@
+WEAR LOSO Five-Stage Training Results
+Preprocessing: fft
+Epochs Stage 1: 60
+Epochs Stage 2: 60
+Epochs Stage 3: 60
+Epochs Stage 4: 60
+Epochs Stage 5: 60
+Sparsity Weight Bin: 0.1
+Sparsity Weight Channel: 0.1
+Stage 2 Backbone LR Factor: 0.1
+Stage 4 Backbone LR Factor: 0.1
+Stage 5 Loaded LR Factor: 0.1
+Stage 1 Checkpoint Override: /home/qphan/master-thesis/models/wear_best_model_three_stage_channel_subject0_val_stage1.pth
+
+
+==================================================
+Fold Val Subject 0:
+
+STAGE1 (SeparableConvCNN):
+  Test Accuracy: 71.14%
+  Test F1 Macro: 0.6580
+
+STAGE2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 67.22%
+  Test F1 Macro: 0.6251
+
+STAGE3 (SeparableConvCNN):
+  Test Accuracy: 67.76%
+  Test F1 Macro: 0.6378
+
+STAGE4 (GumbelChannelPruningCNN):
+  Test Accuracy: 72.89%
+  Test F1 Macro: 0.6675
+
+STAGE5 (PrunedSeparableConvCNN):
+  Test Accuracy: 70.97%
+  Test F1 Macro: 0.6582
+
+  Improvement Stage5 - Stage1: -0.16%
+
+  Stage 5 Model Size Reduction:
+    Dense Params: 36,998
+    Pruned Params: 18,690
+    Reduction: 49.48%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  Final Channel Masks:
+    block2: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0]
+    block3: [0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0]
+    block4: [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0]
+  Channel Pruning Stats:
+    Block2_Pruned_%: 17.19
+    Block3_Pruned_%: 39.84
+    Block4_Pruned_%: 38.28
+    Total_Pruned_%: 34.69
+
+==================================================
+Overall WEAR LOSO Five-Stage Results
+==================================================
+
+STAGE1:
+  Test Accuracy: 71.14% ± 0.00%
+  Test F1 Macro: 0.6580 ± 0.0000
+
+STAGE2:
+  Test Accuracy: 67.22% ± 0.00%
+  Test F1 Macro: 0.6251 ± 0.0000
+
+STAGE3:
+  Test Accuracy: 67.76% ± 0.00%
+  Test F1 Macro: 0.6378 ± 0.0000
+
+STAGE4:
+  Test Accuracy: 72.89% ± 0.00%
+  Test F1 Macro: 0.6675 ± 0.0000
+
+STAGE5:
+  Test Accuracy: 70.97% ± 0.00%
+  Test F1 Macro: 0.6582 ± 0.0000
+
+Improvement (Stage5 - Stage1):
+  Accuracy: -0.16%
+  F1 Macro: 0.0002

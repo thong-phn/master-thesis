@@ -66,3 +66,26 @@ Wetlab: Controlled Experiment
 Handwashing: Daily life
 
 WEAR: Sport
+
+
+About bn0 issue
+    Input pruning S0: Train samples: 50686; Val samples: 2793; Test samples: 9705.
+    NOTE: Stage 3 (Fine tuning pruned input)
+        No bn0, sparsity weight = 0.1 -> Maintain accuracy
+            - Stage 1: Test Acc: 71.14% | Test F1 Macro: 0.6580
+            - Stage 2: Test Acc: 68.41% | Test F1 Macro: 0.6327 | Hard input bins kept: 30/51 (58.8%)
+            - Stage 3: Test Acc: 71.55% | Test F1 Macro: 0.6606
+        With bn0, sparsity weight = 0.1 -> Higher at the begin but drop
+            - Stage 1: Test Acc: 73.33% | Test F1 Macro: 0.6610
+            - Stage 2: Test Acc: 69.58% | Test F1 Macro: 0.6342 | Hard input bins kept: 36/51 (70.6%)
+            - Stage 3: Test Acc: 70.93% | Test F1 Macro: 0.6570 
+    Input pruning S12: Train samples: 50210; Val samples: 3269; Test samples: 9705
+        No bn0, sparsity weight = 0.1
+            - Stage 1: Test Acc: 71.68% | Test F1 Macro: 0.6592
+            - Stage 2: Test Acc: 71.54% | Test F1 Macro: 0.6619 | Hard input bins kept: 27/51 (52.9%)
+            - Stage 3: Test Acc: 72.46% | Test F1 Macro: 0.6677
+        With bn0, sparsity weight = 0.1
+            - Stage 1: Test Acc: 72.34% | Test F1 Macro: 0.6660
+            - Stage 2: Test Acc: 70.48% | Test F1 Macro: 0.6580 | Hard input bins kept: 25/51 (49.0%)
+            - Stage 3: Test Acc: 70.47% | Test F1 Macro: 0.6547
+

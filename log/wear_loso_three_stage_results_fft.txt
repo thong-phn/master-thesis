@@ -1,38 +1,47 @@
 WEAR LOSO Three-Stage Training Results
-WANDB run name: SparsityScanOnly
 Preprocessing: fft
-Sparsity Weight Bin: 0.7
+Sparsity Weight Bin: 0.1
 Epochs Stage 1: 60
 Epochs Stage 2: 60
+Epochs Stage 3: 60
 Stage 2 Backbone LR Factor: 0.1
 
 
 ==================================================
-Fold Val Subject 0:
+Fold Val Subject 12:
 
 Stage 1 (SeparableConvCNN):
-  Test Accuracy: 71.06%
-  Test F1 Macro: 0.6566
+  Test Accuracy: 71.68%
+  Test F1 Macro: 0.6592
 
 Stage 2 (GumbelMaskSeparableConvCNN):
-  Test Accuracy: 31.01%
-  Test F1 Macro: 0.2782
+  Test Accuracy: 71.54%
+  Test F1 Macro: 0.6619
 
-  Improvement Stage2 - Stage1: -40.04%
-  Hard Bin Mask: [1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 72.46%
+  Test F1 Macro: 0.6677
+
+  Improvement Stage2 - Stage1: -0.14%
+  Improvement Stage3 - Stage1: 0.77%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 ==================================================
 Overall WEAR LOSO Three-Stage Results
 ==================================================
 
 Stage 1 (SeparableConvCNN):
-  Test Accuracy: 71.06% ± 0.00%
-  Test F1 Macro: 0.6566 ± 0.0000
+  Test Accuracy: 71.68% ± 0.00%
+  Test F1 Macro: 0.6592 ± 0.0000
 
 Stage 2 (GumbelMaskSeparableConvCNN):
-  Test Accuracy: 31.01% ± 0.00%
-  Test F1 Macro: 0.2782 ± 0.0000
+  Test Accuracy: 71.54% ± 0.00%
+  Test F1 Macro: 0.6619 ± 0.0000
 
-Improvement (Stage 2 - Stage 1):
-  Accuracy: -40.04%
-  F1 Macro: -0.3783
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 72.46% ± 0.00%
+  Test F1 Macro: 0.6677 ± 0.0000
+
+Improvement (Stage 3 - Stage 1):
+  Accuracy: 0.77%
+  F1 Macro: 0.0085

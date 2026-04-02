@@ -22,7 +22,7 @@ class GumbelMaskSeparableConvCNN(nn.Module):
         self.last_mask = None
 
         # Stem block
-        self.bn0 = nn.BatchNorm1d(num_channels)
+        # self.bn0 = nn.BatchNorm1d(num_channels)
         self.sep_conv1 = SeparableConv1d(num_channels, 32, kernel_size=5, padding=2)
         self.bn1 = nn.BatchNorm1d(32)
         self.pool1 = nn.MaxPool1d(2)
@@ -72,7 +72,7 @@ class GumbelMaskSeparableConvCNN(nn.Module):
         x = x * mask.unsqueeze(1) # shape (batch, 1, freq_bins)
 
         # Stem
-        x = self.bn0(x)
+        # x = self.bn0(x)
         x = F.relu(self.sep_conv1(x))
         x = self.bn1(x)
         x = self.pool1(x)
@@ -137,7 +137,7 @@ class SeparableConvCNN(nn.Module):
         # Input shape: (batch, num_channels, 31) where num_channels is 3 (accel) or 6 (accel+gyro)
         
         # Stem block
-        self.bn0 = nn.BatchNorm1d(num_channels)
+        # self.bn0 = nn.BatchNorm1d(num_channels)
         self.sep_conv1 = SeparableConv1d(num_channels, 32, kernel_size=5, padding=2)
         self.bn1 = nn.BatchNorm1d(32)
         self.pool1 = nn.MaxPool1d(2)  # 31 -> 15
@@ -167,7 +167,7 @@ class SeparableConvCNN(nn.Module):
         # x: (batch, num_channels, 31)
         
         # Stem
-        x = self.bn0(x)
+        # x = self.bn0(x)
         x = F.relu(self.sep_conv1(x))
         x = self.bn1(x)
         x = self.pool1(x)
@@ -199,6 +199,88 @@ class SeparableConvCNN(nn.Module):
         return x
 
 
+class PrunedSeparableConvCNN(nn.Module):
+    """
+    SeparableConv-based CNN with physically reduced channel widths.
+
+    This variant is used after channel pruning to fine-tune a compact model
+    whose Block 2/3/4 widths match the kept channels from a Gumbel-pruned model.
+    """
+
+    def __init__(
+        self,
+        num_classes=6,
+        num_channels=6,
+        block2_channels=64,
+        block3_channels=128,
+        block4_channels=128,
+        dropout=0.4,
+    ):
+        super(PrunedSeparableConvCNN, self).__init__()
+
+        self.block2_channels = int(block2_channels)
+        self.block3_channels = int(block3_channels)
+        self.block4_channels = int(block4_channels)
+
+        # Stem block
+        # self.bn0 = nn.BatchNorm1d(num_channels)
+        self.sep_conv1 = SeparableConv1d(num_channels, 32, kernel_size=5, padding=2)
+        self.bn1 = nn.BatchNorm1d(32)
+        self.pool1 = nn.MaxPool1d(2)
+
+        # Reduced-width separable conv blocks
+        self.sep_conv2 = SeparableConv1d(32, self.block2_channels, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm1d(self.block2_channels)
+        self.pool2 = nn.MaxPool1d(2)
+
+        self.sep_conv3 = SeparableConv1d(self.block2_channels, self.block3_channels, kernel_size=3, padding=1)
+        self.bn3 = nn.BatchNorm1d(self.block3_channels)
+        self.pool3 = nn.MaxPool1d(2)
+
+        self.sep_conv4 = SeparableConv1d(self.block3_channels, self.block4_channels, kernel_size=3, padding=1)
+        self.bn4 = nn.BatchNorm1d(self.block4_channels)
+        self.pool4 = nn.MaxPool1d(2)
+
+        self.global_avg_pool = nn.AdaptiveAvgPool1d(1)
+
+        self.dropout = nn.Dropout(dropout)
+        self.fc1 = nn.Linear(self.block4_channels, 64)
+        self.fc2 = nn.Linear(64, num_classes)
+
+    def forward(self, x):
+        # x: (batch, num_channels, freq_bins)
+
+        # Stem
+        # x = self.bn0(x)
+        x = F.relu(self.sep_conv1(x))
+        x = self.bn1(x)
+        x = self.pool1(x)
+
+        # Block 2
+        x = F.relu(self.sep_conv2(x))
+        x = self.bn2(x)
+        x = self.pool2(x)
+
+        # Block 3
+        x = F.relu(self.sep_conv3(x))
+        x = self.bn3(x)
+        x = self.pool3(x)
+
+        # Block 4
+        x = F.relu(self.sep_conv4(x))
+        x = self.bn4(x)
+        x = self.pool4(x)
+
+        x = self.global_avg_pool(x)
+        x = x.squeeze(-1)
+
+        x = self.dropout(x)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+
+        return x
+
+
 class GumbelChannelPruningCNN(nn.Module):
     """
     SeparableConv-based CNN with Gumbel-Softmax channel masking after conv blocks.
@@ -214,7 +296,7 @@ class GumbelChannelPruningCNN(nn.Module):
         self.mask_l1 = None # sparsity mask for l1 regularization
 
         # Block 1: Stem block (no pruning due to feature extract & not much params compared to Block 2,3,4)
-        self.bn0 = nn.BatchNorm1d(num_channels)
+        # self.bn0 = nn.BatchNorm1d(num_channels)
         self.sep_conv1 = SeparableConv1d(num_channels, 32, kernel_size=5, padding=2)
         self.bn1 = nn.BatchNorm1d(32)
         self.pool1 = nn.MaxPool1d(2)
@@ -265,7 +347,7 @@ class GumbelChannelPruningCNN(nn.Module):
         batch_size = x.size(0)
 
         # Stem
-        x = self.bn0(x)
+        # x = self.bn0(x)
         x = F.relu(self.bn1(self.sep_conv1(x)))
         x = self.pool1(x)
 
@@ -361,7 +443,7 @@ class RandomChannelPruningCNN(nn.Module):
         # self.mask_l1 = None # sparsity mask for l1 regularization
 
         # Block 1: Stem block (no pruning due to feature extract & not much params compared to Block 2,3,4)
-        self.bn0 = nn.BatchNorm1d(num_channels)
+        # self.bn0 = nn.BatchNorm1d(num_channels)
         self.sep_conv1 = SeparableConv1d(num_channels, 32, kernel_size=5, padding=2)
         self.bn1 = nn.BatchNorm1d(32)
         self.pool1 = nn.MaxPool1d(2)
@@ -391,12 +473,12 @@ class RandomChannelPruningCNN(nn.Module):
         self.fc2 = nn.Linear(64, num_classes)
 
         # Mask tracing
-        self.register_buffer('mask_2', self._make_mask(64, self.pruning_ratio, self.mask_seed+2))
-        self.register_buffer('mask_3', self._make_mask(128, self.pruning_ratio, self.mask_seed+3))
-        self.register_buffer('mask_4', self._make_mask(128, self.pruning_ratio, self.mask_seed+4))
+        self.register_buffer('mask2', self._make_mask(64, self.pruning_ratio, self.mask_seed+2))
+        self.register_buffer('mask3', self._make_mask(128, self.pruning_ratio, self.mask_seed+3))
+        self.register_buffer('mask4', self._make_mask(128, self.pruning_ratio, self.mask_seed+4))
         self.register_buffer('last_mask_2', self.mask2.clone())
         self.register_buffer('last_mask_3', self.mask3.clone())
-        self.register_buffer('last_mask_4', self.mask3.clone())
+        self.register_buffer('last_mask_4', self.mask4.clone())
     
     @staticmethod
     def _make_mask(channels, pruning_ratio, seed):
@@ -410,7 +492,7 @@ class RandomChannelPruningCNN(nn.Module):
 
     def forward(self, x):
         # Stem
-        x = self.bn0(x)
+        # x = self.bn0(x)
         x = F.relu(self.bn1(self.sep_conv1(x)))
         x = self.pool1(x)
 

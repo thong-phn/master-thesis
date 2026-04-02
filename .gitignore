@@ -7,7 +7,7 @@ uci-har/
 wear/
 img/
 .vscode/
-
+fig/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
