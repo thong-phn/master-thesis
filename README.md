@@ -163,10 +163,82 @@ Stage 1: Test Accuracy: 72.68% ± 0.00% | Test F1 Macro: 0.6554 ± 0.0000
 - SPARSITY_WEIGHT: 0.2 -> Test Accuracy: 74.57% ± 0.00% | Test F1 Macro: 0.6692 ± 0.0000 | Hard input bins kept: 26/51 (51.0%)
 - SPARSITY_WEIGHT: 0.3 -> Test Acc: 77.28%% | Test F1 Macro: 0.6757 | Hard input bins kept: 16/51 (31.4%)
 
+wCEL additional channel pruning tuning
+S0:
+- SPARSITY_WEIGHT_CHANNEL: 0.1 -> 
+wandb:        model_param_count 30086
+wandb:  model_param_count_dense 36998
+STAGE2:
+  Test Accuracy: 77.63% ± 0.00%
+  Test F1 Macro: 0.6481 ± 0.0000
+
+STAGE3:
+  Test Accuracy: 79.60% ± 0.00%
+  Test F1 Macro: 0.6945 ± 0.0000
+
+Improvement (Stage2 - Stage1):
+  Accuracy: -1.57%
+  F1 Macro: -0.0360
+
+Improvement (Stage3 - Stage2):
+  Accuracy: 1.97%
+  F1 Macro: 0.0465
+0.2
+wandb:        model_param_count 18084
+wandb:  model_param_count_dense 36998
+
+
+STAGE1:
+  Test Accuracy: 79.20% ± 0.00%
+  Test F1 Macro: 0.6841 ± 0.0000
+
+STAGE2:
+  Test Accuracy: 80.24% ± 0.00%
+  Test F1 Macro: 0.6834 ± 0.0000
+
+STAGE3:
+  Test Accuracy: 79.95% ± 0.00%
+  Test F1 Macro: 0.6890 ± 0.0000
+
+Improvement (Stage2 - Stage1):
+  Accuracy: 1.04%
+  F1 Macro: -0.0007
+
+Improvement (Stage3 - Stage2):
+  Accuracy: -0.29%
+  F1 Macro: 0.0056
+
+0.3
+wandb:        model_param_count 18217
+wandb:  model_param_count_dense 36998
+
+STAGE1:
+  Test Accuracy: 79.20% ± 0.00%
+  Test F1 Macro: 0.6841 ± 0.0000
+
+STAGE2:
+  Test Accuracy: 78.59% ± 0.00%
+  Test F1 Macro: 0.6545 ± 0.0000
+
+STAGE3:
+  Test Accuracy: 80.02% ± 0.00%
+  Test F1 Macro: 0.6912 ± 0.0000
+
+Improvement (Stage2 - Stage1):
+  Accuracy: -0.61%
+  F1 Macro: -0.0296
+
+Improvement (Stage3 - Stage2):
+  Accuracy: 1.43%
+  F1 Macro: 0.0367
+
+0.4
+
+
+
 Baseline 
 WEAR
-TD: Test Accuracy: 81.22% ± 2.13% | Test F1 Macro: 0.7180 ± 0.0313 (link: )
+TD: Test Accuracy: 81.22% ± 2.13% | Test F1 Macro: 0.7180 ± 0.0313
 DCT: Test Accuracy: 78.80% ± 2.17% | Test F1 Macro: 0.6864 ± 0.0144
-
+IHW: Test Accuracy: 80.74% ± 2.56% | Test F1 Macro: 0.7154 ± 0.0128
 FFT: Test Accuracy: 77.89% ± 1.77% | Test F1 Macro: 0.6788 ± 0.0115
-Five stage

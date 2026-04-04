@@ -19,30 +19,39 @@ from lib.model import SeparableConvCNN
 
 
 def set_seed(seed: int = 42):
-    random.seed(seed)
-    os.environ['SEED'] = str(seed)
-    np.random.seed(seed)
+	random.seed(seed)
+	os.environ['SEED'] = str(seed)
+	os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+	np.random.seed(seed)
 
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+	torch.manual_seed(seed)
+	torch.cuda.manual_seed(seed)
+	torch.cuda.manual_seed_all(seed)
 
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+	torch.backends.cudnn.deterministic = True
+	torch.backends.cudnn.benchmark = False
+	torch.backends.cuda.matmul.allow_tf32 = False
+	torch.backends.cudnn.allow_tf32 = False
+	torch.use_deterministic_algorithms(True, warn_only=True)
 
 
 def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'ihw', 'no'], default='fft',
 	                    help='Preprocessing applied to signals: fft, dct, ihw, or no')
-	parser.add_argument('--sparsity_weight', type=float, default=0.01)
 	parser.add_argument('--model', type=str, choices=['GumbelMaskSeparableConvCNN', 'SeparableConvCNN'], 
 	                    default='GumbelMaskSeparableConvCNN', help='Model architectur to use')
+	parser.add_argument('--batch_size', type=int, default=64,
+	                    help='Batch size')
+	parser.add_argument('--performance', action='store_true',
+	                    help='Enable auto-tuned high-throughput DataLoader settings')
+	parser.add_argument('--seed', type=int, default=42,
+	                    help='Random seed for reproducible training and data loading')
 	parser.add_argument('--wandb_run_name', type=str, default=None,
 	                    help='Optional base W&B run name. If provided, fold and summary suffixes are appended.')
 	args = parser.parse_args()
 
-	set_seed(42)
+	set_seed(args.seed)
 	# Detect if running on Kaggle and set appropriate path
 	if os.path.exists('/kaggle/input'):
 		root_path = Path('/kaggle/input/datasets/thongp/wearthesis/wear')
@@ -62,10 +71,13 @@ def main():
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f"Using device: {device}")
 
-	results_log_path = project_root / 'log' / f"wear_loso_results_{args.model}_{args.preprocessing}_{args.sparsity_weight}.txt"
+	results_log_path = project_root / 'log' / f"wear_loso_results_{args.model}_{args.preprocessing}.txt"
 	results_log_path.parent.mkdir(parents=True, exist_ok=True)
 	with open(results_log_path, "w") as f:
 		f.write("WEAR LOSO Results\n")
+		f.write(f"Batch size: {args.batch_size}\n")
+		f.write(f"Performance mode: {args.performance}\n")
+		f.write(f"Seed: {args.seed}\n")
 
 	test_accs = []
 	test_f1s = []
@@ -92,7 +104,9 @@ def main():
 				"test_subjects": test_subjects,
 				"epochs": 60,
 				"lr": 1e-3,
-				"batch_size": 64,
+				"batch_size": args.batch_size,
+				"performance": args.performance,
+				"seed": args.seed,
 				"model": args.model,
 				"preprocessing": args.preprocessing,
 			},
@@ -107,7 +121,9 @@ def main():
 			wandb_run=wandb_run,
 			epochs=60,
 			lr=1e-3,
-			batch_size=64,
+			batch_size=args.batch_size,
+			performance=args.performance,
+			seed=args.seed,
 			device=device,
 			model_path=project_root / "models" / f"wear_best_model_subject{val_subject}_val.pth",
 			preprocessing=args.preprocessing,
@@ -157,7 +173,7 @@ def main():
 		else f"wear-loso-summary-{args.model}-{args.preprocessing}"
 	)
 	artifact_name = (
-		f"wear-loso-log-{args.model}-{args.preprocessing}-{args.sparsity_weight}"
+		f"wear-loso-log-{args.model}-{args.preprocessing}"
 		.replace(".", "_")
 	)
 	artifact_run = wandb.init(
@@ -169,7 +185,6 @@ def main():
 			"dataset": "WEAR",
 			"model": args.model,
 			"preprocessing": args.preprocessing,
-			"sparsity_weight": args.sparsity_weight,
 			"log_path": str(results_log_path),
 		}
 	)

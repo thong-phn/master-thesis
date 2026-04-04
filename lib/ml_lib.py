@@ -289,7 +289,7 @@ def stage2_channel_gumbel_pruning_pipeline(
 
             train_loss = train_loss_sum / max(train_total, 1)
             train_acc = 100.0 * train_correct / max(train_total, 1)
-            val_loss, val_acc, _ = _val_one_epoch(model, val_loader, criterion, device)
+            val_loss, val_acc, _, _, _ = _val_one_epoch(model, val_loader, criterion, device)
             scheduler.step(val_loss)
 
             if val_loss < stage2_best_val_loss - min_delta:
@@ -327,7 +327,7 @@ def stage2_channel_gumbel_pruning_pipeline(
                 break
 
     model.load_state_dict(torch.load(checkpoint_path, map_location=device))
-    stage2_test_loss, stage2_test_acc, stage2_test_f1 = _val_one_epoch(model, test_loader, criterion, device)
+    stage2_test_loss, stage2_test_acc, stage2_test_f1, _, _ = _val_one_epoch(model, test_loader, criterion, device)
 
     hard_masks = model.get_hard_masks() if hasattr(model, "get_hard_masks") else {}
     keep_counts = {

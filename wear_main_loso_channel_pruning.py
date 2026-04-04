@@ -53,6 +53,8 @@ def main():
                         help='Stage 3 LR multiplier for weights loaded from the checkpoint')
     parser.add_argument('--batch_size', type=int, default=64,
                         help='Batch size')
+    parser.add_argument('--performance', action='store_true',
+                        help='Enable auto-tuned high-throughput DataLoader settings')
     parser.add_argument('--dropout', type=float, default=0.4,
                         help='Dropout rate')
     parser.add_argument('--tau_start', type=float, default=10.0,
@@ -62,17 +64,16 @@ def main():
     parser.add_argument('--sparsity_weight', type=float, default=0.1,
                         help='Sparsity weight for stage 2 channel pruning')
     parser.add_argument('--stage1_model_path', type=str, default=None,
-                        help='Optional pretrained Stage 1 checkpoint path; if set, Stage 1 training is skipped.')
+                        help='Optional pretrained Stage 1 checkpoint path; if set, Stage 1 training is skipped. Supports {subject} placeholder for per-fold checkpoints.')
     parser.add_argument('--stage2_model_path', type=str, default=None,
                         help='Optional Stage 2 output checkpoint path override.')
     parser.add_argument('--stage3_model_path', type=str, default=None,
                         help='Optional Stage 3 output checkpoint path override.')
-    parser.add_argument('--single_subject_only', action='store_true',
-                        help='Run only the first LOSO fold (subject 0 if available).')
+    parser.add_argument('--single_subject_only', type=str)
     # Backward-compatible no-op; retained so older run scripts do not break.
     parser.add_argument('--model', type=str, choices=['Separable'], default='Separable',
                         help=argparse.SUPPRESS)
-
+    parser.add_argument('--run_name', type=str)
     args = parser.parse_args()
 
     set_seed(42)
@@ -103,6 +104,7 @@ def main():
         f.write(f"Epochs Stage 2: {args.epochs_stage2}\n")
         f.write(f"Epochs Stage 3: {args.epochs_stage3}\n")
         f.write(f"Sparsity Weight: {args.sparsity_weight}\n")
+        f.write(f"Performance Mode: {args.performance}\n")
         f.write(f"Stage 2 Backbone LR Factor: {args.stage2_backbone_lr_factor}\n")
         f.write(f"Stage 3 Loaded LR Factor: {args.stage3_loaded_lr_factor}\n")
         if args.stage1_model_path is not None:
@@ -116,11 +118,15 @@ def main():
     stage_names = ["stage1", "stage2", "stage3"]
     metrics_history = {s: {"acc": [], "f1": []} for s in stage_names}
 
-    fold_subjects = [all_subjects[0]] if args.single_subject_only else all_subjects
+    fold_subjects = [all_subjects[int(args.single_subject_only)]] if args.single_subject_only else all_subjects
 
     for val_subject in fold_subjects:
         val_subjects = [val_subject]
         train_subjects = [subject for subject in all_subjects if subject not in val_subjects]
+
+        resolved_stage1_model_path = args.stage1_model_path
+        if resolved_stage1_model_path is not None and "{subject}" in resolved_stage1_model_path:
+            resolved_stage1_model_path = resolved_stage1_model_path.format(subject=val_subject)
 
         print("=" * 50)
         print(f"Fold: Val Subject {val_subjects[0]}")
@@ -129,7 +135,7 @@ def main():
 
         wandb_run = wandb.init(
             project="thesis",
-            name=f"wear-loso-three-stage-channel-val-{val_subject}-{args.preprocessing}",
+            name=f"wear-loso-three-stage-channel-val-{val_subject}-{args.preprocessing}-{args.run_name}",
             config={
                 "dataset": "WEAR",
                 "train_subjects": train_subjects,
@@ -142,10 +148,11 @@ def main():
                 "stage2_backbone_lr_factor": args.stage2_backbone_lr_factor,
                 "stage3_loaded_lr_factor": args.stage3_loaded_lr_factor,
                 "batch_size": args.batch_size,
+                "performance": args.performance,
                 "preprocessing": args.preprocessing,
                 "sparsity_weight": args.sparsity_weight,
                 "training_type": "three_stage_channel_pruning",
-                "stage1_model_path": args.stage1_model_path,
+                "stage1_model_path": resolved_stage1_model_path,
                 "stage2_model_path": args.stage2_model_path,
                 "stage3_model_path": args.stage3_model_path,
             },
@@ -176,7 +183,8 @@ def main():
             tau_end=args.tau_end,
             dropout=args.dropout,
             stage2_backbone_lr_factor=args.stage2_backbone_lr_factor,
-            stage1_model_path=args.stage1_model_path,
+            performance=args.performance,
+            stage1_model_path=resolved_stage1_model_path,
             stage3_loaded_lr_factor=args.stage3_loaded_lr_factor,
             stage2_model_path=args.stage2_model_path,
             stage3_model_path=args.stage3_model_path,
@@ -189,6 +197,8 @@ def main():
         with open(results_log_path, "a") as f:
             f.write(f"\n{'='*50}\n")
             f.write(f"Fold Val Subject {val_subjects[0]}:\n")
+            if resolved_stage1_model_path is not None:
+                f.write(f"  Stage 1 Checkpoint Used: {resolved_stage1_model_path}\n")
 
             for stage in stage_names:
                 f.write(f"\n{stage.upper()} ({metrics[stage]['model']}):\n")

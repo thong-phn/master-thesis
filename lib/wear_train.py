@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 import csv
+import os
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 from sklearn.metrics import f1_score
@@ -843,6 +844,7 @@ def train_loso_wear(root_path, model_class, train_subjects, val_subjects, wandb_
     epochs = train_kwargs.get('epochs', 60)
     lr = train_kwargs.get('lr', 1e-3)
     batch_size = train_kwargs.get('batch_size', 64)
+    performance_mode = bool(train_kwargs.get('performance', False))
     device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
     patience = train_kwargs.get('patience', 10)
     min_delta = train_kwargs.get('min_delta', 1e-3)
@@ -872,13 +874,40 @@ def train_loso_wear(root_path, model_class, train_subjects, val_subjects, wandb_
         preprocessing=preprocessing,
     )
 
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    cpu_count = os.cpu_count() or 1
+    if performance_mode:
+        num_workers = max(0, min(6, cpu_count - 2))
+        prefetch_factor = 2
+        pin_memory = device.type == 'cuda'
+        persistent_workers = num_workers > 0
+    else:
+        num_workers = 0
+        prefetch_factor = 2
+        pin_memory = False
+        persistent_workers = False
+
+    common_loader_kwargs = {
+        'batch_size': batch_size,
+        'num_workers': num_workers,
+        'pin_memory': pin_memory,
+    }
+    if num_workers > 0:
+        common_loader_kwargs['persistent_workers'] = persistent_workers
+        common_loader_kwargs['prefetch_factor'] = prefetch_factor
+
+    train_dataloader = DataLoader(train_dataset, shuffle=True, **common_loader_kwargs)
+    val_dataloader = DataLoader(val_dataset, shuffle=False, **common_loader_kwargs)
+    test_dataloader = DataLoader(test_dataset, shuffle=False, **common_loader_kwargs)
 
     print(f"Train samples: {len(train_dataset)}")
     print(f"Val samples: {len(val_dataset)}")
     print(f"Test samples: {len(test_dataset)}")
+    print(f"Performance mode: {performance_mode}")
+    print(
+        f"DataLoader settings: workers={num_workers}, pin_memory={pin_memory}, "
+        f"persistent_workers={persistent_workers if num_workers > 0 else False}, "
+        f"prefetch_factor={prefetch_factor if num_workers > 0 else 'n/a'}"
+    )
 
     # Training loop configuration
     freq_bins = train_dataset[0][0].shape[-1]
@@ -1711,6 +1740,7 @@ def train_loso_wear_three_stage_pruning_channel(root_path, train_subjects, val_s
     epochs_stage3 = train_kwargs.get('epochs_stage3', 10)
     lr = train_kwargs.get('lr', 1e-3)
     batch_size = train_kwargs.get('batch_size', 64)
+    performance_mode = bool(train_kwargs.get('performance', False))
     device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
     patience = train_kwargs.get('patience', 10)
     min_delta = train_kwargs.get('min_delta', 1e-3)
@@ -1756,16 +1786,51 @@ def train_loso_wear_three_stage_pruning_channel(root_path, train_subjects, val_s
     val_dataset = WEAR_Dataset(root_path, split='train', subject_ids=val_subjects, preprocessing=preprocessing)
     test_dataset = WEAR_Dataset(root_path, split='test', subject_ids=None, preprocessing=preprocessing)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    cpu_count = os.cpu_count() or 1
+    if performance_mode:
+        num_workers = max(0, min(6, cpu_count - 2))
+        prefetch_factor = 2
+        pin_memory = device.type == 'cuda'
+        persistent_workers = num_workers > 0
+    else:
+        num_workers = 0
+        prefetch_factor = 2
+        pin_memory = False
+        persistent_workers = False
+
+    common_loader_kwargs = {
+        'batch_size': batch_size,
+        'num_workers': num_workers,
+        'pin_memory': pin_memory,
+    }
+    if num_workers > 0:
+        common_loader_kwargs['persistent_workers'] = persistent_workers
+        common_loader_kwargs['prefetch_factor'] = prefetch_factor
+
+    train_loader = DataLoader(train_dataset, shuffle=True, **common_loader_kwargs)
+    val_loader = DataLoader(val_dataset, shuffle=False, **common_loader_kwargs)
+    test_loader = DataLoader(test_dataset, shuffle=False, **common_loader_kwargs)
 
     print(f"Train samples: {len(train_dataset)}")
     print(f"Val samples: {len(val_dataset)}")
     print(f"Test samples: {len(test_dataset)}")
+    print(f"Performance mode: {performance_mode}")
+    print(
+        f"DataLoader settings: workers={num_workers}, pin_memory={pin_memory}, "
+        f"persistent_workers={persistent_workers if num_workers > 0 else False}, "
+        f"prefetch_factor={prefetch_factor if num_workers > 0 else 'n/a'}"
+    )
 
     freq_bins = train_dataset[0][0].shape[-1]
-    criterion = nn.CrossEntropyLoss()
+    class_counts = np.bincount(train_dataset.labels.astype(int), minlength=8).astype(np.float32)
+    class_counts = np.clip(class_counts, 1.0, None)
+    class_weights = class_counts.sum() / class_counts
+    class_weights = class_weights / class_weights.mean()
+    class_weights = torch.as_tensor(class_weights, dtype=torch.float32, device=device)
+    print(f"Class counts: {class_counts.tolist()}")
+    print(f"Class weights: {class_weights.detach().cpu().numpy().round(3).tolist()}")
+    criterion = nn.CrossEntropyLoss(weight=class_weights).to(device)
+    # criterion = nn.CrossEntropyLoss()
     model_stage1 = SeparableConvCNN(num_classes=8, num_channels=6, freq_bins=freq_bins, dropout=train_kwargs.get('dropout', 0.4)).to(device)
     optimizer = torch.optim.Adam(model_stage1.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6)
@@ -1779,6 +1844,20 @@ def train_loso_wear_three_stage_pruning_channel(root_path, train_subjects, val_s
                                     num_epochs=epochs_stage1,
                                     patience=patience, min_delta=min_delta,
                                     wandb_run=wandb_run, use_pretrained=use_pretrained_stage1)
+
+    model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
+    model_stage1.eval()
+    _, _, _, stage1_y_true, stage1_y_pred = _val_one_epoch(model_stage1, test_loader, criterion, device)
+    _save_confusion_matrix_artifact(
+        y_true=stage1_y_true,
+        y_pred=stage1_y_pred,
+        output_dir=None,
+        stage_name='Stage 1',
+        model_name='SeparableConvCNN',
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage1-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
 
     # ============================================================
     # STAGE 2
@@ -1934,7 +2013,20 @@ def train_loso_wear_three_stage_pruning_channel(root_path, train_subjects, val_s
 
         stage3_model.load_state_dict(torch.load(stage3_model_path, map_location=device))
 
-    stage3_test_loss, stage3_test_acc, stage3_test_f1 = _evaluate_classifier(stage3_model, test_loader, criterion, device)
+    stage3_test_loss, stage3_test_acc, stage3_test_f1, stage3_y_true, stage3_y_pred = _val_one_epoch(
+        stage3_model, test_loader, criterion, device
+    )
+
+    _save_confusion_matrix_artifact(
+        y_true=stage3_y_true,
+        y_pred=stage3_y_pred,
+        output_dir=None,
+        stage_name='Stage 3',
+        model_name='PrunedSeparableConvCNN',
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage3-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
 
     print("-" * 50)
     print("Stage 3 Summary:")
@@ -1961,6 +2053,72 @@ def train_loso_wear_three_stage_pruning_channel(root_path, train_subjects, val_s
             "model_param_reduction_pct": param_reduction_pct,
             **pruning_stats,
         })
+
+    val_subject_tag = "-".join(str(s) for s in np.atleast_1d(val_subjects).tolist())
+    final_log_path = model_path.parent / f"{model_path.stem}_final_summary_val_{val_subject_tag}.txt"
+
+    with open(final_log_path, "w") as f:
+        f.write("THREE-STAGE CHANNEL PRUNING SUMMARY\n")
+        f.write("=" * 60 + "\n")
+        f.write(f"Preprocessing: {preprocessing}\n")
+        f.write(f"Train subjects: {list(train_subjects)}\n")
+        f.write(f"Val subjects: {list(np.atleast_1d(val_subjects).tolist())}\n")
+        f.write(f"Stage 1 checkpoint: {stage1_model_path}\n")
+        f.write(f"Stage 2 checkpoint: {stage2_model_path}\n")
+        f.write(f"Stage 3 checkpoint: {stage3_model_path}\n\n")
+
+        f.write("Stage 1\n")
+        f.write("-" * 60 + "\n")
+        f.write(f"Best Val Loss: {stage1_result['best_val_loss']:.4f}\n")
+        f.write(f"Best Epoch: {stage1_result['best_epoch']}\n")
+        f.write(f"Test Loss: {stage1_result['test_loss']:.4f}\n")
+        f.write(f"Test Acc: {stage1_result['test_acc']:.2f}%\n")
+        f.write(f"Test F1 Macro: {stage1_result['test_f1']:.4f}\n\n")
+
+        f.write("Stage 2\n")
+        f.write("-" * 60 + "\n")
+        f.write(f"Best Val Loss: {stage2_best_val_loss:.4f}\n")
+        f.write(f"Best Epoch: {stage2_best_epoch}\n")
+        f.write(f"Test Loss: {stage2_test_loss:.4f}\n")
+        f.write(f"Test Acc: {stage2_test_acc:.2f}%\n")
+        f.write(f"Test F1 Macro: {stage2_test_f1:.4f}\n")
+        for block_name in ("block2", "block3", "block4"):
+            block_mask = hard_masks[block_name].detach().cpu().numpy()
+            kept = int((block_mask > 0.5).sum())
+            total = int(block_mask.shape[0])
+            f.write(f"{block_name}_kept: {kept}/{total} ({kept / max(total, 1):.1%})\n")
+        for k, v in pruning_stats.items():
+            f.write(f"{k}: {float(v):.6f}\n")
+        f.write("\n")
+
+        f.write("Stage 3\n")
+        f.write("-" * 60 + "\n")
+        if stage3_best_val_loss is not None:
+            f.write(f"Best Val Loss: {stage3_best_val_loss:.4f}\n")
+            f.write(f"Best Epoch: {stage3_best_epoch}\n")
+        else:
+            f.write("Best Val Loss: N/A (pretrained stage3 checkpoint)\n")
+            f.write("Best Epoch: N/A\n")
+        f.write(f"Test Loss: {stage3_test_loss:.4f}\n")
+        f.write(f"Test Acc: {stage3_test_acc:.2f}%\n")
+        f.write(f"Test F1 Macro: {stage3_test_f1:.4f}\n")
+        f.write(f"Dense Params: {dense_param_count}\n")
+        f.write(f"Pruned Params: {pruned_param_count}\n")
+        f.write(f"Param Reduction: {param_reduction_pct:.2f}%\n")
+        f.write(f"Block2 kept channels: {int(keep_indices['block2'].numel())}\n")
+        f.write(f"Block3 kept channels: {int(keep_indices['block3'].numel())}\n")
+        f.write(f"Block4 kept channels: {int(keep_indices['block4'].numel())}\n")
+
+    if wandb_run is not None:
+        import wandb
+
+        final_log_artifact = wandb.Artifact(
+            name=f"{model_path.stem}-final-summary-val-{val_subject_tag}".replace('.', '_'),
+            type="results-log",
+        )
+        final_log_artifact.add_file(str(final_log_path))
+        wandb_run.log_artifact(final_log_artifact)
+        wandb_run.log({"final_summary_log_path": str(final_log_path)})
 
     print("\n" + "=" * 60)
     print("THREE-STAGE CHANNEL PRUNING TRAINING COMPLETE")
