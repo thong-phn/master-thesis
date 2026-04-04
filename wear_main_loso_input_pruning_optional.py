@@ -47,6 +47,8 @@ def main():
                         help='Base learning rate')
     parser.add_argument('--stage2_backbone_lr_factor', type=float, default=0.1,
                         help='Stage 2 LR multiplier for non-Gumbel parameters (input-bin pruning stage)')
+    parser.add_argument('--performance', action='store_true',
+                        help='Enable auto-tuned high-throughput DataLoader settings')
     parser.add_argument('--batch_size', type=int, default=64,
                         help='Batch size')
     parser.add_argument('--dropout', type=float, default=0.4,
@@ -90,6 +92,7 @@ def main():
         f.write(f"Epochs Stage 2: {args.epochs_stage2}\n")
         f.write(f"Log Every N Epochs: {args.log_every_n_epochs}\n")
         f.write(f"Stage 2 Backbone LR Factor: {args.stage2_backbone_lr_factor}\n")
+        f.write(f"Performance Mode: {args.performance}\n")
         if args.stage1_model_path is not None:
             f.write(f"Stage 1 Checkpoint Override: {args.stage1_model_path}\n")
         if args.stage2_model_path is not None:
@@ -135,6 +138,7 @@ def main():
                 "log_every_n_epochs": args.log_every_n_epochs,
                 "lr": args.lr,
                 "stage2_backbone_lr_factor": args.stage2_backbone_lr_factor,
+                "performance": args.performance,
                 "batch_size": args.batch_size,
                 "preprocessing": args.preprocessing,
                 "sparsity_weight_bin": args.sparsity_weight_bin,
@@ -163,6 +167,7 @@ def main():
             tau_end=args.tau_end,
             dropout=args.dropout,
             stage2_backbone_lr_factor=args.stage2_backbone_lr_factor,
+            performance=args.performance,
             stage1_model_path=resolved_stage1_model_path,
             stage2_model_path=args.stage2_model_path,
         )
