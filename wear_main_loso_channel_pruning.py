@@ -93,6 +93,7 @@ def main():
     test_subjects = _load_subject_ids(subject_test_path)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = "cpu"
     print(f"Using device: {device}")
 
     results_log_path = project_root / 'log' / f"wear_loso_three_stage_channel_results_{args.preprocessing}.txt"

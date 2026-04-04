@@ -100,6 +100,7 @@ def _train_one_epoch(model, optimizer, dataloader, criterion,
 def stage1_pipeline(model, train_loader, val_loader, test_loader, 
                     criterion, optimizer, scheduler, checkpoint_path,
                     num_epochs=60, patience=10, min_delta=1e-3,
+                    log_every_n_epochs=5,
                     wandb_run=None, use_pretrained=False,
                     device=torch.device("cuda" if torch.cuda.is_available() else "cpu")):
     """
@@ -146,6 +147,8 @@ def stage1_pipeline(model, train_loader, val_loader, test_loader,
     stage1_best_epoch = 0
     no_improve = 0
 
+    log_every_n_epochs = max(1, int(log_every_n_epochs))
+
     for epoch in range(num_epochs):
         train_loss, train_acc = _train_one_epoch(model, optimizer, train_loader, criterion, device)
         val_loss, val_acc, _, _, _ = _val_one_epoch(model, val_loader, criterion, device)
@@ -159,13 +162,15 @@ def stage1_pipeline(model, train_loader, val_loader, test_loader,
         else:
             no_improve += 1
 
-        print(
-            f"Epoch [{epoch+1}/{num_epochs}]: "
-            f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
-            f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
-        )
+        should_log_epoch = ((epoch + 1) % log_every_n_epochs == 0) or ((epoch + 1) == num_epochs)
+        if should_log_epoch:
+            print(
+                f"Epoch [{epoch+1}/{num_epochs}]: "
+                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
+            )
 
-        if wandb_run is not None:
+        if wandb_run is not None and should_log_epoch:
             wandb_run.log({
                 "stage1/stage_number": 1,
                 "stage1/purpose": "train baseline model",
@@ -224,6 +229,7 @@ def stage2_channel_gumbel_pruning_pipeline(
     num_epochs=60,
     patience=10,
     min_delta=1e-3,
+    log_every_n_epochs=5,
     wandb_run=None,
     use_pretrained=False,
     device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
@@ -264,6 +270,8 @@ def stage2_channel_gumbel_pruning_pipeline(
         stage2_best_epoch = 0
         no_improve = 0
 
+        log_every_n_epochs = max(1, int(log_every_n_epochs))
+
         for epoch in range(num_epochs):
             model.train()
             if hasattr(model, "set_tau"):
@@ -301,13 +309,15 @@ def stage2_channel_gumbel_pruning_pipeline(
                 no_improve += 1
 
             mask_info = f"; Mask: {model.mask_l1.item():.2%}" if getattr(model, "mask_l1", None) is not None else ""
-            print(
-                f"Epoch [{epoch+1}/{num_epochs}]: "
-                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
-                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}" + mask_info
-            )
+            should_log_epoch = ((epoch + 1) % log_every_n_epochs == 0) or ((epoch + 1) == num_epochs)
+            if should_log_epoch:
+                print(
+                    f"Epoch [{epoch+1}/{num_epochs}]: "
+                    f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                    f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}" + mask_info
+                )
 
-            if wandb_run is not None:
+            if wandb_run is not None and should_log_epoch:
                 wandb_run.log({
                     "stage2/stage_number": 2,
                     "stage2/purpose": "train channel-pruning model with masking",

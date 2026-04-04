@@ -11,6 +11,12 @@ from scipy.signal import butter, filtfilt
 from lib.ml_lib import _val_one_epoch, stage1_pipeline, stage2_channel_gumbel_pruning_pipeline, _load_weights_to_gumbel_model
 from lib.signal_lib import _load_and_window_subject_csv
 
+
+def _resolve_device(device):
+    if isinstance(device, str):
+        return torch.device(device)
+    return device
+
 # Label mapping: 18 fine-grained WEAR labels → 8 merged classes
 LABEL_MAP = {
     'jogging': 0,
@@ -845,7 +851,7 @@ def train_loso_wear(root_path, model_class, train_subjects, val_subjects, wandb_
     lr = train_kwargs.get('lr', 1e-3)
     batch_size = train_kwargs.get('batch_size', 64)
     performance_mode = bool(train_kwargs.get('performance', False))
-    device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    device = _resolve_device(train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
     patience = train_kwargs.get('patience', 10)
     min_delta = train_kwargs.get('min_delta', 1e-3)
     model_path = Path(train_kwargs.get('model_path', './models/best_wear_model.pth'))
@@ -990,7 +996,7 @@ def train_loso_wear_two_stage_channel(root_path, train_subjects, val_subjects, w
     epochs_stage2 = train_kwargs.get('epochs_stage2', 60)
     lr = train_kwargs.get('lr', 1e-3)
     batch_size = train_kwargs.get('batch_size', 64)
-    device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    device = _resolve_device(train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
     patience = train_kwargs.get('patience', 10)
     min_delta = train_kwargs.get('min_delta', 1e-3)
     sparsity_weight = train_kwargs.get('sparsity_weight', 0.01)
@@ -1423,7 +1429,7 @@ def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subje
     epochs_stage2 = train_kwargs.get('epochs_stage2', 60)
     lr = train_kwargs.get('lr', 1e-3)
     batch_size = train_kwargs.get('batch_size', 64)
-    device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    device = _resolve_device(train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
     patience = train_kwargs.get('patience', 10)
     min_delta = train_kwargs.get('min_delta', 1e-3)
     preprocessing = train_kwargs.get('preprocessing', 'fft')
@@ -1432,8 +1438,9 @@ def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subje
     tau_end = train_kwargs.get('tau_end', 1.0)
     sparsity_weight_bin = train_kwargs.get('sparsity_weight_bin', train_kwargs.get('sparsity_weight', 0.01))
     stage2_backbone_lr_factor = train_kwargs.get('stage2_backbone_lr_factor', 0.1)
+    log_every_n_epochs = max(1, int(train_kwargs.get('log_every_n_epochs', 5)))
 
-    model_path = Path(train_kwargs.get('model_path', './models/best_wear_model_three_stage.pth'))
+    model_path = Path(train_kwargs.get('model_path', './models/best_wear_model_two_stage_input_pruning.pth'))
     model_path.parent.mkdir(parents=True, exist_ok=True)
 
     stage1_model_path_arg = train_kwargs.get('stage1_model_path')
@@ -1471,7 +1478,15 @@ def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subje
     print(f"Test samples: {len(test_dataset)}")
 
     freq_bins = train_dataset[0][0].shape[-1]
-    criterion = nn.CrossEntropyLoss()
+    # Class-balanced loss for imbalanced WEAR labels.
+    class_counts = np.bincount(train_dataset.labels.astype(int), minlength=8).astype(np.float32)
+    class_counts = np.clip(class_counts, 1.0, None)
+    class_weights = class_counts.sum() / class_counts
+    class_weights = class_weights / class_weights.mean()
+    class_weights = torch.as_tensor(class_weights, dtype=torch.float32, device=device)
+    print(f"Class counts: {class_counts.tolist()}")
+    print(f"Class weights: {class_weights.detach().cpu().numpy().round(3).tolist()}")
+    criterion = nn.CrossEntropyLoss(weight=class_weights).to(device)
 
     # ============================================================
     # STAGE 1
@@ -1528,13 +1543,15 @@ def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subje
             else:
                 no_improve += 1
 
-            print(
-                f"Epoch [{epoch+1}/{epochs_stage1}]: "
-                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
-                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
-            )
+            should_log_epoch = ((epoch + 1) % log_every_n_epochs == 0) or ((epoch + 1) == epochs_stage1)
+            if should_log_epoch:
+                print(
+                    f"Epoch [{epoch+1}/{epochs_stage1}]: "
+                    f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                    f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
+                )
 
-            if wandb_run is not None:
+            if wandb_run is not None and should_log_epoch:
                 wandb_run.log({
                     "stage": 1,
                     "epoch": epoch + 1,
@@ -1551,7 +1568,9 @@ def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subje
                 break
 
     model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
-    stage1_test_loss, stage1_test_acc, stage1_test_f1 = _evaluate_classifier(model_stage1, test_loader, criterion, device)
+    stage1_test_loss, stage1_test_acc, stage1_test_f1, stage1_y_true, stage1_y_pred = _val_one_epoch(
+        model_stage1, test_loader, criterion, device
+    )
     print("-" * 50)
     print("Stage 1 Summary:")
     if stage1_best_val_loss is not None:
@@ -1559,6 +1578,17 @@ def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subje
     else:
         print("Best Val Loss: not available (loaded pretrained stage1 checkpoint)")
     print(f"Test Loss: {stage1_test_loss:.4f} | Test Acc: {stage1_test_acc:.2f}% | Test F1 Macro: {stage1_test_f1:.4f}")
+
+    _save_confusion_matrix_artifact(
+        y_true=stage1_y_true,
+        y_pred=stage1_y_pred,
+        output_dir=None,
+        stage_name='Stage 1',
+        model_name='SeparableConvCNN',
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage1-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
 
     # ============================================================
     # STAGE 2
@@ -1643,13 +1673,15 @@ def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subje
                 no_improve += 1
 
             mask_info = f"; Mask: {model_stage2.mask_l1.item():.2%}" if model_stage2.mask_l1 is not None else ""
-            print(
-                f"Epoch [{epoch+1}/{epochs_stage2}]: "
-                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
-                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}" + mask_info
-            )
+            should_log_epoch = ((epoch + 1) % log_every_n_epochs == 0) or ((epoch + 1) == epochs_stage2)
+            if should_log_epoch:
+                print(
+                    f"Epoch [{epoch+1}/{epochs_stage2}]: "
+                    f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                    f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}" + mask_info
+                )
 
-            if wandb_run is not None:
+            if wandb_run is not None and should_log_epoch:
                 wandb_run.log({
                     "stage": 2,
                     "epoch": epoch + 1,
@@ -1682,6 +1714,47 @@ def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subje
     print(f"Test Loss: {stage2_test_loss:.4f} | Test Acc: {stage2_test_acc:.2f}% | Test F1 Macro: {stage2_test_f1:.4f}")
     print(f"Hard input bins kept: {(hard_bin_mask > 0.5).sum().item()}/{hard_bin_mask.numel()} ({bin_keep_ratio:.1%})")
 
+    val_subject_tag = "-".join(str(s) for s in np.atleast_1d(val_subjects).tolist())
+    final_log_path = model_path.parent / f"{model_path.stem}_final_summary_val_{val_subject_tag}.txt"
+
+    with open(final_log_path, "w") as f:
+        f.write("TWO-STAGE INPUT PRUNING SUMMARY\n")
+        f.write("=" * 60 + "\n")
+        f.write(f"Preprocessing: {preprocessing}\n")
+        f.write(f"Train subjects: {list(train_subjects)}\n")
+        f.write(f"Val subjects: {list(np.atleast_1d(val_subjects).tolist())}\n")
+        f.write(f"Stage 1 checkpoint: {stage1_model_path}\n")
+        f.write(f"Stage 2 checkpoint: {stage2_model_path}\n\n")
+
+        f.write("Stage 1\n")
+        f.write("-" * 60 + "\n")
+        if stage1_best_val_loss is not None:
+            f.write(f"Best Val Loss: {stage1_best_val_loss:.4f}\n")
+            f.write(f"Best Epoch: {stage1_best_epoch}\n")
+        else:
+            f.write("Best Val Loss: N/A (pretrained stage1 checkpoint)\n")
+            f.write("Best Epoch: N/A\n")
+        f.write(f"Test Loss: {stage1_test_loss:.4f}\n")
+        f.write(f"Test Acc: {stage1_test_acc:.2f}%\n")
+        f.write(f"Test F1 Macro: {stage1_test_f1:.4f}\n\n")
+
+        f.write("Stage 2\n")
+        f.write("-" * 60 + "\n")
+        if stage2_best_val_loss is not None:
+            f.write(f"Best Val Loss: {stage2_best_val_loss:.4f}\n")
+            f.write(f"Best Epoch: {stage2_best_epoch}\n")
+        else:
+            f.write("Best Val Loss: N/A (pretrained stage2 checkpoint)\n")
+            f.write("Best Epoch: N/A\n")
+        f.write(f"Test Loss: {stage2_test_loss:.4f}\n")
+        f.write(f"Test Acc: {stage2_test_acc:.2f}%\n")
+        f.write(f"Test F1 Macro: {stage2_test_f1:.4f}\n")
+        f.write(
+            f"Hard input bins kept: {(hard_bin_mask > 0.5).sum().item()}/{hard_bin_mask.numel()} "
+            f"({bin_keep_ratio:.1%})\n"
+        )
+        f.write(f"Hard Bin Mask: {hard_bin_mask.tolist()}\n")
+
 
     if wandb_run is not None:
         wandb_run.log({
@@ -1692,7 +1765,17 @@ def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subje
             "stage2_test_acc": stage2_test_acc,
             "stage2_test_f1": stage2_test_f1,
             "bin_keep_ratio": bin_keep_ratio,
+            "final_summary_log_path": str(final_log_path),
         })
+
+        import wandb
+
+        final_log_artifact = wandb.Artifact(
+            name=f"{model_path.stem}-final-summary-val-{val_subject_tag}".replace('.', '_'),
+            type="results-log",
+        )
+        final_log_artifact.add_file(str(final_log_path))
+        wandb_run.log_artifact(final_log_artifact)
 
     print("\n" + "=" * 60)
     print("TWO-STAGE TRAINING COMPLETE")
@@ -1723,6 +1806,7 @@ def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subje
             "bin_keep_ratio": bin_keep_ratio,
             "loaded_from_checkpoint": use_pretrained_stage2,
         },
+        "final_summary_log_path": str(final_log_path),
     }
 
 
@@ -1737,14 +1821,15 @@ def train_loso_wear_three_stage_pruning_channel(root_path, train_subjects, val_s
 
     epochs_stage1 = train_kwargs.get('epochs_stage1', 60)
     epochs_stage2 = train_kwargs.get('epochs_stage2', 60)
-    epochs_stage3 = train_kwargs.get('epochs_stage3', 10)
+    epochs_stage3 = train_kwargs.get('epochs_stage3', 60)
     lr = train_kwargs.get('lr', 1e-3)
     batch_size = train_kwargs.get('batch_size', 64)
     performance_mode = bool(train_kwargs.get('performance', False))
-    device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    device = _resolve_device(train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
     patience = train_kwargs.get('patience', 10)
     min_delta = train_kwargs.get('min_delta', 1e-3)
     sparsity_weight = train_kwargs.get('sparsity_weight', 0.01)
+    log_every_n_epochs = max(1, int(train_kwargs.get('log_every_n_epochs', 5)))
     stage3_loaded_lr_factor = train_kwargs.get('stage3_loaded_lr_factor', 0.1)
     model_path = Path(train_kwargs.get('model_path', './models/best_wear_model_three_stage_channel.pth'))
     model_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1843,7 +1928,8 @@ def train_loso_wear_three_stage_pruning_channel(root_path, train_subjects, val_s
                                     criterion, optimizer, scheduler, checkpoint_path=stage1_model_path, 
                                     num_epochs=epochs_stage1,
                                     patience=patience, min_delta=min_delta,
-                                    wandb_run=wandb_run, use_pretrained=use_pretrained_stage1)
+                                    log_every_n_epochs=log_every_n_epochs,
+                                    wandb_run=wandb_run, use_pretrained=use_pretrained_stage1, device=device)
 
     model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
     model_stage1.eval()
@@ -1893,6 +1979,7 @@ def train_loso_wear_three_stage_pruning_channel(root_path, train_subjects, val_s
         num_epochs=epochs_stage2,
         patience=patience,
         min_delta=min_delta,
+        log_every_n_epochs=log_every_n_epochs,
         wandb_run=wandb_run,
         use_pretrained=use_pretrained_stage2,
         device=device,
@@ -1987,13 +2074,15 @@ def train_loso_wear_three_stage_pruning_channel(root_path, train_subjects, val_s
             else:
                 no_improve += 1
 
-            print(
-                f"Epoch [{epoch+1}/{epochs_stage3}]: "
-                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
-                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
-            )
+            should_log_epoch = ((epoch + 1) % log_every_n_epochs == 0) or ((epoch + 1) == epochs_stage3)
+            if should_log_epoch:
+                print(
+                    f"Epoch [{epoch+1}/{epochs_stage3}]: "
+                    f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                    f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
+                )
 
-            if wandb_run is not None:
+            if wandb_run is not None and should_log_epoch:
                 wandb_run.log({
                     "stage": 3,
                     "epoch": epoch + 1,
@@ -2069,16 +2158,24 @@ def train_loso_wear_three_stage_pruning_channel(root_path, train_subjects, val_s
 
         f.write("Stage 1\n")
         f.write("-" * 60 + "\n")
-        f.write(f"Best Val Loss: {stage1_result['best_val_loss']:.4f}\n")
-        f.write(f"Best Epoch: {stage1_result['best_epoch']}\n")
+        if stage1_result["best_val_loss"] is not None:
+            f.write(f"Best Val Loss: {stage1_result['best_val_loss']:.4f}\n")
+            f.write(f"Best Epoch: {stage1_result['best_epoch']}\n")
+        else:
+            f.write("Best Val Loss: N/A (pretrained stage1 checkpoint)\n")
+            f.write("Best Epoch: N/A\n")
         f.write(f"Test Loss: {stage1_result['test_loss']:.4f}\n")
         f.write(f"Test Acc: {stage1_result['test_acc']:.2f}%\n")
         f.write(f"Test F1 Macro: {stage1_result['test_f1']:.4f}\n\n")
 
         f.write("Stage 2\n")
         f.write("-" * 60 + "\n")
-        f.write(f"Best Val Loss: {stage2_best_val_loss:.4f}\n")
-        f.write(f"Best Epoch: {stage2_best_epoch}\n")
+        if stage2_best_val_loss is not None:
+            f.write(f"Best Val Loss: {stage2_best_val_loss:.4f}\n")
+            f.write(f"Best Epoch: {stage2_best_epoch}\n")
+        else:
+            f.write("Best Val Loss: N/A (pretrained stage2 checkpoint)\n")
+            f.write("Best Epoch: N/A\n")
         f.write(f"Test Loss: {stage2_test_loss:.4f}\n")
         f.write(f"Test Acc: {stage2_test_acc:.2f}%\n")
         f.write(f"Test F1 Macro: {stage2_test_f1:.4f}\n")
@@ -2184,7 +2281,7 @@ def train_loso_wear_three_stage_input_pruning(root_path, train_subjects, val_sub
     epochs_stage3 = train_kwargs.get('epochs_stage3', 60)
     lr = train_kwargs.get('lr', 1e-3)
     batch_size = train_kwargs.get('batch_size', 64)
-    device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    device = _resolve_device(train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
     patience = train_kwargs.get('patience', 10)
     min_delta = train_kwargs.get('min_delta', 1e-3)
     preprocessing = train_kwargs.get('preprocessing', 'fft')
@@ -2651,7 +2748,7 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
     epochs_stage5 = train_kwargs.get('epochs_stage5', 60)
     lr = train_kwargs.get('lr', 1e-3)
     batch_size = train_kwargs.get('batch_size', 64)
-    device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    device = _resolve_device(train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
     patience = train_kwargs.get('patience', 10)
     min_delta = train_kwargs.get('min_delta', 1e-3)
     preprocessing = train_kwargs.get('preprocessing', 'fft')

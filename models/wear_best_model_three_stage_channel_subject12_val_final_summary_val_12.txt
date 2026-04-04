@@ -1,0 +1,45 @@
+THREE-STAGE CHANNEL PRUNING SUMMARY
+============================================================
+Preprocessing: fft
+Train subjects: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17]
+Val subjects: [12]
+Stage 1 checkpoint: /home/qphan/master-thesis/models/stage1/fft/wear_best_model_subject12_val.pth
+Stage 2 checkpoint: /home/qphan/master-thesis/models/wear_best_model_three_stage_channel_subject12_val_stage2_channel.pth
+Stage 3 checkpoint: /home/qphan/master-thesis/models/wear_best_model_three_stage_channel_subject12_val_stage3_pruned_channel.pth
+
+Stage 1
+------------------------------------------------------------
+Best Val Loss: N/A (pretrained stage1 checkpoint)
+Best Epoch: N/A
+Test Loss: 0.6157
+Test Acc: 79.66%
+Test F1 Macro: 0.6971
+
+Stage 2
+------------------------------------------------------------
+Best Val Loss: 0.7873
+Best Epoch: 42
+Test Loss: 0.6649
+Test Acc: 78.85%
+Test F1 Macro: 0.6733
+block2_kept: 30/64 (46.9%)
+block3_kept: 45/128 (35.2%)
+block4_kept: 81/128 (63.3%)
+block2_Pruned_%: 53.125000
+block3_Pruned_%: 64.843750
+block4_Pruned_%: 36.718750
+Total_Pruned_%: 51.250000
+
+Stage 3
+------------------------------------------------------------
+Best Val Loss: 0.7547
+Best Epoch: 32
+Test Loss: 0.6390
+Test Acc: 78.62%
+Test F1 Macro: 0.6911
+Dense Params: 36998
+Pruned Params: 12642
+Param Reduction: 65.83%
+Block2 kept channels: 30
+Block3 kept channels: 45
+Block4 kept channels: 81

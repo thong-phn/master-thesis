@@ -19,20 +19,16 @@ from lib.model import SeparableConvCNN
 
 
 def set_seed(seed: int = 42):
-	random.seed(seed)
-	os.environ['SEED'] = str(seed)
-	os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
-	np.random.seed(seed)
+    random.seed(seed)
+    os.environ['SEED'] = str(seed)
+    np.random.seed(seed)
 
-	torch.manual_seed(seed)
-	torch.cuda.manual_seed(seed)
-	torch.cuda.manual_seed_all(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
-	torch.backends.cudnn.deterministic = True
-	torch.backends.cudnn.benchmark = False
-	torch.backends.cuda.matmul.allow_tf32 = False
-	torch.backends.cudnn.allow_tf32 = False
-	torch.use_deterministic_algorithms(True, warn_only=True)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
 def main():
@@ -45,13 +41,11 @@ def main():
 	                    help='Batch size')
 	parser.add_argument('--performance', action='store_true',
 	                    help='Enable auto-tuned high-throughput DataLoader settings')
-	parser.add_argument('--seed', type=int, default=42,
-	                    help='Random seed for reproducible training and data loading')
 	parser.add_argument('--wandb_run_name', type=str, default=None,
 	                    help='Optional base W&B run name. If provided, fold and summary suffixes are appended.')
 	args = parser.parse_args()
 
-	set_seed(args.seed)
+	set_seed(42)
 	# Detect if running on Kaggle and set appropriate path
 	if os.path.exists('/kaggle/input'):
 		root_path = Path('/kaggle/input/datasets/thongp/wearthesis/wear')
@@ -77,7 +71,6 @@ def main():
 		f.write("WEAR LOSO Results\n")
 		f.write(f"Batch size: {args.batch_size}\n")
 		f.write(f"Performance mode: {args.performance}\n")
-		f.write(f"Seed: {args.seed}\n")
 
 	test_accs = []
 	test_f1s = []
@@ -106,7 +99,6 @@ def main():
 				"lr": 1e-3,
 				"batch_size": args.batch_size,
 				"performance": args.performance,
-				"seed": args.seed,
 				"model": args.model,
 				"preprocessing": args.preprocessing,
 			},
@@ -123,7 +115,6 @@ def main():
 			lr=1e-3,
 			batch_size=args.batch_size,
 			performance=args.performance,
-			seed=args.seed,
 			device=device,
 			model_path=project_root / "models" / f"wear_best_model_subject{val_subject}_val.pth",
 			preprocessing=args.preprocessing,
