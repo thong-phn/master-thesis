@@ -67,8 +67,64 @@ Handwashing: Daily life
 
 WEAR: Sport
 
+Weighted CEL
+    Subject 0, no weighted:
+        STAGE 1
+        Test Accuracy: 71.14% ± 0.00%
+        Test F1 Macro: 0.6580 ± 0.0000
+
+        STAGE2:
+        Test Accuracy: 68.41% ± 0.00%
+        Test F1 Macro: 0.6327 ± 0.0000
+
+        STAGE3:
+        Test Accuracy: 72.81% ± 0.00%
+        Test F1 Macro: 0.6633 ± 0.0000
+
+        STAGE4:
+        Test Accuracy: 70.63% ± 0.00%
+        Test F1 Macro: 0.6508 ± 0.0000
+
+        STAGE5:
+        Test Accuracy: 70.89% ± 0.00%
+        Test F1 Macro: 0.6518 ± 0.0000
+
+        Improvement (Stage5 - Stage1):
+        Accuracy: -0.25%
+        F1 Macro: -0.0062
+    Subject 0, weighted, keep less input?:
+        STAGE1:
+        Test Accuracy: 79.20% ± 0.00%
+        Test F1 Macro: 0.6841 ± 0.0000
+
+        STAGE2:
+        Test Accuracy: 73.01% ± 0.00%
+        Test F1 Macro: 0.6336 ± 0.0000
+
+        STAGE3:
+        Test Accuracy: 77.89% ± 0.00%
+        Test F1 Macro: 0.6823 ± 0.0000
+
+        STAGE4:
+        Test Accuracy: 79.97% ± 0.00%
+        Test F1 Macro: 0.6851 ± 0.0000
+
+        STAGE5:
+        Test Accuracy: 79.73% ± 0.00%
+        Test F1 Macro: 0.6884 ± 0.0000
+
+        Improvement (Stage5 - Stage1):
+        Accuracy: 0.54%
+        F1 Macro: 0.0043
 
 About bn0 issue
+    Debug thêm với subject 7: 
+        No bn0: Prune quá nhiều 
+            Baseline stage 1: Test Acc: da co
+        With bn0: Prune vừa phải
+            Baseline da co
+        No bn0 + Zscore normalization: 54.39% ± 0.00%
+        With bn0 + Zscore norm: 56
     Input pruning S0: Train samples: 50686; Val samples: 2793; Test samples: 9705.
     NOTE: Stage 3 (Fine tuning pruned input)
         No bn0, sparsity weight = 0.1 -> Maintain accuracy
@@ -89,3 +145,28 @@ About bn0 issue
             - Stage 2: Test Acc: 70.48% | Test F1 Macro: 0.6580 | Hard input bins kept: 25/51 (49.0%)
             - Stage 3: Test Acc: 70.47% | Test F1 Macro: 0.6547
 
+SPARSITY_WEIGHT
+- FFT: 0.09
+- IHW: 0.07
+- DCT: 
+
+
+wCEL additional input pruning tuning
+S0:
+Stage1: Test Accuracy: 79.20% ± 0.00% | Test F1 Macro: 0.6841 ± 0.0000
+- SPARSITY_WEIGHT: 0.2 ->  Test Accuracy: 79.22% ± 0.00% | Test F1 Macro: 0.6881 ± 0.0000 | Input bins: 26/51 (51.0%)
+- SPARSITY_WEIGHT: 0.25 -> kept bins=11/51
+- SPARSITY_WEIGHT: 0.3 ->  Input bins: 10/51 (19.6%)
+
+S7: 
+Stage 1: Test Accuracy: 72.68% ± 0.00% | Test F1 Macro: 0.6554 ± 0.0000
+- SPARSITY_WEIGHT: 0.2 -> Test Accuracy: 74.57% ± 0.00% | Test F1 Macro: 0.6692 ± 0.0000 | Hard input bins kept: 26/51 (51.0%)
+- SPARSITY_WEIGHT: 0.3 -> Test Acc: 77.28%% | Test F1 Macro: 0.6757 | Hard input bins kept: 16/51 (31.4%)
+
+Baseline 
+WEAR
+TD: Test Accuracy: 81.22% ± 2.13% | Test F1 Macro: 0.7180 ± 0.0313 (link: )
+DCT: Test Accuracy: 78.80% ± 2.17% | Test F1 Macro: 0.6864 ± 0.0144
+
+FFT: Test Accuracy: 77.89% ± 1.77% | Test F1 Macro: 0.6788 ± 0.0115
+Five stage

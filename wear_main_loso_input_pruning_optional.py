@@ -2,7 +2,6 @@
 Three-Stage Training for WEAR Dataset LOSO:
     Stage 1: Train SeparableConvCNN without Gumbel mask and save best weights
     Stage 2: Load stage 1 weights into GumbelMaskSeparableConvCNN and train with Gumbel mask
-    Stage 3: Apply pruned input and retrain SeparableConvCNN
 """
 from pathlib import Path
 import argparse

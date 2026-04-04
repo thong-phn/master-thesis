@@ -8,6 +8,7 @@ Multi-Stage Training for WEAR Dataset LOSO:
 """
 from pathlib import Path
 import argparse
+import re
 import wandb
 import random
 import numpy as np
@@ -37,14 +38,42 @@ def _load_subject_ids(path):
     return sorted(np.atleast_1d(np.loadtxt(path, dtype=int)).astype(int).tolist())
 
 
-def _upload_results_log_to_wandb(log_path: Path, preprocessing: str, single_subject_only: bool):
+def _parse_subject_selection(subjects_arg: str | None):
+    if subjects_arg is None:
+        return None
+
+    # Accept separators like comma, dot, and whitespace (e.g. "7,8.9" -> [7, 8, 9]).
+    tokens = [t for t in re.split(r"[\s,\.]+", subjects_arg.strip()) if t]
+    if not tokens:
+        raise ValueError("--subjects was provided but no valid subject IDs were found.")
+
+    try:
+        subject_ids = sorted({int(t) for t in tokens})
+    except ValueError as exc:
+        raise ValueError(
+            f"Invalid --subjects value: '{subjects_arg}'. Use integers like 7,8,9"
+        ) from exc
+
+    return subject_ids
+
+
+def _upload_results_log_to_wandb(
+    log_path: Path,
+    preprocessing: str,
+    selected_subjects: list[int],
+    all_subjects: list[int],
+):
     if not log_path.exists():
         print(f"Skipping W&B upload: log file not found at {log_path}")
         return
 
     upload_run = None
     try:
-        run_suffix = "single-subject" if single_subject_only else "all-subjects"
+        if selected_subjects == all_subjects:
+            run_suffix = "all-subjects"
+        else:
+            run_suffix = "subjects-" + "-".join(map(str, selected_subjects))
+
         upload_run = wandb.init(
             project="thesis",
             name=f"wear-loso-five-stage-log-{preprocessing}-{run_suffix}",
@@ -54,7 +83,7 @@ def _upload_results_log_to_wandb(log_path: Path, preprocessing: str, single_subj
                 "dataset": "WEAR",
                 "training_type": "five_stage",
                 "preprocessing": preprocessing,
-                "single_subject_only": single_subject_only,
+                "selected_subjects": selected_subjects,
                 "results_log_file": str(log_path),
             },
         )
@@ -117,9 +146,10 @@ def main():
                         help='Optional pretrained Stage 4 checkpoint path; if set, Stage 4 training is skipped.')
     parser.add_argument('--stage5_model_path', type=str, default=None,
                         help='Optional pretrained Stage 5 checkpoint path; if set, Stage 5 training is skipped.')
-    parser.add_argument('--single_subject_only', action='store_true',
-                        help='Run only the first LOSO fold (subject 0 if available).')
-
+    parser.add_argument('--subjects', type=str, default=None,
+                        help='Optional LOSO validation subjects to run, e.g. "7,8,9". '
+                             'If omitted, runs all subjects. Supports separators: comma, dot, whitespace.')
+    parser.add_argument('--run_name', type=str, default=None)
     args = parser.parse_args()
 
     set_seed(42)
@@ -134,6 +164,17 @@ def main():
 
     subject_train_path = root_path / "train" / "subject_train.txt"
     all_subjects = _load_subject_ids(subject_train_path)
+    requested_subjects = _parse_subject_selection(args.subjects)
+    if requested_subjects is None:
+        fold_subjects = all_subjects
+    else:
+        invalid_subjects = [s for s in requested_subjects if s not in all_subjects]
+        if invalid_subjects:
+            raise ValueError(
+                f"Requested validation subjects not found in train subject list: {invalid_subjects}. "
+                f"Available subjects: {all_subjects}"
+            )
+        fold_subjects = requested_subjects
 
     subject_test_path = root_path / "test" / "subject_test.txt"
     test_subjects = _load_subject_ids(subject_test_path)
@@ -156,6 +197,7 @@ def main():
         f.write(f"Stage 2 Backbone LR Factor: {args.stage2_backbone_lr_factor}\n")
         f.write(f"Stage 4 Backbone LR Factor: {args.stage4_backbone_lr_factor}\n")
         f.write(f"Stage 5 Loaded LR Factor: {args.stage5_loaded_lr_factor}\n")
+        f.write(f"Validation Subjects: {fold_subjects}\n")
         if args.stage1_model_path is not None:
             f.write(f"Stage 1 Checkpoint Override: {args.stage1_model_path}\n")
         if args.stage2_model_path is not None:
@@ -171,8 +213,6 @@ def main():
     stage_names = ["stage1", "stage2", "stage3", "stage4", "stage5"]
     metrics_history = {s: {"acc": [], "f1": []} for s in stage_names}
 
-    fold_subjects = [all_subjects[0]] if args.single_subject_only else all_subjects
-
     for val_subject in fold_subjects:
     # for val_subject in [0]:
 
@@ -186,7 +226,7 @@ def main():
 
         wandb_run = wandb.init(
             project="thesis-analysis",
-            name=f"wear-loso-five-stage-val-{val_subject}-{args.preprocessing}",
+            name=f"wear-loso-five-stage-val-{val_subject}-{args.preprocessing}-{args.run_name}",
             config={
                 "dataset": "WEAR",
                 "train_subjects": train_subjects,
@@ -206,6 +246,7 @@ def main():
                 "sparsity_weight_bin": args.sparsity_weight_bin,
                 "sparsity_weight_channel": args.sparsity_weight_channel,
                 "training_type": "five_stage",
+                "selected_subjects": fold_subjects,
                 "stage1_model_path": args.stage1_model_path,
                 "stage2_model_path": args.stage2_model_path,
                 "stage3_model_path": args.stage3_model_path,
@@ -321,7 +362,8 @@ def main():
     _upload_results_log_to_wandb(
         log_path=results_log_path,
         preprocessing=args.preprocessing,
-        single_subject_only=args.single_subject_only,
+        selected_subjects=fold_subjects,
+        all_subjects=all_subjects,
     )
 
 

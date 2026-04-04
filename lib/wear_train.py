@@ -7,7 +7,8 @@ from pathlib import Path
 from sklearn.metrics import f1_score
 from scipy.fftpack import dct
 from scipy.signal import butter, filtfilt
-from lib.ml_lib import _train_one_epoch, _val_one_epoch, stage1_pipeline, stage2_channel_gumbel_pruning_pipeline
+from lib.ml_lib import _val_one_epoch, stage1_pipeline, stage2_channel_gumbel_pruning_pipeline, _load_weights_to_gumbel_model
+from lib.signal_lib import _load_and_window_subject_csv
 
 # Label mapping: 18 fine-grained WEAR labels → 8 merged classes
 LABEL_MAP = {
@@ -31,108 +32,6 @@ LABEL_MAP = {
     'bench-dips': 6,
     'null': 7,
 }
-
-
-def remove_gravity(signal, cutoff=0.3, fs=50, order=3):
-    """High-pass filter to remove gravity (same as UCI-HAR preprocessing)."""
-    nyq = fs / 2
-    b, a = butter(order, cutoff / nyq, btype='high')
-    return filtfilt(b, a, signal, axis=0)
-
-
-def _load_and_window_subject_csv(file_path, window_size=100, step_size=50):
-    """
-    Load a single subject's CSV, extract left_arm_acc_x/y/z and label,
-    map labels via LABEL_MAP, and apply a sliding window.
-
-    Args:
-        file_path: Path to the subject's CSV file
-        window_size: samples per window (default 100 = 2s at 50Hz)
-        step_size: sliding step (default 50 = 50% overlap)
-
-    Returns:
-        signals: np.ndarray of shape (num_windows, 6, window_size)
-                 (lx, ly, lz, rx, ry, rz)
-        labels:  np.ndarray of shape (num_windows,)
-    """
-    acc_data = []
-    mapped_labels = []
-
-    with open(file_path, newline='', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        headers = next(reader)
-
-        try:
-            lx_idx = headers.index('left_arm_acc_x')
-            ly_idx = headers.index('left_arm_acc_y')
-            lz_idx = headers.index('left_arm_acc_z')
-            rx_idx = headers.index('right_arm_acc_x')
-            ry_idx = headers.index('right_arm_acc_y')
-            rz_idx = headers.index('right_arm_acc_z')
-            lbl_idx = headers.index('label')
-        except ValueError as e:
-            print(f"Error finding columns in {file_path}: {e}")
-            return np.array([]), np.array([])
-
-        col_indices = [lx_idx, ly_idx, lz_idx, rx_idx, ry_idx, rz_idx]
-
-        for row in reader:
-            # Skip rows with missing accelerometer values
-            if any(not row[i].strip() for i in col_indices):
-                continue
-
-            acc_data.append([float(row[i]) for i in col_indices])
-
-            lbl_str = row[lbl_idx].strip()
-            if lbl_str in LABEL_MAP:
-                mapped_labels.append(LABEL_MAP[lbl_str])
-            else:
-                mapped_labels.append(-1)
-
-    acc_data = np.array(acc_data, dtype=np.float32)
-    mapped_labels = np.array(mapped_labels, dtype=np.int64)
-
-    # -----------------------------
-    # Step 1: Filter gravity (0.3Hz high-pass)
-    # -----------------------------
-    if len(acc_data) > 0:
-        acc_data = remove_gravity(acc_data)
-
-        # Step 2: Min-Max normalization per channel to [-1, 1]
-        # This standardizes the data to be bounded in [-1, 1] similar to UCI-HAR,
-        # preventing large inputs from destabilizing the Gumbel mask gradients.
-        # min_vals = np.min(acc_data, axis=0)
-        # max_vals = np.max(acc_data, axis=0)
-        # range_vals = max_vals - min_vals
-        # range_vals[range_vals == 0] = 1.0
-        # acc_data = 2.0 * (acc_data - min_vals) / range_vals - 1.0
-
-    num_samples = len(acc_data)
-
-    windows_signals = []
-    windows_labels = []
-
-    # Sliding window
-    for start in range(0, num_samples - window_size + 1, step_size):
-        end = start + window_size
-
-        window_signal = acc_data[start:end]            # (window_size, 6)
-        window_label_seq = mapped_labels[start:end]    # (window_size,)
-
-        # Majority-vote label (offset by +1 to support -1 in bincount)
-        counts = np.bincount(window_label_seq + 1)
-        mode_idx = counts.argmax()
-        mode_label = mode_idx - 1
-
-        # Discard windows where majority label is unknown
-        if mode_label == -1:
-            continue
-
-        windows_signals.append(window_signal.T)  # (6, window_size)
-        windows_labels.append(mode_label)
-
-    return np.array(windows_signals, dtype=np.float32), np.array(windows_labels, dtype=np.int64)
-
 
 # Dataset
 class WEAR_Dataset(Dataset):
@@ -178,7 +77,7 @@ class WEAR_Dataset(Dataset):
                 continue
 
             signals, labels = _load_and_window_subject_csv(
-                file_path, window_size=window_size, step_size=step_size
+                label_map=LABEL_MAP, file_path=file_path, window_size=window_size, step_size=step_size
             )
 
             if len(signals) > 0:
@@ -208,7 +107,7 @@ class WEAR_Dataset(Dataset):
             mag[..., 1:-1] *= 2
         else:
             mag[..., 1:] *= 2
-
+        
         return mag
 
     @staticmethod
@@ -218,24 +117,34 @@ class WEAR_Dataset(Dataset):
 
     @staticmethod
     def _compute_ihw(signal, fixed_point_scale=1024):
-        # Fixed-point scaling keeps sub-integer precision while using integer Haar lifting.
-        current = np.rint(signal * fixed_point_scale).astype(np.int64)
-        details = []
+        # Keep fixed-point precision, then emulate signed int16 arithmetic like C.
+        int_signal = np.rint(signal * fixed_point_scale).astype(np.int64)
 
-        # Apply dyadic levels while the current length is even.
-        while current.shape[-1] > 1 and current.shape[-1] % 2 == 0:
-            even = current[..., 0::2]
-            odd = current[..., 1::2]
+        def to_int16_np(val):
+            val = np.bitwise_and(val, 0xFFFF)
+            return np.where(val > 32767, val - 65536, val).astype(np.int64)
 
-            detail = odd - even
-            approx = even + (detail // 2)
+        length = int_signal.shape[-1]
+        half_len = length // 2
 
-            details.append(detail)
-            current = approx
+        even = to_int16_np(int_signal[..., 0:2 * half_len:2])
+        odd = to_int16_np(int_signal[..., 1:2 * half_len:2])
 
-        coeffs = [current] + details[::-1]
-        ihw = np.concatenate(coeffs, axis=-1)
-        return ihw.astype(np.float32) / float(fixed_point_scale)
+        # Detail: d = to_int16(odd - even)
+        detail = to_int16_np(odd - even)
+        # Approximation: a = to_int16(even + (d >> 1))
+        approx = to_int16_np(even + np.right_shift(detail, 1))
+
+        ihw = np.zeros_like(int_signal, dtype=np.int64)
+        ihw[..., :half_len] = approx
+        ihw[..., half_len:half_len + half_len] = detail
+
+        # Preserve odd tail sample if present.
+        if length % 2 == 1:
+            ihw[..., -1] = to_int16_np(int_signal[..., -1])
+
+        # Return raw integer coefficients for MCU-style integer pipeline simulation.
+        return ihw.astype(np.int16)
 
     def __getitem__(self, idx):
         signal = self.signals[idx]  # (3, window_size)
@@ -253,20 +162,682 @@ class WEAR_Dataset(Dataset):
 
         return torch.FloatTensor(mag), torch.LongTensor([self.labels[idx]])[0]
 
+class SlicedWEARDataset(Dataset):
+    """Wrap WEAR_Dataset and keep only selected frequency bins (hard slicing)."""
+
+    def __init__(self, base_dataset, keep_indices):
+        self.base_dataset = base_dataset
+        self.keep_indices = torch.as_tensor(keep_indices, dtype=torch.long)
+
+    def __len__(self):
+        return len(self.base_dataset)
+
+    def __getitem__(self, idx):
+        x, y = self.base_dataset[idx]
+        x = x.index_select(-1, self.keep_indices)
+        return x, y
 
 # Training function
+
+# def train_loso_wear_two_stage(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
+#     """
+#     Two-stage LOSO training for WEAR dataset:
+#     Stage 1: Train base model without Gumbel mask and save best weights
+#     Stage 2: Load stage 1 weights into corresponding Gumbel model and train with Gumbel mask
+#     Args:
+#         root_path: path to WEAR dataset root
+#         train_subjects: list of subject IDs for training
+#         val_subjects: list of subject IDs for validation
+#         wandb_run: optional wandb run for logging
+#         **train_kwargs: epochs, lr, batch_size, device, patience, min_delta,
+#                         sparsity_weight, model_path, preprocessing, etc.
+#     """
+#     from lib.model import (
+#         SeparableConvCNN,
+#         GumbelMaskSeparableConvCNN,
+#     )
+    
+#     # Hyperparameters
+#     epochs_stage1 = train_kwargs.get('epochs_stage1', 30)
+#     epochs_stage2 = train_kwargs.get('epochs_stage2', 60)
+#     lr = train_kwargs.get('lr', 1e-3)
+#     batch_size = train_kwargs.get('batch_size', 64)
+#     device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+#     patience = train_kwargs.get('patience', 10)
+#     min_delta = train_kwargs.get('min_delta', 1e-3)
+#     sparsity_weight = train_kwargs.get('sparsity_weight', 0.1)
+#     model_path = Path(train_kwargs.get('model_path', './models/best_wear_model_two_stage.pth'))
+#     model_path.parent.mkdir(parents=True, exist_ok=True)
+#     preprocessing = train_kwargs.get('preprocessing', 'fft')
+    
+#     # Stage 1 and 2 specific model paths
+#     stage1_model_path_arg = train_kwargs.get('stage1_model_path')
+#     if stage1_model_path_arg is not None:
+#         stage1_model_path = Path(stage1_model_path_arg).expanduser()
+#     else:
+#         stage1_model_path = model_path.parent / f"{model_path.stem}_stage1.pth"
+#     stage1_model_path.parent.mkdir(parents=True, exist_ok=True)
+#     stage2_model_path = model_path
+#     use_pretrained_stage1 = stage1_model_path_arg is not None
+
+#     if use_pretrained_stage1 and not stage1_model_path.exists():
+#         raise FileNotFoundError(
+#             f"Provided stage1 model path does not exist: {stage1_model_path}"
+#         )
+    
+#     dropout = train_kwargs.get('dropout', 0.4)
+#     tau_start = train_kwargs.get('tau_start', 5.0)
+#     tau_end = train_kwargs.get('tau_end', 1.0)
+#     stage2_backbone_lr_factor = train_kwargs.get('stage2_backbone_lr_factor', 0.1)
+#     model_family = train_kwargs.get('model', 'Separable')
+
+#     model_registry = {
+#         'Separable': (SeparableConvCNN, GumbelMaskSeparableConvCNN, 'SeparableConvCNN', 'GumbelMaskSeparableConvCNN'),
+#     }
+
+#     stage1_class, stage2_class, stage1_name, stage2_name = model_registry[model_family]
+    
+#     # Create datasets
+#     train_dataset = WEAR_Dataset(
+#         root_path,
+#         split='train',
+#         subject_ids=train_subjects,
+#         preprocessing=preprocessing,
+#     )
+
+#     val_dataset = WEAR_Dataset(
+#         root_path,
+#         split='train',
+#         subject_ids=val_subjects,
+#         preprocessing=preprocessing,
+#     )
+#     test_dataset = WEAR_Dataset(
+#         root_path,
+#         split='test',
+#         subject_ids=None,
+#         preprocessing=preprocessing,
+#     )
+
+#     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+#     val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+#     test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+
+#     print(f"Train samples: {len(train_dataset)}")
+#     print(f"Val samples: {len(val_dataset)}")
+#     print(f"Test samples: {len(test_dataset)}")
+
+#     freq_bins = train_dataset[0][0].shape[-1]
+    
+#     # ============================================================
+#     # STAGE 1: Train SeparableConvCNN (no Gumbel mask)
+#     # ============================================================
+#     print("\n" + "="*60)
+#     if use_pretrained_stage1:
+#         print(f"STAGE 1: Loading pretrained {stage1_name}")
+#         print(f"Checkpoint: {stage1_model_path}")
+#     else:
+#         print(f"STAGE 1: Training {stage1_name} (without Gumbel mask)")
+#     print("="*60)
+    
+#     model_stage1 = stage1_class(
+#         num_classes=8, 
+#         num_channels=6, 
+#         freq_bins=freq_bins, 
+#         dropout=dropout
+#     ).to(device)
+    
+#     criterion = nn.CrossEntropyLoss()
+#     stage1_best_val_loss = None
+#     stage1_best_epoch = None
+
+#     if not use_pretrained_stage1:
+#         optimizer_stage1 = torch.optim.Adam(model_stage1.parameters(), lr=lr)
+#         scheduler_stage1 = torch.optim.lr_scheduler.ReduceLROnPlateau(
+#             optimizer_stage1, mode="min", factor=0.5, patience=10, min_lr=1e-6
+#         )
+
+#         stage1_best_val_loss = float('inf')
+#         stage1_best_epoch = 0
+#         epochs_no_improve = 0
+
+#         print("-" * 50)
+#         # Training loop for stage 1
+#         for epoch in range(epochs_stage1):
+#             # Train one epoch
+#             train_loss_sum = 0.0
+#             train_correct = 0
+#             train_total = 0
+
+#             model_stage1.train()
+
+#             for fft_mag, labels in train_dataloader:
+#                 fft_mag, labels = fft_mag.to(device), labels.to(device)
+
+#                 outputs = model_stage1(fft_mag)
+#                 loss = criterion(outputs, labels)
+
+#                 optimizer_stage1.zero_grad()
+#                 loss.backward()
+#                 optimizer_stage1.step()
+
+#                 train_loss_sum += loss.item() * labels.size(0)
+#                 _, predicted = outputs.max(1)
+#                 train_total += labels.size(0)
+#                 train_correct += predicted.eq(labels).sum().item()
+
+#             train_loss = train_loss_sum / train_total
+#             train_acc = train_correct / train_total * 100.0
+
+#             # Val one epoch
+#             model_stage1.eval()
+#             val_loss_sum = 0.0
+#             val_correct = 0
+#             val_total = 0
+
+#             with torch.no_grad():
+#                 for fft_mag, labels in val_dataloader:
+#                     fft_mag, labels = fft_mag.to(device), labels.to(device)
+
+#                     outputs = model_stage1(fft_mag)
+#                     loss = criterion(outputs, labels)
+
+#                     val_loss_sum += loss.item() * labels.size(0)
+#                     _, predicted = outputs.max(1)
+#                     val_total += labels.size(0)
+#                     val_correct += predicted.eq(labels).sum().item()
+
+#             val_loss = val_loss_sum / max(val_total, 1)
+#             val_acc = 100. * val_correct / max(val_total, 1)
+#             scheduler_stage1.step(val_loss)
+
+#             # Save best model based on val_loss
+#             if val_loss < stage1_best_val_loss - min_delta:
+#                 stage1_best_val_loss = val_loss
+#                 torch.save(model_stage1.state_dict(), stage1_model_path)
+#                 stage1_best_epoch = epoch + 1
+#                 epochs_no_improve = 0
+#             else:
+#                 epochs_no_improve += 1
+
+#             print(f'Epoch [{epoch+1}/{epochs_stage1}]: '
+#                   f'Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; '
+#                   f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}')
+
+#             if wandb_run is not None:
+#                 wandb_run.log({
+#                     "stage": 1,
+#                     "epoch": epoch + 1,
+#                     "train_loss": train_loss,
+#                     "train_acc": train_acc,
+#                     "val_loss": val_loss,
+#                     "val_acc": val_acc,
+#                     "best_val_loss": stage1_best_val_loss,
+#                     "lr": optimizer_stage1.param_groups[0]["lr"],
+#                 })
+
+#             if epochs_no_improve >= patience:
+#                 print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage1}] (patience={patience}).")
+#                 break
+
+#     # Load best stage 1 model for evaluation
+#     model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
+#     model_stage1.eval()
+
+#     test_loss_sum, test_correct, test_total = 0.0, 0, 0
+#     all_preds_stage1 = []
+#     all_labels_stage1 = []
+#     with torch.no_grad():
+#         for fft_mag, labels in test_dataloader:
+#             fft_mag, labels = fft_mag.to(device), labels.to(device)
+#             outputs = model_stage1(fft_mag)
+#             loss = criterion(outputs, labels)
+
+#             bs = labels.size(0)
+#             test_loss_sum += loss.item() * bs
+#             _, preds = outputs.max(1)
+#             test_total += bs
+#             test_correct += preds.eq(labels).sum().item()
+
+#             all_preds_stage1.extend(preds.cpu().numpy())
+#             all_labels_stage1.extend(labels.cpu().numpy())
+
+#     test_loss_stage1 = test_loss_sum / max(test_total, 1)
+#     test_acc_stage1 = 100.0 * test_correct / max(test_total, 1)
+#     test_f1_stage1 = f1_score(all_labels_stage1, all_preds_stage1, average='macro')
+
+#     print("-" * 50)
+#     print(f"Stage 1 Summary:")
+#     if stage1_best_val_loss is not None:
+#         print(f"Best Val Loss: {stage1_best_val_loss:.4f} at Epoch {stage1_best_epoch}")
+#     else:
+#         print("Best Val Loss: not available (loaded pretrained stage1 checkpoint)")
+#     print(f"Test Loss: {test_loss_stage1:.4f} | Test Acc: {test_acc_stage1:.2f}% | Test F1 Macro: {test_f1_stage1:.4f}")
+    
+#     if wandb_run is not None:
+#         wandb_run.log({
+#             "stage1_checkpoint_path": str(stage1_model_path),
+#             "stage1_loaded_from_checkpoint": use_pretrained_stage1,
+#             "stage1_test_loss": test_loss_stage1,
+#             "stage1_test_acc": test_acc_stage1,
+#             "stage1_test_f1": test_f1_stage1,
+#         })
+
+#     # ============================================================
+#     # STAGE 2: Train GumbelMaskSeparableConvCNN with loaded weights
+#     # ============================================================
+#     print("\n" + "="*60)
+#     print(f"STAGE 2: Training {stage2_name} (with Gumbel mask)")
+#     print("="*60)
+    
+#     model_stage2 = stage2_class(
+#         num_classes=8,
+#         num_channels=6,
+#         freq_bins=freq_bins,
+#         dropout=dropout,
+#         tau_start=tau_start,
+#         tau_end=tau_end
+#     ).to(device)
+    
+#     # Load stage 1 weights into stage 2 model
+#     print("\nLoading Stage 1 weights into Stage 2 model:")
+#     stage1_state_dict = torch.load(stage1_model_path, map_location=device)
+#     _load_weights_to_gumbel_model(model_stage2, stage1_state_dict)
+    
+#     # Use higher LR for Gumbel logits and reduced LR for all other parameters.
+#     stage2_backbone_lr = lr * stage2_backbone_lr_factor
+#     gumbel_params = [model_stage2.bin_logits]
+#     gumbel_param_ids = {id(p) for p in gumbel_params}
+#     backbone_params = [p for p in model_stage2.parameters() if id(p) not in gumbel_param_ids]
+
+#     optimizer_stage2 = torch.optim.Adam(
+#         [
+#             {"params": backbone_params, "lr": stage2_backbone_lr},
+#             {"params": gumbel_params, "lr": lr},
+#         ]
+#     )
+#     scheduler_stage2 = torch.optim.lr_scheduler.ReduceLROnPlateau(
+#         optimizer_stage2, mode="min", factor=0.5, patience=10, min_lr=1e-6
+#     )
+
+#     print(
+#         f"Stage 2 LR setup -> backbone: {stage2_backbone_lr:.2e}, "
+#         f"gumbel(bin_logits): {lr:.2e}"
+#     )
+
+#     stage2_best_val_loss = float('inf')
+#     stage2_best_epoch = 0
+#     epochs_no_improve = 0
+
+#     print("-" * 50)
+#     # Training loop for stage 2
+#     for epoch in range(epochs_stage2):
+#         # Tau annealing (GumbelMask)
+#         if hasattr(model_stage2, 'set_tau'):
+#             model_stage2.set_tau(epoch, epochs_stage2)
+
+#         # Train one epoch
+#         train_loss_sum = 0.0
+#         train_correct = 0
+#         train_total = 0
+
+#         model_stage2.train()
+
+#         for fft_mag, labels in train_dataloader:
+#             fft_mag, labels = fft_mag.to(device), labels.to(device)
+
+#             outputs = model_stage2(fft_mag)
+#             loss = criterion(outputs, labels)
+
+#             # L1 penalty on mask fraction (GumbelMask)
+#             if hasattr(model_stage2, 'mask_l1') and model_stage2.mask_l1 is not None:
+#                 loss = loss + sparsity_weight * model_stage2.mask_l1
+
+#             optimizer_stage2.zero_grad()
+#             loss.backward()
+#             optimizer_stage2.step()
+
+#             train_loss_sum += loss.item() * labels.size(0)
+#             _, predicted = outputs.max(1)
+#             train_total += labels.size(0)
+#             train_correct += predicted.eq(labels).sum().item()
+
+#         train_loss = train_loss_sum / train_total
+#         train_acc = train_correct / train_total * 100.0
+
+#         # Val one epoch
+#         model_stage2.eval()
+#         val_loss_sum = 0.0
+#         val_correct = 0
+#         val_total = 0
+
+#         with torch.no_grad():
+#             for fft_mag, labels in val_dataloader:
+#                 fft_mag, labels = fft_mag.to(device), labels.to(device)
+
+#                 outputs = model_stage2(fft_mag)
+#                 loss = criterion(outputs, labels)
+
+#                 val_loss_sum += loss.item() * labels.size(0)
+#                 _, predicted = outputs.max(1)
+#                 val_total += labels.size(0)
+#                 val_correct += predicted.eq(labels).sum().item()
+
+#         val_loss = val_loss_sum / max(val_total, 1)
+#         val_acc = 100. * val_correct / max(val_total, 1)
+#         scheduler_stage2.step(val_loss)
+
+#         # Save best model based on val_loss
+#         if val_loss < stage2_best_val_loss - min_delta:
+#             stage2_best_val_loss = val_loss
+#             torch.save(model_stage2.state_dict(), stage2_model_path)
+#             stage2_best_epoch = epoch + 1
+#             epochs_no_improve = 0
+#         else:
+#             epochs_no_improve += 1
+
+#         # Print mask statistics if model has masking
+#         mask_info = ""
+#         if hasattr(model_stage2, 'mask_l1') and model_stage2.mask_l1 is not None:
+#             mask_fraction = model_stage2.mask_l1.item()
+#             tau_info = ""
+#             if hasattr(model_stage2, 'current_tau'):
+#                 tau_info = f' (tau={model_stage2.current_tau:.2f})'
+#             mask_info = f'; Mask: {mask_fraction:.2%}' + tau_info
+
+#         print(f'Epoch [{epoch+1}/{epochs_stage2}]: '
+#               f'Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; '
+#               f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}' + mask_info)
+
+#         if wandb_run is not None:
+#             wandb_run.log({
+#                 "stage": 2,
+#                 "epoch": epoch + 1,
+#                 "train_loss": train_loss,
+#                 "train_acc": train_acc,
+#                 "val_loss": val_loss,
+#                 "val_acc": val_acc,
+#                 "best_val_loss": stage2_best_val_loss,
+#                 "lr_backbone": optimizer_stage2.param_groups[0]["lr"],
+#                 "lr_gumbel": optimizer_stage2.param_groups[1]["lr"],
+#             })
+
+#         if epochs_no_improve >= patience:
+#             print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage2}] (patience={patience}).")
+#             break
+
+#     # Load best stage 2 model for evaluation
+#     model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
+#     model_stage2.eval()
+
+#     test_loss_sum, test_correct, test_total = 0.0, 0, 0
+#     all_preds_stage2 = []
+#     all_labels_stage2 = []
+#     with torch.no_grad():
+#         for fft_mag, labels in test_dataloader:
+#             fft_mag, labels = fft_mag.to(device), labels.to(device)
+#             outputs = model_stage2(fft_mag)
+#             loss = criterion(outputs, labels)
+
+#             bs = labels.size(0)
+#             test_loss_sum += loss.item() * bs
+#             _, preds = outputs.max(1)
+#             test_total += bs
+#             test_correct += preds.eq(labels).sum().item()
+
+#             all_preds_stage2.extend(preds.cpu().numpy())
+#             all_labels_stage2.extend(labels.cpu().numpy())
+
+#     test_loss_stage2 = test_loss_sum / max(test_total, 1)
+#     test_acc_stage2 = 100.0 * test_correct / max(test_total, 1)
+#     test_f1_stage2 = f1_score(all_labels_stage2, all_preds_stage2, average='macro')
+
+#     print("-" * 50)
+#     print(f"Stage 2 Summary:")
+#     print(f"Best Val Loss: {stage2_best_val_loss:.4f} at Epoch {stage2_best_epoch}")
+#     print(f"Test Loss: {test_loss_stage2:.4f} | Test Acc: {test_acc_stage2:.2f}% | Test F1 Macro: {test_f1_stage2:.4f}")
+
+#     # Print final learned mask if available
+#     if hasattr(model_stage2, 'last_mask') and model_stage2.last_mask is not None:
+#         final_mask = model_stage2.last_mask.cpu().numpy()
+#         bins_kept = (final_mask > 0.5).sum()
+#         total_bins = len(final_mask)
+#         print(f"\nFinal Mask Statistics:")
+#         print(f"  Bins kept: {bins_kept}/{total_bins} ({bins_kept/total_bins:.1%})")
+#         print(f"  All mask values: {final_mask}")
+#     else:
+#         final_mask = None
+
+#     if wandb_run is not None:
+#         wandb_run.log({
+#             "stage2_test_loss": test_loss_stage2,
+#             "stage2_test_acc": test_acc_stage2,
+#             "stage2_test_f1": test_f1_stage2,
+#         })
+    
+#     print("\n" + "="*60)
+#     print("TWO-STAGE TRAINING COMPLETE")
+#     print("="*60)
+#     print(f"Stage 1 ({stage1_name}): Test Acc: {test_acc_stage1:.2f}% | F1: {test_f1_stage1:.4f}")
+#     print(f"Stage 2 ({stage2_name}): Test Acc: {test_acc_stage2:.2f}% | F1: {test_f1_stage2:.4f}")
+#     print(f"Improvement: {test_acc_stage2 - test_acc_stage1:.2f}%")
+
+#     return {
+#         "stage1": {
+#             "model": stage1_name,
+#             "best_val_loss": stage1_best_val_loss,
+#             "best_epoch": stage1_best_epoch,
+#             "test_loss": test_loss_stage1,
+#             "test_acc": test_acc_stage1,
+#             "test_f1_macro": test_f1_stage1,
+#             "model_path": str(stage1_model_path),
+#             "loaded_from_checkpoint": use_pretrained_stage1,
+#         },
+#         "stage2": {
+#             "model": stage2_name,
+#             "best_val_loss": stage2_best_val_loss,
+#             "best_epoch": stage2_best_epoch,
+#             "test_loss": test_loss_stage2,
+#             "test_acc": test_acc_stage2,
+#             "test_f1_macro": test_f1_stage2,
+#             "model_path": str(stage2_model_path),
+#             "final_mask": final_mask,
+#         }
+#     }
+
+def _count_parameters(model):
+    return int(sum(p.numel() for p in model.parameters()))
+
+
+def _copy_batchnorm_subset(src_bn, dst_bn, keep_indices=None):
+    with torch.no_grad():
+        if keep_indices is None:
+            dst_bn.load_state_dict(src_bn.state_dict())
+            return
+
+        idx = keep_indices.to(dtype=torch.long, device=src_bn.weight.device)
+        dst_bn.weight.copy_(src_bn.weight[idx])
+        dst_bn.bias.copy_(src_bn.bias[idx])
+        dst_bn.running_mean.copy_(src_bn.running_mean[idx])
+        dst_bn.running_var.copy_(src_bn.running_var[idx])
+        dst_bn.num_batches_tracked.copy_(src_bn.num_batches_tracked)
+
+
+def _copy_separable_conv_subset(src_conv, dst_conv, keep_in_indices=None, keep_out_indices=None):
+    with torch.no_grad():
+        if keep_in_indices is None:
+            keep_in_indices = torch.arange(src_conv.depthwise.weight.shape[0], device=src_conv.depthwise.weight.device)
+        if keep_out_indices is None:
+            keep_out_indices = torch.arange(src_conv.pointwise.weight.shape[0], device=src_conv.pointwise.weight.device)
+
+        keep_in_indices = keep_in_indices.to(dtype=torch.long, device=src_conv.depthwise.weight.device)
+        keep_out_indices = keep_out_indices.to(dtype=torch.long, device=src_conv.pointwise.weight.device)
+
+        dst_conv.depthwise.weight.copy_(src_conv.depthwise.weight[keep_in_indices])
+        dst_conv.pointwise.weight.copy_(src_conv.pointwise.weight[keep_out_indices][:, keep_in_indices, :])
+
+
+def _copy_linear_input_subset(src_linear, dst_linear, keep_input_indices=None):
+    with torch.no_grad():
+        if keep_input_indices is None:
+            dst_linear.load_state_dict(src_linear.state_dict())
+            return
+
+        keep_input_indices = keep_input_indices.to(dtype=torch.long, device=src_linear.weight.device)
+        dst_linear.weight.copy_(src_linear.weight[:, keep_input_indices])
+        dst_linear.bias.copy_(src_linear.bias)
+
+
+def _build_pruned_channel_model_from_stage2(stage2_model, num_classes, dropout, device):
+    hard_masks = stage2_model.get_hard_masks()
+
+    keep_indices = {}
+    for block_name in ("block2", "block3", "block4"):
+        mask = hard_masks[block_name].detach().cpu()
+        indices = torch.where(mask > 0.5)[0]
+        if indices.numel() == 0:
+            raise ValueError(f"Stage 2 mask for {block_name} pruned all channels; Stage 3 cannot proceed.")
+        keep_indices[block_name] = indices
+
+    from lib.model import PrunedSeparableConvCNN
+
+    pruned_model = PrunedSeparableConvCNN(
+        num_classes=num_classes,
+        num_channels=6,
+        block2_channels=int(keep_indices["block2"].numel()),
+        block3_channels=int(keep_indices["block3"].numel()),
+        block4_channels=int(keep_indices["block4"].numel()),
+        dropout=dropout,
+    ).to(device)
+
+    with torch.no_grad():
+        # Stem block: identical shapes.
+        # pruned_model.bn0.load_state_dict(stage2_model.bn0.state_dict())
+        _copy_separable_conv_subset(stage2_model.sep_conv1, pruned_model.sep_conv1)
+        pruned_model.bn1.load_state_dict(stage2_model.bn1.state_dict())
+
+        # Block 2 keeps a subset of the output channels.
+        _copy_separable_conv_subset(
+            stage2_model.sep_conv2,
+            pruned_model.sep_conv2,
+            keep_in_indices=None,
+            keep_out_indices=keep_indices["block2"],
+        )
+        _copy_batchnorm_subset(stage2_model.bn2, pruned_model.bn2, keep_indices["block2"])
+
+        # Block 3 uses the kept Block 2 channels as its input channels.
+        _copy_separable_conv_subset(
+            stage2_model.sep_conv3,
+            pruned_model.sep_conv3,
+            keep_in_indices=keep_indices["block2"],
+            keep_out_indices=keep_indices["block3"],
+        )
+        _copy_batchnorm_subset(stage2_model.bn3, pruned_model.bn3, keep_indices["block3"])
+
+        # Block 4 uses the kept Block 3 channels as its input channels.
+        _copy_separable_conv_subset(
+            stage2_model.sep_conv4,
+            pruned_model.sep_conv4,
+            keep_in_indices=keep_indices["block3"],
+            keep_out_indices=keep_indices["block4"],
+        )
+        _copy_batchnorm_subset(stage2_model.bn4, pruned_model.bn4, keep_indices["block4"])
+
+        _copy_linear_input_subset(stage2_model.fc1, pruned_model.fc1, keep_indices["block4"])
+        pruned_model.fc2.load_state_dict(stage2_model.fc2.state_dict())
+
+    return pruned_model, keep_indices
+
+
+def _load_matching_weights(target_model, source_state_dict):
+    """Load only parameters whose names and shapes match between source and target models."""
+    target_state = target_model.state_dict()
+    loaded = 0
+    skipped = 0
+
+    for name, src_param in source_state_dict.items():
+        tgt_param = target_state.get(name)
+        if tgt_param is not None and tgt_param.shape == src_param.shape:
+            target_state[name] = src_param
+            loaded += 1
+        else:
+            skipped += 1
+
+    target_model.load_state_dict(target_state)
+    print(f"  Partially loaded weights: loaded={loaded}, skipped={skipped}")
+    return target_model
+
+
+def _evaluate_classifier(model, dataloader, criterion, device):
+    avg_loss, acc, f1, _, _ = _val_one_epoch(model, dataloader, criterion, device)
+    return avg_loss, acc, f1
+
+
+def _save_confusion_matrix_artifact(
+    y_true,
+    y_pred,
+    output_dir,
+    stage_name,
+    model_name,
+    wandb_run=None,
+    artifact_name=None,
+    preprocessing=None,
+):
+    from sklearn.metrics import confusion_matrix
+
+    class_names = [
+        'jogging',
+        'stretching',
+        'lunges',
+        'sit-ups',
+        'push-ups',
+        'burpees',
+        'bench-dips',
+        'null',
+    ]
+    labels = list(range(len(class_names)))
+    cm = confusion_matrix(y_true, y_pred, labels=labels)
+
+    if wandb_run is not None:
+        import wandb
+
+        # Log a single confusion-matrix chart in W&B for a clean run view.
+        safe_stage_name = stage_name.replace(' ', '_').lower()
+        safe_model_name = model_name.replace(' ', '_').lower()
+        log_key_prefix = f"{safe_stage_name}_{safe_model_name}"
+        try:
+            wandb_run.log({
+                f"{log_key_prefix}/confusion_matrix": wandb.plot.confusion_matrix(
+                    probs=None,
+                    y_true=np.asarray(y_true).astype(int).tolist(),
+                    preds=np.asarray(y_pred).astype(int).tolist(),
+                    class_names=class_names,
+                )
+            })
+        except Exception as e:
+            print(f"Warning: failed to log W&B confusion matrix chart: {e}")
+
+    return {
+        'matrix': cm,
+    }
+
+
+def _get_hard_bin_mask_from_model(model):
+    with torch.no_grad():
+        hard = torch.softmax(model.bin_logits, dim=-1).argmax(dim=-1).float()
+    return hard
+
 def train_loso_wear(root_path, model_class, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
     """
     LOSO training for WEAR dataset.
-
+    Baseline for TD, FD
     Args:
         root_path: path to WEAR dataset root
-        model_class: model constructor (e.g. GumbelMaskSeparableConvCNN)
+        model_class: model constructor (e.g. SeparableConvCNN)
         train_subjects: list of subject IDs for training
         val_subjects: list of subject IDs for validation
         wandb_run: optional wandb run for logging
         **train_kwargs: epochs, lr, batch_size, device, patience, min_delta,
-                        sparsity_weight, model_path, preprocessing
+                        model_path, preprocessing
     """
     # Hyperparameters
     epochs = train_kwargs.get('epochs', 60)
@@ -275,7 +846,6 @@ def train_loso_wear(root_path, model_class, train_subjects, val_subjects, wandb_
     device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
     patience = train_kwargs.get('patience', 10)
     min_delta = train_kwargs.get('min_delta', 1e-3)
-    sparsity_weight = train_kwargs.get('sparsity_weight', 0.01)
     model_path = Path(train_kwargs.get('model_path', './models/best_wear_model.pth'))
     model_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -313,697 +883,69 @@ def train_loso_wear(root_path, model_class, train_subjects, val_subjects, wandb_
     # Training loop configuration
     freq_bins = train_dataset[0][0].shape[-1]
     
-    # Check if model supports tau parameters
-    tau_start = train_kwargs.get('tau_start', 20.0)
-    tau_end = train_kwargs.get('tau_end', 1.0)
     dropout = train_kwargs.get('dropout', 0.4)
-    if model_class.__name__ == 'GumbelMaskSeparableConvCNN':
-        model = model_class(num_classes=8, num_channels=6, freq_bins=freq_bins, tau_start=tau_start, tau_end=tau_end, dropout=dropout).to(device)
-    else:
-        model = model_class(num_classes=8, num_channels=6, freq_bins=freq_bins, dropout=dropout).to(device)
-        
-    criterion = nn.CrossEntropyLoss()
+    model = model_class(num_classes=8, num_channels=6, freq_bins=freq_bins, dropout=dropout).to(device)
+    
+    class_counts = np.bincount(train_dataset.labels.astype(int), minlength=8).astype(np.float32)
+    class_counts = np.clip(class_counts, 1.0, None)
+    class_weights = class_counts.sum() / class_counts
+    class_weights = class_weights / class_weights.mean()
+    class_weights = torch.as_tensor(class_weights, dtype=torch.float32, device=device)
+    print(f"Class counts: {class_counts.tolist()}")
+    print(f"Class weights: {class_weights.detach().cpu().numpy().round(3).tolist()}")
+    criterion = nn.CrossEntropyLoss(weight=class_weights).to(device)
+    # criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6
     )
 
-    best_val_loss = float('inf')
-    best_epoch = 0
-    epochs_no_improve = 0
-
-    print("-" * 50)
-    # Training loop
-    for epoch in range(epochs):
-        # Tau annealing (GumbelMask)
-        if hasattr(model, 'set_tau'):
-            model.set_tau(epoch, epochs)
-
-        # Train one epoch
-        train_loss_sum = 0.0
-        train_correct = 0
-        train_total = 0
-
-        model.train()
-
-        for fft_mag, labels in train_dataloader:
-            fft_mag, labels = fft_mag.to(device), labels.to(device)
-
-            outputs = model(fft_mag)
-            loss = criterion(outputs, labels)
-
-            # L1 penalty on mask fraction (GumbelMask)
-            if hasattr(model, 'mask_l1') and model.mask_l1 is not None:
-                loss = loss + sparsity_weight * model.mask_l1
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            train_loss_sum += loss.item() * labels.size(0)
-            _, predicted = outputs.max(1)
-            train_total += labels.size(0)
-            train_correct += predicted.eq(labels).sum().item()
-
-        train_loss = train_loss_sum / train_total
-        train_acc = train_correct / train_total * 100.0
-
-        # Val one epoch
-        model.eval()
-        val_loss_sum = 0.0
-        val_correct = 0
-        val_total = 0
-
-        with torch.no_grad():
-            for fft_mag, labels in val_dataloader:
-                fft_mag, labels = fft_mag.to(device), labels.to(device)
-
-                outputs = model(fft_mag)
-                loss = criterion(outputs, labels)
-
-                val_loss_sum += loss.item() * labels.size(0)
-                _, predicted = outputs.max(1)
-                val_total += labels.size(0)
-                val_correct += predicted.eq(labels).sum().item()
-
-        val_loss = val_loss_sum / max(val_total, 1)
-        val_acc = 100. * val_correct / max(val_total, 1)
-        scheduler.step(val_loss)
-
-        # Save best model based on val_loss
-        if val_loss < best_val_loss - min_delta:
-            best_val_loss = val_loss
-            torch.save(model.state_dict(), model_path)
-            best_epoch = epoch + 1
-            epochs_no_improve = 0
-        else:
-            epochs_no_improve += 1
-
-        # Print mask statistics if model has masking
-        mask_info = ""
-        if hasattr(model, 'mask_l1') and model.mask_l1 is not None:
-            mask_fraction = model.mask_l1.item()
-            tau_info = ""
-            if hasattr(model, 'current_tau'):
-                tau_info = f' (tau={model.current_tau:.2f})'
-            mask_info = f'; Mask: {mask_fraction:.2%}' + tau_info
-
-        print(f'Epoch [{epoch+1}/{epochs}]: '
-              f'Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; '
-              f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}' + mask_info)
-
-        if wandb_run is not None:
-            wandb_run.log({
-                "epoch": epoch + 1,
-                "train_loss": train_loss,
-                "train_acc": train_acc,
-                "val_loss": val_loss,
-                "val_acc": val_acc,
-                "best_val_loss": best_val_loss,
-                "lr": optimizer.param_groups[0]["lr"],
-            })
-
-        if epochs_no_improve >= patience:
-            print(f"Early Stopping: Epoch [{epoch+1}/{epochs}] (patience={patience}, min_delta={min_delta}).")
-            break
-
-    # Test with best model
-    model.load_state_dict(torch.load(model_path, map_location=device))
-    model.eval()
-
-    test_loss_sum, test_correct, test_total = 0.0, 0, 0
-    all_preds = []
-    all_labels = []
-    with torch.no_grad():
-        for fft_mag, labels in test_dataloader:
-            fft_mag, labels = fft_mag.to(device), labels.to(device)
-            outputs = model(fft_mag)
-            loss = criterion(outputs, labels)
-
-            bs = labels.size(0)
-            test_loss_sum += loss.item() * bs
-            _, preds = outputs.max(1)
-            test_total += bs
-            test_correct += preds.eq(labels).sum().item()
-
-            all_preds.extend(preds.cpu().numpy())
-            all_labels.extend(labels.cpu().numpy())
-
-    test_loss = test_loss_sum / max(test_total, 1)
-    test_acc = 100.0 * test_correct / max(test_total, 1)
-    test_f1_macro = f1_score(all_labels, all_preds, average='macro')
-
-    print("-" * 50)
-    print(f"Summary:")
-    print(f"Best Val Loss: {best_val_loss:.4f} at Epoch {best_epoch}")
-    print(f"Test Loss: {test_loss:.4f} | Test Acc: {test_acc:.2f}% | Test F1 Macro: {test_f1_macro:.4f}")
-
-    # Print final learned mask if available
-    if hasattr(model, 'last_mask') and model.last_mask is not None:
-        final_mask = model.last_mask.cpu().numpy()
-        bins_kept = (final_mask > 0.5).sum()
-        total_bins = len(final_mask)
-        print(f"\nFinal Mask Statistics:")
-        print(f"  Bins kept: {bins_kept}/{total_bins} ({bins_kept/total_bins:.1%})")
-        print(f"  All mask values: {final_mask}")
-    else:
-        final_mask = None
+    stage1_result = stage1_pipeline(
+        model=model,
+        train_loader=train_dataloader,
+        val_loader=val_dataloader,
+        test_loader=test_dataloader,
+        criterion=criterion,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        checkpoint_path=model_path,
+        num_epochs=epochs,
+        patience=patience,
+        min_delta=min_delta,
+        wandb_run=wandb_run,
+        use_pretrained=train_kwargs.get('use_pretrained', False),
+        device=device,
+    )
 
     if wandb_run is not None:
         wandb_run.log({
-            "best_val_loss": best_val_loss,
-            "best_epoch": best_epoch,
-            "test_loss": test_loss,
-            "test_acc": test_acc,
-            "test_f1_macro": test_f1_macro,
+            "best_val_loss": stage1_result["best_val_loss"],
+            "best_epoch": stage1_result["best_epoch"],
+            "test_loss": stage1_result["test_loss"],
+            "test_acc": stage1_result["test_acc"],
+            "test_f1_macro": stage1_result["test_f1"],
         })
+
+    # Re-run test evaluation to collect predictions for confusion matrix logging.
+    _, _, _, stage1_y_true, stage1_y_pred = _val_one_epoch(model, test_dataloader, criterion, device)
+    _save_confusion_matrix_artifact(
+        y_true=stage1_y_true,
+        y_pred=stage1_y_pred,
+        output_dir=None,
+        stage_name='Stage 1',
+        model_name=model.__class__.__name__,
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage1-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
 
     return {
-        "best_val_loss": best_val_loss,
-        "test_loss": test_loss,
-        "test_acc": test_acc,
-        "test_f1_macro": test_f1_macro,
-        "model_path": str(model_path),
-        "final_mask": final_mask,
+        "best_val_loss": stage1_result["best_val_loss"],
+        "test_loss": stage1_result["test_loss"],
+        "test_acc": stage1_result["test_acc"],
+        "test_f1_macro": stage1_result["test_f1"],
+        "model_path": stage1_result["model_path"],
     }
-
-
-def _load_stage1_weights_to_gumbel_model(gumbel_model, stage1_state_dict):
-    """
-    Load weights from SeparableConvCNN (stage 1) into GumbelMaskSeparableConvCNN (stage 2).
-    
-    The Gumbel model has an additional 'bin_logits' parameter that doesn't exist in the
-    base SeparableConvCNN model, so we selectively load weights.
-    
-    Args:
-        gumbel_model: GumbelMaskSeparableConvCNN model to load weights into
-        stage1_state_dict: State dict from trained SeparableConvCNN model
-    """
-    gumbel_state_dict = gumbel_model.state_dict()
-    
-    # Load all weights that exist in both models
-    for name, param in stage1_state_dict.items():
-        if name in gumbel_state_dict:
-            gumbel_state_dict[name] = param
-            print(f"  Loaded: {name}")
-        else:
-            print(f"  Skipped (not in Gumbel model): {name}")
-    
-    # The bin_logits will be initialized randomly (not loaded from stage 1)
-    print(f"  Kept random initialization: bin_logits (Gumbel-specific parameter)")
-    
-    gumbel_model.load_state_dict(gumbel_state_dict)
-    return gumbel_model
-
-
-def train_loso_wear_two_stage(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
-    """
-    Two-stage LOSO training for WEAR dataset:
-    Stage 1: Train base model without Gumbel mask and save best weights
-    Stage 2: Load stage 1 weights into corresponding Gumbel model and train with Gumbel mask
-    
-    Args:
-        root_path: path to WEAR dataset root
-        train_subjects: list of subject IDs for training
-        val_subjects: list of subject IDs for validation
-        wandb_run: optional wandb run for logging
-        **train_kwargs: epochs, lr, batch_size, device, patience, min_delta,
-                        sparsity_weight, model_path, preprocessing, etc.
-    """
-    from lib.model import (
-        SeparableConvCNN,
-        GumbelMaskSeparableConvCNN,
-    )
-    
-    # Hyperparameters
-    epochs_stage1 = train_kwargs.get('epochs_stage1', 30)
-    epochs_stage2 = train_kwargs.get('epochs_stage2', 60)
-    lr = train_kwargs.get('lr', 1e-3)
-    batch_size = train_kwargs.get('batch_size', 64)
-    device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
-    patience = train_kwargs.get('patience', 10)
-    min_delta = train_kwargs.get('min_delta', 1e-3)
-    sparsity_weight = train_kwargs.get('sparsity_weight', 0.1)
-    model_path = Path(train_kwargs.get('model_path', './models/best_wear_model_two_stage.pth'))
-    model_path.parent.mkdir(parents=True, exist_ok=True)
-    preprocessing = train_kwargs.get('preprocessing', 'fft')
-    
-    # Stage 1 and 2 specific model paths
-    stage1_model_path_arg = train_kwargs.get('stage1_model_path')
-    if stage1_model_path_arg is not None:
-        stage1_model_path = Path(stage1_model_path_arg).expanduser()
-    else:
-        stage1_model_path = model_path.parent / f"{model_path.stem}_stage1.pth"
-    stage1_model_path.parent.mkdir(parents=True, exist_ok=True)
-    stage2_model_path = model_path
-    use_pretrained_stage1 = stage1_model_path_arg is not None
-
-    if use_pretrained_stage1 and not stage1_model_path.exists():
-        raise FileNotFoundError(
-            f"Provided stage1 model path does not exist: {stage1_model_path}"
-        )
-    
-    dropout = train_kwargs.get('dropout', 0.4)
-    tau_start = train_kwargs.get('tau_start', 5.0)
-    tau_end = train_kwargs.get('tau_end', 1.0)
-    stage2_backbone_lr_factor = train_kwargs.get('stage2_backbone_lr_factor', 0.1)
-    model_family = train_kwargs.get('model', 'Separable')
-
-    model_registry = {
-        'Separable': (SeparableConvCNN, GumbelMaskSeparableConvCNN, 'SeparableConvCNN', 'GumbelMaskSeparableConvCNN'),
-    }
-    if model_family not in model_registry:
-        raise ValueError(f"Unsupported model family: {model_family}")
-
-    stage1_class, stage2_class, stage1_name, stage2_name = model_registry[model_family]
-    
-    # Create datasets
-    train_dataset = WEAR_Dataset(
-        root_path,
-        split='train',
-        subject_ids=train_subjects,
-        preprocessing=preprocessing,
-    )
-
-    val_dataset = WEAR_Dataset(
-        root_path,
-        split='train',
-        subject_ids=val_subjects,
-        preprocessing=preprocessing,
-    )
-    test_dataset = WEAR_Dataset(
-        root_path,
-        split='test',
-        subject_ids=None,
-        preprocessing=preprocessing,
-    )
-
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_dataloader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-
-    print(f"Train samples: {len(train_dataset)}")
-    print(f"Val samples: {len(val_dataset)}")
-    print(f"Test samples: {len(test_dataset)}")
-
-    freq_bins = train_dataset[0][0].shape[-1]
-    
-    # ============================================================
-    # STAGE 1: Train SeparableConvCNN (no Gumbel mask)
-    # ============================================================
-    print("\n" + "="*60)
-    if use_pretrained_stage1:
-        print(f"STAGE 1: Loading pretrained {stage1_name}")
-        print(f"Checkpoint: {stage1_model_path}")
-    else:
-        print(f"STAGE 1: Training {stage1_name} (without Gumbel mask)")
-    print("="*60)
-    
-    model_stage1 = stage1_class(
-        num_classes=8, 
-        num_channels=6, 
-        freq_bins=freq_bins, 
-        dropout=dropout
-    ).to(device)
-    
-    criterion = nn.CrossEntropyLoss()
-    stage1_best_val_loss = None
-    stage1_best_epoch = None
-
-    if not use_pretrained_stage1:
-        optimizer_stage1 = torch.optim.Adam(model_stage1.parameters(), lr=lr)
-        scheduler_stage1 = torch.optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer_stage1, mode="min", factor=0.5, patience=10, min_lr=1e-6
-        )
-
-        stage1_best_val_loss = float('inf')
-        stage1_best_epoch = 0
-        epochs_no_improve = 0
-
-        print("-" * 50)
-        # Training loop for stage 1
-        for epoch in range(epochs_stage1):
-            # Train one epoch
-            train_loss_sum = 0.0
-            train_correct = 0
-            train_total = 0
-
-            model_stage1.train()
-
-            for fft_mag, labels in train_dataloader:
-                fft_mag, labels = fft_mag.to(device), labels.to(device)
-
-                outputs = model_stage1(fft_mag)
-                loss = criterion(outputs, labels)
-
-                optimizer_stage1.zero_grad()
-                loss.backward()
-                optimizer_stage1.step()
-
-                train_loss_sum += loss.item() * labels.size(0)
-                _, predicted = outputs.max(1)
-                train_total += labels.size(0)
-                train_correct += predicted.eq(labels).sum().item()
-
-            train_loss = train_loss_sum / train_total
-            train_acc = train_correct / train_total * 100.0
-
-            # Val one epoch
-            model_stage1.eval()
-            val_loss_sum = 0.0
-            val_correct = 0
-            val_total = 0
-
-            with torch.no_grad():
-                for fft_mag, labels in val_dataloader:
-                    fft_mag, labels = fft_mag.to(device), labels.to(device)
-
-                    outputs = model_stage1(fft_mag)
-                    loss = criterion(outputs, labels)
-
-                    val_loss_sum += loss.item() * labels.size(0)
-                    _, predicted = outputs.max(1)
-                    val_total += labels.size(0)
-                    val_correct += predicted.eq(labels).sum().item()
-
-            val_loss = val_loss_sum / max(val_total, 1)
-            val_acc = 100. * val_correct / max(val_total, 1)
-            scheduler_stage1.step(val_loss)
-
-            # Save best model based on val_loss
-            if val_loss < stage1_best_val_loss - min_delta:
-                stage1_best_val_loss = val_loss
-                torch.save(model_stage1.state_dict(), stage1_model_path)
-                stage1_best_epoch = epoch + 1
-                epochs_no_improve = 0
-            else:
-                epochs_no_improve += 1
-
-            print(f'Epoch [{epoch+1}/{epochs_stage1}]: '
-                  f'Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; '
-                  f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}')
-
-            if wandb_run is not None:
-                wandb_run.log({
-                    "stage": 1,
-                    "epoch": epoch + 1,
-                    "train_loss": train_loss,
-                    "train_acc": train_acc,
-                    "val_loss": val_loss,
-                    "val_acc": val_acc,
-                    "best_val_loss": stage1_best_val_loss,
-                    "lr": optimizer_stage1.param_groups[0]["lr"],
-                })
-
-            if epochs_no_improve >= patience:
-                print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage1}] (patience={patience}).")
-                break
-
-    # Load best stage 1 model for evaluation
-    model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
-    model_stage1.eval()
-
-    test_loss_sum, test_correct, test_total = 0.0, 0, 0
-    all_preds_stage1 = []
-    all_labels_stage1 = []
-    with torch.no_grad():
-        for fft_mag, labels in test_dataloader:
-            fft_mag, labels = fft_mag.to(device), labels.to(device)
-            outputs = model_stage1(fft_mag)
-            loss = criterion(outputs, labels)
-
-            bs = labels.size(0)
-            test_loss_sum += loss.item() * bs
-            _, preds = outputs.max(1)
-            test_total += bs
-            test_correct += preds.eq(labels).sum().item()
-
-            all_preds_stage1.extend(preds.cpu().numpy())
-            all_labels_stage1.extend(labels.cpu().numpy())
-
-    test_loss_stage1 = test_loss_sum / max(test_total, 1)
-    test_acc_stage1 = 100.0 * test_correct / max(test_total, 1)
-    test_f1_stage1 = f1_score(all_labels_stage1, all_preds_stage1, average='macro')
-
-    print("-" * 50)
-    print(f"Stage 1 Summary:")
-    if stage1_best_val_loss is not None:
-        print(f"Best Val Loss: {stage1_best_val_loss:.4f} at Epoch {stage1_best_epoch}")
-    else:
-        print("Best Val Loss: not available (loaded pretrained stage1 checkpoint)")
-    print(f"Test Loss: {test_loss_stage1:.4f} | Test Acc: {test_acc_stage1:.2f}% | Test F1 Macro: {test_f1_stage1:.4f}")
-    
-    if wandb_run is not None:
-        wandb_run.log({
-            "stage1_checkpoint_path": str(stage1_model_path),
-            "stage1_loaded_from_checkpoint": use_pretrained_stage1,
-            "stage1_test_loss": test_loss_stage1,
-            "stage1_test_acc": test_acc_stage1,
-            "stage1_test_f1": test_f1_stage1,
-        })
-
-    # ============================================================
-    # STAGE 2: Train GumbelMaskSeparableConvCNN with loaded weights
-    # ============================================================
-    print("\n" + "="*60)
-    print(f"STAGE 2: Training {stage2_name} (with Gumbel mask)")
-    print("="*60)
-    
-    model_stage2 = stage2_class(
-        num_classes=8,
-        num_channels=6,
-        freq_bins=freq_bins,
-        dropout=dropout,
-        tau_start=tau_start,
-        tau_end=tau_end
-    ).to(device)
-    
-    # Load stage 1 weights into stage 2 model
-    print("\nLoading Stage 1 weights into Stage 2 model:")
-    stage1_state_dict = torch.load(stage1_model_path, map_location=device)
-    _load_stage1_weights_to_gumbel_model(model_stage2, stage1_state_dict)
-    
-    # Use higher LR for Gumbel logits and reduced LR for all other parameters.
-    stage2_backbone_lr = lr * stage2_backbone_lr_factor
-    gumbel_params = [model_stage2.bin_logits]
-    gumbel_param_ids = {id(p) for p in gumbel_params}
-    backbone_params = [p for p in model_stage2.parameters() if id(p) not in gumbel_param_ids]
-
-    optimizer_stage2 = torch.optim.Adam(
-        [
-            {"params": backbone_params, "lr": stage2_backbone_lr},
-            {"params": gumbel_params, "lr": lr},
-        ]
-    )
-    scheduler_stage2 = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer_stage2, mode="min", factor=0.5, patience=10, min_lr=1e-6
-    )
-
-    print(
-        f"Stage 2 LR setup -> backbone: {stage2_backbone_lr:.2e}, "
-        f"gumbel(bin_logits): {lr:.2e}"
-    )
-
-    stage2_best_val_loss = float('inf')
-    stage2_best_epoch = 0
-    epochs_no_improve = 0
-
-    print("-" * 50)
-    # Training loop for stage 2
-    for epoch in range(epochs_stage2):
-        # Tau annealing (GumbelMask)
-        if hasattr(model_stage2, 'set_tau'):
-            model_stage2.set_tau(epoch, epochs_stage2)
-
-        # Train one epoch
-        train_loss_sum = 0.0
-        train_correct = 0
-        train_total = 0
-
-        model_stage2.train()
-
-        for fft_mag, labels in train_dataloader:
-            fft_mag, labels = fft_mag.to(device), labels.to(device)
-
-            outputs = model_stage2(fft_mag)
-            loss = criterion(outputs, labels)
-
-            # L1 penalty on mask fraction (GumbelMask)
-            if hasattr(model_stage2, 'mask_l1') and model_stage2.mask_l1 is not None:
-                loss = loss + sparsity_weight * model_stage2.mask_l1
-
-            optimizer_stage2.zero_grad()
-            loss.backward()
-            optimizer_stage2.step()
-
-            train_loss_sum += loss.item() * labels.size(0)
-            _, predicted = outputs.max(1)
-            train_total += labels.size(0)
-            train_correct += predicted.eq(labels).sum().item()
-
-        train_loss = train_loss_sum / train_total
-        train_acc = train_correct / train_total * 100.0
-
-        # Val one epoch
-        model_stage2.eval()
-        val_loss_sum = 0.0
-        val_correct = 0
-        val_total = 0
-
-        with torch.no_grad():
-            for fft_mag, labels in val_dataloader:
-                fft_mag, labels = fft_mag.to(device), labels.to(device)
-
-                outputs = model_stage2(fft_mag)
-                loss = criterion(outputs, labels)
-
-                val_loss_sum += loss.item() * labels.size(0)
-                _, predicted = outputs.max(1)
-                val_total += labels.size(0)
-                val_correct += predicted.eq(labels).sum().item()
-
-        val_loss = val_loss_sum / max(val_total, 1)
-        val_acc = 100. * val_correct / max(val_total, 1)
-        scheduler_stage2.step(val_loss)
-
-        # Save best model based on val_loss
-        if val_loss < stage2_best_val_loss - min_delta:
-            stage2_best_val_loss = val_loss
-            torch.save(model_stage2.state_dict(), stage2_model_path)
-            stage2_best_epoch = epoch + 1
-            epochs_no_improve = 0
-        else:
-            epochs_no_improve += 1
-
-        # Print mask statistics if model has masking
-        mask_info = ""
-        if hasattr(model_stage2, 'mask_l1') and model_stage2.mask_l1 is not None:
-            mask_fraction = model_stage2.mask_l1.item()
-            tau_info = ""
-            if hasattr(model_stage2, 'current_tau'):
-                tau_info = f' (tau={model_stage2.current_tau:.2f})'
-            mask_info = f'; Mask: {mask_fraction:.2%}' + tau_info
-
-        print(f'Epoch [{epoch+1}/{epochs_stage2}]: '
-              f'Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; '
-              f'Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}' + mask_info)
-
-        if wandb_run is not None:
-            wandb_run.log({
-                "stage": 2,
-                "epoch": epoch + 1,
-                "train_loss": train_loss,
-                "train_acc": train_acc,
-                "val_loss": val_loss,
-                "val_acc": val_acc,
-                "best_val_loss": stage2_best_val_loss,
-                "lr_backbone": optimizer_stage2.param_groups[0]["lr"],
-                "lr_gumbel": optimizer_stage2.param_groups[1]["lr"],
-            })
-
-        if epochs_no_improve >= patience:
-            print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage2}] (patience={patience}).")
-            break
-
-    # Load best stage 2 model for evaluation
-    model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
-    model_stage2.eval()
-
-    test_loss_sum, test_correct, test_total = 0.0, 0, 0
-    all_preds_stage2 = []
-    all_labels_stage2 = []
-    with torch.no_grad():
-        for fft_mag, labels in test_dataloader:
-            fft_mag, labels = fft_mag.to(device), labels.to(device)
-            outputs = model_stage2(fft_mag)
-            loss = criterion(outputs, labels)
-
-            bs = labels.size(0)
-            test_loss_sum += loss.item() * bs
-            _, preds = outputs.max(1)
-            test_total += bs
-            test_correct += preds.eq(labels).sum().item()
-
-            all_preds_stage2.extend(preds.cpu().numpy())
-            all_labels_stage2.extend(labels.cpu().numpy())
-
-    test_loss_stage2 = test_loss_sum / max(test_total, 1)
-    test_acc_stage2 = 100.0 * test_correct / max(test_total, 1)
-    test_f1_stage2 = f1_score(all_labels_stage2, all_preds_stage2, average='macro')
-
-    print("-" * 50)
-    print(f"Stage 2 Summary:")
-    print(f"Best Val Loss: {stage2_best_val_loss:.4f} at Epoch {stage2_best_epoch}")
-    print(f"Test Loss: {test_loss_stage2:.4f} | Test Acc: {test_acc_stage2:.2f}% | Test F1 Macro: {test_f1_stage2:.4f}")
-
-    # Print final learned mask if available
-    if hasattr(model_stage2, 'last_mask') and model_stage2.last_mask is not None:
-        final_mask = model_stage2.last_mask.cpu().numpy()
-        bins_kept = (final_mask > 0.5).sum()
-        total_bins = len(final_mask)
-        print(f"\nFinal Mask Statistics:")
-        print(f"  Bins kept: {bins_kept}/{total_bins} ({bins_kept/total_bins:.1%})")
-        print(f"  All mask values: {final_mask}")
-    else:
-        final_mask = None
-
-    if wandb_run is not None:
-        wandb_run.log({
-            "stage2_test_loss": test_loss_stage2,
-            "stage2_test_acc": test_acc_stage2,
-            "stage2_test_f1": test_f1_stage2,
-        })
-    
-    print("\n" + "="*60)
-    print("TWO-STAGE TRAINING COMPLETE")
-    print("="*60)
-    print(f"Stage 1 ({stage1_name}): Test Acc: {test_acc_stage1:.2f}% | F1: {test_f1_stage1:.4f}")
-    print(f"Stage 2 ({stage2_name}): Test Acc: {test_acc_stage2:.2f}% | F1: {test_f1_stage2:.4f}")
-    print(f"Improvement: {test_acc_stage2 - test_acc_stage1:.2f}%")
-
-    return {
-        "stage1": {
-            "model": stage1_name,
-            "best_val_loss": stage1_best_val_loss,
-            "best_epoch": stage1_best_epoch,
-            "test_loss": test_loss_stage1,
-            "test_acc": test_acc_stage1,
-            "test_f1_macro": test_f1_stage1,
-            "model_path": str(stage1_model_path),
-            "loaded_from_checkpoint": use_pretrained_stage1,
-        },
-        "stage2": {
-            "model": stage2_name,
-            "best_val_loss": stage2_best_val_loss,
-            "best_epoch": stage2_best_epoch,
-            "test_loss": test_loss_stage2,
-            "test_acc": test_acc_stage2,
-            "test_f1_macro": test_f1_stage2,
-            "model_path": str(stage2_model_path),
-            "final_mask": final_mask,
-        }
-    }
-
-
-def _load_stage1_weights_to_channel_gumbel_model(channel_model, stage1_state_dict):
-    """
-    Load stage-1 SeparableConvCNN weights into channel-pruning stage-2 model.
-
-    The stage-2 model adds chan_logits_* parameters, which are intentionally
-    left with random initialization.
-    """
-    channel_state_dict = channel_model.state_dict()
-
-    for name, param in stage1_state_dict.items():
-        if name in channel_state_dict:
-            channel_state_dict[name] = param
-            print(f"  Loaded: {name}")
-        else:
-            print(f"  Skipped (not in stage-2 channel model): {name}")
-
-    print("  Kept random initialization: chan_logits_2, chan_logits_3, chan_logits_4")
-    channel_model.load_state_dict(channel_state_dict)
-    return channel_model
 
 
 def train_loso_wear_two_stage_channel(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
@@ -1231,7 +1173,7 @@ def train_loso_wear_two_stage_channel(root_path, train_subjects, val_subjects, w
 
     print("\nLoading Stage 1 weights into Stage 2 model:")
     stage1_state_dict = torch.load(stage1_model_path, map_location=device)
-    _load_stage1_weights_to_channel_gumbel_model(model_stage2, stage1_state_dict)
+    _load_weights_to_gumbel_model(model_stage2, stage1_state_dict)
 
     stage2_backbone_lr = lr * stage2_backbone_lr_factor
     stage2_named_params = list(model_stage2.named_parameters())
@@ -1440,108 +1382,319 @@ def train_loso_wear_two_stage_channel(root_path, train_subjects, val_subjects, w
     }
 
 
-def _count_parameters(model):
-    return int(sum(p.numel() for p in model.parameters()))
+def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
+    """
+    Two-stage LOSO training for WEAR dataset:
+    Stage 1: Train SeparableConvCNN on full input.
+    Stage 2: Load stage-1 weights into GumbelMaskSeparableConvCNN and learn input-bin pruning.
+    """
+    from lib.model import SeparableConvCNN, GumbelMaskSeparableConvCNN
 
+    epochs_stage1 = train_kwargs.get('epochs_stage1', 60)
+    epochs_stage2 = train_kwargs.get('epochs_stage2', 60)
+    lr = train_kwargs.get('lr', 1e-3)
+    batch_size = train_kwargs.get('batch_size', 64)
+    device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    patience = train_kwargs.get('patience', 10)
+    min_delta = train_kwargs.get('min_delta', 1e-3)
+    preprocessing = train_kwargs.get('preprocessing', 'fft')
+    dropout = train_kwargs.get('dropout', 0.4)
+    tau_start = train_kwargs.get('tau_start', 10.0)
+    tau_end = train_kwargs.get('tau_end', 1.0)
+    sparsity_weight_bin = train_kwargs.get('sparsity_weight_bin', train_kwargs.get('sparsity_weight', 0.01))
+    stage2_backbone_lr_factor = train_kwargs.get('stage2_backbone_lr_factor', 0.1)
 
-def _copy_batchnorm_subset(src_bn, dst_bn, keep_indices=None):
-    with torch.no_grad():
-        if keep_indices is None:
-            dst_bn.load_state_dict(src_bn.state_dict())
-            return
+    model_path = Path(train_kwargs.get('model_path', './models/best_wear_model_three_stage.pth'))
+    model_path.parent.mkdir(parents=True, exist_ok=True)
 
-        idx = keep_indices.to(dtype=torch.long, device=src_bn.weight.device)
-        dst_bn.weight.copy_(src_bn.weight[idx])
-        dst_bn.bias.copy_(src_bn.bias[idx])
-        dst_bn.running_mean.copy_(src_bn.running_mean[idx])
-        dst_bn.running_var.copy_(src_bn.running_var[idx])
-        dst_bn.num_batches_tracked.copy_(src_bn.num_batches_tracked)
+    stage1_model_path_arg = train_kwargs.get('stage1_model_path')
+    if stage1_model_path_arg is not None:
+        stage1_model_path = Path(stage1_model_path_arg).expanduser()
+    else:
+        stage1_model_path = model_path.parent / f"{model_path.stem}_stage1.pth"
+    stage1_model_path.parent.mkdir(parents=True, exist_ok=True)
 
+    stage2_model_path_arg = train_kwargs.get('stage2_model_path')
+    if stage2_model_path_arg is not None:
+        stage2_model_path = Path(stage2_model_path_arg).expanduser()
+    else:
+        stage2_model_path = model_path.parent / f"{model_path.stem}_stage2_bin.pth"
+    stage2_model_path.parent.mkdir(parents=True, exist_ok=True)
 
-def _copy_separable_conv_subset(src_conv, dst_conv, keep_in_indices=None, keep_out_indices=None):
-    with torch.no_grad():
-        if keep_in_indices is None:
-            keep_in_indices = torch.arange(src_conv.depthwise.weight.shape[0], device=src_conv.depthwise.weight.device)
-        if keep_out_indices is None:
-            keep_out_indices = torch.arange(src_conv.pointwise.weight.shape[0], device=src_conv.pointwise.weight.device)
+    use_pretrained_stage1 = stage1_model_path_arg is not None
+    use_pretrained_stage2 = stage2_model_path_arg is not None
 
-        keep_in_indices = keep_in_indices.to(dtype=torch.long, device=src_conv.depthwise.weight.device)
-        keep_out_indices = keep_out_indices.to(dtype=torch.long, device=src_conv.pointwise.weight.device)
+    if use_pretrained_stage1 and not stage1_model_path.exists():
+        raise FileNotFoundError(f"Provided stage1 model path does not exist: {stage1_model_path}")
+    if use_pretrained_stage2 and not stage2_model_path.exists():
+        raise FileNotFoundError(f"Provided stage2 model path does not exist: {stage2_model_path}")
 
-        dst_conv.depthwise.weight.copy_(src_conv.depthwise.weight[keep_in_indices])
-        dst_conv.pointwise.weight.copy_(src_conv.pointwise.weight[keep_out_indices][:, keep_in_indices, :])
+    train_dataset = WEAR_Dataset(root_path, split='train', subject_ids=train_subjects, preprocessing=preprocessing)
+    val_dataset = WEAR_Dataset(root_path, split='train', subject_ids=val_subjects, preprocessing=preprocessing)
+    test_dataset = WEAR_Dataset(root_path, split='test', subject_ids=None, preprocessing=preprocessing)
 
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
-def _copy_linear_input_subset(src_linear, dst_linear, keep_input_indices=None):
-    with torch.no_grad():
-        if keep_input_indices is None:
-            dst_linear.load_state_dict(src_linear.state_dict())
-            return
+    print(f"Train samples: {len(train_dataset)}")
+    print(f"Val samples: {len(val_dataset)}")
+    print(f"Test samples: {len(test_dataset)}")
 
-        keep_input_indices = keep_input_indices.to(dtype=torch.long, device=src_linear.weight.device)
-        dst_linear.weight.copy_(src_linear.weight[:, keep_input_indices])
-        dst_linear.bias.copy_(src_linear.bias)
+    freq_bins = train_dataset[0][0].shape[-1]
+    criterion = nn.CrossEntropyLoss()
 
+    # ============================================================
+    # STAGE 1
+    # ============================================================
+    print("\n" + "=" * 60)
+    if use_pretrained_stage1:
+        print("STAGE 1: Loading pretrained SeparableConvCNN")
+        print(f"Checkpoint: {stage1_model_path}")
+    else:
+        print("STAGE 1: Training SeparableConvCNN")
+    print("=" * 60)
 
-def _build_pruned_channel_model_from_stage2(stage2_model, num_classes, dropout, device):
-    hard_masks = stage2_model.get_hard_masks()
+    model_stage1 = SeparableConvCNN(num_classes=8, num_channels=6, freq_bins=freq_bins, dropout=dropout).to(device)
+    stage1_best_val_loss = None
+    stage1_best_epoch = None
 
-    keep_indices = {}
-    for block_name in ("block2", "block3", "block4"):
-        mask = hard_masks[block_name].detach().cpu()
-        indices = torch.where(mask > 0.5)[0]
-        if indices.numel() == 0:
-            raise ValueError(f"Stage 2 mask for {block_name} pruned all channels; Stage 3 cannot proceed.")
-        keep_indices[block_name] = indices
+    if not use_pretrained_stage1:
+        optimizer = torch.optim.Adam(model_stage1.parameters(), lr=lr)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6)
+        stage1_best_val_loss = float('inf')
+        stage1_best_epoch = 0
+        no_improve = 0
 
-    from lib.model import PrunedSeparableConvCNN
+        for epoch in range(epochs_stage1):
+            model_stage1.train()
+            train_loss_sum, train_correct, train_total = 0.0, 0, 0
 
-    pruned_model = PrunedSeparableConvCNN(
-        num_classes=num_classes,
+            for x, y in train_loader:
+                x, y = x.to(device), y.to(device)
+                out = model_stage1(x)
+                loss = criterion(out, y)
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                bs = y.size(0)
+                train_loss_sum += loss.item() * bs
+                _, pred = out.max(1)
+                train_total += bs
+                train_correct += pred.eq(y).sum().item()
+
+            train_loss = train_loss_sum / max(train_total, 1)
+            train_acc = 100.0 * train_correct / max(train_total, 1)
+
+            val_loss, val_acc, _ = _evaluate_classifier(model_stage1, val_loader, criterion, device)
+            scheduler.step(val_loss)
+
+            if val_loss < stage1_best_val_loss - min_delta:
+                stage1_best_val_loss = val_loss
+                stage1_best_epoch = epoch + 1
+                torch.save(model_stage1.state_dict(), stage1_model_path)
+                no_improve = 0
+            else:
+                no_improve += 1
+
+            print(
+                f"Epoch [{epoch+1}/{epochs_stage1}]: "
+                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
+            )
+
+            if wandb_run is not None:
+                wandb_run.log({
+                    "stage": 1,
+                    "epoch": epoch + 1,
+                    "train_loss": train_loss,
+                    "train_acc": train_acc,
+                    "val_loss": val_loss,
+                    "val_acc": val_acc,
+                    "best_val_loss": stage1_best_val_loss,
+                    "lr": optimizer.param_groups[0]["lr"],
+                })
+
+            if no_improve >= patience:
+                print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage1}] (patience={patience}).")
+                break
+
+    model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
+    stage1_test_loss, stage1_test_acc, stage1_test_f1 = _evaluate_classifier(model_stage1, test_loader, criterion, device)
+    print("-" * 50)
+    print("Stage 1 Summary:")
+    if stage1_best_val_loss is not None:
+        print(f"Best Val Loss: {stage1_best_val_loss:.4f} at Epoch {stage1_best_epoch}")
+    else:
+        print("Best Val Loss: not available (loaded pretrained stage1 checkpoint)")
+    print(f"Test Loss: {stage1_test_loss:.4f} | Test Acc: {stage1_test_acc:.2f}% | Test F1 Macro: {stage1_test_f1:.4f}")
+
+    # ============================================================
+    # STAGE 2
+    # ============================================================
+    print("\n" + "=" * 60)
+    if use_pretrained_stage2:
+        print("STAGE 2: Loading pretrained GumbelMaskSeparableConvCNN (input-bin pruning)")
+        print(f"Checkpoint: {stage2_model_path}")
+    else:
+        print("STAGE 2: Training GumbelMaskSeparableConvCNN (input-bin pruning)")
+    print("=" * 60)
+
+    model_stage2 = GumbelMaskSeparableConvCNN(
+        num_classes=8,
         num_channels=6,
-        block2_channels=int(keep_indices["block2"].numel()),
-        block3_channels=int(keep_indices["block3"].numel()),
-        block4_channels=int(keep_indices["block4"].numel()),
+        freq_bins=freq_bins,
         dropout=dropout,
+        tau_start=tau_start,
+        tau_end=tau_end,
     ).to(device)
 
-    with torch.no_grad():
-        # Stem block: identical shapes.
-        # pruned_model.bn0.load_state_dict(stage2_model.bn0.state_dict())
-        _copy_separable_conv_subset(stage2_model.sep_conv1, pruned_model.sep_conv1)
-        pruned_model.bn1.load_state_dict(stage2_model.bn1.state_dict())
+    stage2_best_val_loss = None
+    stage2_best_epoch = None
 
-        # Block 2 keeps a subset of the output channels.
-        _copy_separable_conv_subset(
-            stage2_model.sep_conv2,
-            pruned_model.sep_conv2,
-            keep_in_indices=None,
-            keep_out_indices=keep_indices["block2"],
+    if use_pretrained_stage2:
+        model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
+    else:
+        print("\nLoading Stage 1 weights into Stage 2 model:")
+        _load_weights_to_gumbel_model(model_stage2, torch.load(stage1_model_path, map_location=device))
+
+        stage2_backbone_lr = lr * stage2_backbone_lr_factor
+        gumbel_params = [model_stage2.bin_logits]
+        gumbel_ids = {id(p) for p in gumbel_params}
+        backbone_params = [p for p in model_stage2.parameters() if id(p) not in gumbel_ids]
+
+        optimizer = torch.optim.Adam(
+            [
+                {"params": backbone_params, "lr": stage2_backbone_lr},
+                {"params": gumbel_params, "lr": lr},
+            ]
         )
-        _copy_batchnorm_subset(stage2_model.bn2, pruned_model.bn2, keep_indices["block2"])
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6)
 
-        # Block 3 uses the kept Block 2 channels as its input channels.
-        _copy_separable_conv_subset(
-            stage2_model.sep_conv3,
-            pruned_model.sep_conv3,
-            keep_in_indices=keep_indices["block2"],
-            keep_out_indices=keep_indices["block3"],
-        )
-        _copy_batchnorm_subset(stage2_model.bn3, pruned_model.bn3, keep_indices["block3"])
+        stage2_best_val_loss = float('inf')
+        stage2_best_epoch = 0
+        no_improve = 0
 
-        # Block 4 uses the kept Block 3 channels as its input channels.
-        _copy_separable_conv_subset(
-            stage2_model.sep_conv4,
-            pruned_model.sep_conv4,
-            keep_in_indices=keep_indices["block3"],
-            keep_out_indices=keep_indices["block4"],
-        )
-        _copy_batchnorm_subset(stage2_model.bn4, pruned_model.bn4, keep_indices["block4"])
+        for epoch in range(epochs_stage2):
+            model_stage2.train()
+            if hasattr(model_stage2, 'set_tau'):
+                model_stage2.set_tau(epoch, epochs_stage2)
 
-        _copy_linear_input_subset(stage2_model.fc1, pruned_model.fc1, keep_indices["block4"])
-        pruned_model.fc2.load_state_dict(stage2_model.fc2.state_dict())
+            train_loss_sum, train_correct, train_total = 0.0, 0, 0
+            for x, y in train_loader:
+                x, y = x.to(device), y.to(device)
+                out = model_stage2(x)
+                loss = criterion(out, y)
+                if model_stage2.mask_l1 is not None:
+                    loss = loss + sparsity_weight_bin * model_stage2.mask_l1
 
-    return pruned_model, keep_indices
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                bs = y.size(0)
+                train_loss_sum += loss.item() * bs
+                _, pred = out.max(1)
+                train_total += bs
+                train_correct += pred.eq(y).sum().item()
+
+            train_loss = train_loss_sum / max(train_total, 1)
+            train_acc = 100.0 * train_correct / max(train_total, 1)
+            val_loss, val_acc, _ = _evaluate_classifier(model_stage2, val_loader, criterion, device)
+            scheduler.step(val_loss)
+
+            if val_loss < stage2_best_val_loss - min_delta:
+                stage2_best_val_loss = val_loss
+                stage2_best_epoch = epoch + 1
+                torch.save(model_stage2.state_dict(), stage2_model_path)
+                no_improve = 0
+            else:
+                no_improve += 1
+
+            mask_info = f"; Mask: {model_stage2.mask_l1.item():.2%}" if model_stage2.mask_l1 is not None else ""
+            print(
+                f"Epoch [{epoch+1}/{epochs_stage2}]: "
+                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}" + mask_info
+            )
+
+            if wandb_run is not None:
+                wandb_run.log({
+                    "stage": 2,
+                    "epoch": epoch + 1,
+                    "train_loss": train_loss,
+                    "train_acc": train_acc,
+                    "val_loss": val_loss,
+                    "val_acc": val_acc,
+                    "best_val_loss": stage2_best_val_loss,
+                    "lr_backbone": optimizer.param_groups[0]["lr"],
+                    "lr_gumbel_bin": optimizer.param_groups[1]["lr"],
+                    "mask_l1": model_stage2.mask_l1.item() if model_stage2.mask_l1 is not None else None,
+                })
+
+            if no_improve >= patience:
+                print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage2}] (patience={patience}).")
+                break
+
+    if not use_pretrained_stage2:
+        model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
+    stage2_test_loss, stage2_test_acc, stage2_test_f1 = _evaluate_classifier(model_stage2, test_loader, criterion, device)
+    hard_bin_mask = _get_hard_bin_mask_from_model(model_stage2).detach().cpu()
+    bin_keep_ratio = hard_bin_mask.mean().item()
+
+    print("-" * 50)
+    print("Stage 2 Summary:")
+    if stage2_best_val_loss is not None:
+        print(f"Best Val Loss: {stage2_best_val_loss:.4f} at Epoch {stage2_best_epoch}")
+    else:
+        print("Best Val Loss: not available (loaded pretrained stage2 checkpoint)")
+    print(f"Test Loss: {stage2_test_loss:.4f} | Test Acc: {stage2_test_acc:.2f}% | Test F1 Macro: {stage2_test_f1:.4f}")
+    print(f"Hard input bins kept: {(hard_bin_mask > 0.5).sum().item()}/{hard_bin_mask.numel()} ({bin_keep_ratio:.1%})")
+
+
+    if wandb_run is not None:
+        wandb_run.log({
+            "stage1_test_loss": stage1_test_loss,
+            "stage1_test_acc": stage1_test_acc,
+            "stage1_test_f1": stage1_test_f1,
+            "stage2_test_loss": stage2_test_loss,
+            "stage2_test_acc": stage2_test_acc,
+            "stage2_test_f1": stage2_test_f1,
+            "bin_keep_ratio": bin_keep_ratio,
+        })
+
+    print("\n" + "=" * 60)
+    print("TWO-STAGE TRAINING COMPLETE")
+    print("=" * 60)
+    print(f"Stage 1 (SeparableConvCNN): Test Acc: {stage1_test_acc:.2f}% | F1: {stage1_test_f1:.4f}")
+    print(f"Stage 2 (Input Bin Pruning): Test Acc: {stage2_test_acc:.2f}% | F1: {stage2_test_f1:.4f}")
+
+    return {
+        "stage1": {
+            "model": "SeparableConvCNN",
+            "best_val_loss": stage1_best_val_loss,
+            "best_epoch": stage1_best_epoch,
+            "test_loss": stage1_test_loss,
+            "test_acc": stage1_test_acc,
+            "test_f1_macro": stage1_test_f1,
+            "model_path": str(stage1_model_path),
+            "loaded_from_checkpoint": use_pretrained_stage1,
+        },
+        "stage2": {
+            "model": "GumbelMaskSeparableConvCNN",
+            "best_val_loss": stage2_best_val_loss,
+            "best_epoch": stage2_best_epoch,
+            "test_loss": stage2_test_loss,
+            "test_acc": stage2_test_acc,
+            "test_f1_macro": stage2_test_f1,
+            "model_path": str(stage2_model_path),
+            "hard_bin_mask": hard_bin_mask.numpy(),
+            "bin_keep_ratio": bin_keep_ratio,
+            "loaded_from_checkpoint": use_pretrained_stage2,
+        },
+    }
 
 
 def train_loso_wear_three_stage_pruning_channel(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
@@ -1859,404 +2012,7 @@ def train_loso_wear_three_stage_pruning_channel(root_path, train_subjects, val_s
     }
 
 
-# class MaskedWEARDataset(Dataset):
-#     """Wrap WEAR_Dataset and apply a fixed per-bin mask to each sample."""
-
-#     def __init__(self, base_dataset, bin_mask):
-#         self.base_dataset = base_dataset
-#         self.bin_mask = torch.as_tensor(bin_mask, dtype=torch.float32)
-
-#     def __len__(self):
-#         return len(self.base_dataset)
-
-#     def __getitem__(self, idx):
-#         x, y = self.base_dataset[idx]
-#         x = x * self.bin_mask.unsqueeze(0)
-#         return x, y
-
-
-class SlicedWEARDataset(Dataset):
-    """Wrap WEAR_Dataset and keep only selected frequency bins (hard slicing)."""
-
-    def __init__(self, base_dataset, keep_indices):
-        self.base_dataset = base_dataset
-        self.keep_indices = torch.as_tensor(keep_indices, dtype=torch.long)
-
-    def __len__(self):
-        return len(self.base_dataset)
-
-    def __getitem__(self, idx):
-        x, y = self.base_dataset[idx]
-        x = x.index_select(-1, self.keep_indices)
-        return x, y
-
-
-def _load_matching_weights(target_model, source_state_dict):
-    """Load only parameters whose names and shapes match between source and target models."""
-    target_state = target_model.state_dict()
-    loaded = 0
-    skipped = 0
-
-    for name, src_param in source_state_dict.items():
-        tgt_param = target_state.get(name)
-        if tgt_param is not None and tgt_param.shape == src_param.shape:
-            target_state[name] = src_param
-            loaded += 1
-        else:
-            skipped += 1
-
-    target_model.load_state_dict(target_state)
-    print(f"  Partially loaded weights: loaded={loaded}, skipped={skipped}")
-    return target_model
-
-
-def _evaluate_classifier(model, dataloader, criterion, device):
-    model.eval()
-    loss_sum, total, correct = 0.0, 0, 0
-    all_preds = []
-    all_labels = []
-
-    with torch.no_grad():
-        for x, y in dataloader:
-            x, y = x.to(device), y.to(device)
-            out = model(x)
-            loss = criterion(out, y)
-
-            bs = y.size(0)
-            loss_sum += loss.item() * bs
-            _, pred = out.max(1)
-            total += bs
-            correct += pred.eq(y).sum().item()
-
-            all_preds.extend(pred.cpu().numpy())
-            all_labels.extend(y.cpu().numpy())
-
-    avg_loss = loss_sum / max(total, 1)
-    acc = 100.0 * correct / max(total, 1)
-    f1 = f1_score(all_labels, all_preds, average='macro') if len(all_labels) > 0 else 0.0
-    return avg_loss, acc, f1
-
-
-def _get_hard_bin_mask_from_model(model):
-    with torch.no_grad():
-        hard = torch.softmax(model.bin_logits, dim=-1).argmax(dim=-1).float()
-    return hard
-
-def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
-    """
-    Two-stage LOSO training for WEAR dataset:
-    Stage 1: Train SeparableConvCNN on full input.
-    Stage 2: Load stage-1 weights into GumbelMaskSeparableConvCNN and learn input-bin pruning.
-    """
-    from lib.model import SeparableConvCNN, GumbelMaskSeparableConvCNN
-
-    epochs_stage1 = train_kwargs.get('epochs_stage1', 60)
-    epochs_stage2 = train_kwargs.get('epochs_stage2', 60)
-    lr = train_kwargs.get('lr', 1e-3)
-    batch_size = train_kwargs.get('batch_size', 64)
-    device = train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
-    patience = train_kwargs.get('patience', 10)
-    min_delta = train_kwargs.get('min_delta', 1e-3)
-    preprocessing = train_kwargs.get('preprocessing', 'fft')
-    dropout = train_kwargs.get('dropout', 0.4)
-    tau_start = train_kwargs.get('tau_start', 10.0)
-    tau_end = train_kwargs.get('tau_end', 1.0)
-    sparsity_weight_bin = train_kwargs.get('sparsity_weight_bin', train_kwargs.get('sparsity_weight', 0.01))
-    stage2_backbone_lr_factor = train_kwargs.get('stage2_backbone_lr_factor', 0.1)
-
-    model_path = Path(train_kwargs.get('model_path', './models/best_wear_model_three_stage.pth'))
-    model_path.parent.mkdir(parents=True, exist_ok=True)
-
-    stage1_model_path_arg = train_kwargs.get('stage1_model_path')
-    if stage1_model_path_arg is not None:
-        stage1_model_path = Path(stage1_model_path_arg).expanduser()
-    else:
-        stage1_model_path = model_path.parent / f"{model_path.stem}_stage1.pth"
-    stage1_model_path.parent.mkdir(parents=True, exist_ok=True)
-
-    stage2_model_path_arg = train_kwargs.get('stage2_model_path')
-    if stage2_model_path_arg is not None:
-        stage2_model_path = Path(stage2_model_path_arg).expanduser()
-    else:
-        stage2_model_path = model_path.parent / f"{model_path.stem}_stage2_bin.pth"
-    stage2_model_path.parent.mkdir(parents=True, exist_ok=True)
-
-    use_pretrained_stage1 = stage1_model_path_arg is not None
-    use_pretrained_stage2 = stage2_model_path_arg is not None
-
-    if use_pretrained_stage1 and not stage1_model_path.exists():
-        raise FileNotFoundError(f"Provided stage1 model path does not exist: {stage1_model_path}")
-    if use_pretrained_stage2 and not stage2_model_path.exists():
-        raise FileNotFoundError(f"Provided stage2 model path does not exist: {stage2_model_path}")
-
-    train_dataset = WEAR_Dataset(root_path, split='train', subject_ids=train_subjects, preprocessing=preprocessing)
-    val_dataset = WEAR_Dataset(root_path, split='train', subject_ids=val_subjects, preprocessing=preprocessing)
-    test_dataset = WEAR_Dataset(root_path, split='test', subject_ids=None, preprocessing=preprocessing)
-
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-
-    print(f"Train samples: {len(train_dataset)}")
-    print(f"Val samples: {len(val_dataset)}")
-    print(f"Test samples: {len(test_dataset)}")
-
-    freq_bins = train_dataset[0][0].shape[-1]
-    criterion = nn.CrossEntropyLoss()
-
-    # ============================================================
-    # STAGE 1
-    # ============================================================
-    print("\n" + "=" * 60)
-    if use_pretrained_stage1:
-        print("STAGE 1: Loading pretrained SeparableConvCNN")
-        print(f"Checkpoint: {stage1_model_path}")
-    else:
-        print("STAGE 1: Training SeparableConvCNN")
-    print("=" * 60)
-
-    model_stage1 = SeparableConvCNN(num_classes=8, num_channels=6, freq_bins=freq_bins, dropout=dropout).to(device)
-    stage1_best_val_loss = None
-    stage1_best_epoch = None
-
-    if not use_pretrained_stage1:
-        optimizer = torch.optim.Adam(model_stage1.parameters(), lr=lr)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6)
-        stage1_best_val_loss = float('inf')
-        stage1_best_epoch = 0
-        no_improve = 0
-
-        for epoch in range(epochs_stage1):
-            model_stage1.train()
-            train_loss_sum, train_correct, train_total = 0.0, 0, 0
-
-            for x, y in train_loader:
-                x, y = x.to(device), y.to(device)
-                out = model_stage1(x)
-                loss = criterion(out, y)
-
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-
-                bs = y.size(0)
-                train_loss_sum += loss.item() * bs
-                _, pred = out.max(1)
-                train_total += bs
-                train_correct += pred.eq(y).sum().item()
-
-            train_loss = train_loss_sum / max(train_total, 1)
-            train_acc = 100.0 * train_correct / max(train_total, 1)
-
-            val_loss, val_acc, _ = _evaluate_classifier(model_stage1, val_loader, criterion, device)
-            scheduler.step(val_loss)
-
-            if val_loss < stage1_best_val_loss - min_delta:
-                stage1_best_val_loss = val_loss
-                stage1_best_epoch = epoch + 1
-                torch.save(model_stage1.state_dict(), stage1_model_path)
-                no_improve = 0
-            else:
-                no_improve += 1
-
-            print(
-                f"Epoch [{epoch+1}/{epochs_stage1}]: "
-                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
-                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
-            )
-
-            if wandb_run is not None:
-                wandb_run.log({
-                    "stage": 1,
-                    "epoch": epoch + 1,
-                    "train_loss": train_loss,
-                    "train_acc": train_acc,
-                    "val_loss": val_loss,
-                    "val_acc": val_acc,
-                    "best_val_loss": stage1_best_val_loss,
-                    "lr": optimizer.param_groups[0]["lr"],
-                })
-
-            if no_improve >= patience:
-                print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage1}] (patience={patience}).")
-                break
-
-    model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
-    stage1_test_loss, stage1_test_acc, stage1_test_f1 = _evaluate_classifier(model_stage1, test_loader, criterion, device)
-    print("-" * 50)
-    print("Stage 1 Summary:")
-    if stage1_best_val_loss is not None:
-        print(f"Best Val Loss: {stage1_best_val_loss:.4f} at Epoch {stage1_best_epoch}")
-    else:
-        print("Best Val Loss: not available (loaded pretrained stage1 checkpoint)")
-    print(f"Test Loss: {stage1_test_loss:.4f} | Test Acc: {stage1_test_acc:.2f}% | Test F1 Macro: {stage1_test_f1:.4f}")
-
-    # ============================================================
-    # STAGE 2
-    # ============================================================
-    print("\n" + "=" * 60)
-    if use_pretrained_stage2:
-        print("STAGE 2: Loading pretrained GumbelMaskSeparableConvCNN (input-bin pruning)")
-        print(f"Checkpoint: {stage2_model_path}")
-    else:
-        print("STAGE 2: Training GumbelMaskSeparableConvCNN (input-bin pruning)")
-    print("=" * 60)
-
-    model_stage2 = GumbelMaskSeparableConvCNN(
-        num_classes=8,
-        num_channels=6,
-        freq_bins=freq_bins,
-        dropout=dropout,
-        tau_start=tau_start,
-        tau_end=tau_end,
-    ).to(device)
-
-    stage2_best_val_loss = None
-    stage2_best_epoch = None
-
-    if use_pretrained_stage2:
-        model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
-    else:
-        print("\nLoading Stage 1 weights into Stage 2 model:")
-        _load_stage1_weights_to_gumbel_model(model_stage2, torch.load(stage1_model_path, map_location=device))
-
-        stage2_backbone_lr = lr * stage2_backbone_lr_factor
-        gumbel_params = [model_stage2.bin_logits]
-        gumbel_ids = {id(p) for p in gumbel_params}
-        backbone_params = [p for p in model_stage2.parameters() if id(p) not in gumbel_ids]
-
-        optimizer = torch.optim.Adam(
-            [
-                {"params": backbone_params, "lr": stage2_backbone_lr},
-                {"params": gumbel_params, "lr": lr},
-            ]
-        )
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6)
-
-        stage2_best_val_loss = float('inf')
-        stage2_best_epoch = 0
-        no_improve = 0
-
-        for epoch in range(epochs_stage2):
-            model_stage2.train()
-            if hasattr(model_stage2, 'set_tau'):
-                model_stage2.set_tau(epoch, epochs_stage2)
-
-            train_loss_sum, train_correct, train_total = 0.0, 0, 0
-            for x, y in train_loader:
-                x, y = x.to(device), y.to(device)
-                out = model_stage2(x)
-                loss = criterion(out, y)
-                if model_stage2.mask_l1 is not None:
-                    loss = loss + sparsity_weight_bin * model_stage2.mask_l1
-
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-
-                bs = y.size(0)
-                train_loss_sum += loss.item() * bs
-                _, pred = out.max(1)
-                train_total += bs
-                train_correct += pred.eq(y).sum().item()
-
-            train_loss = train_loss_sum / max(train_total, 1)
-            train_acc = 100.0 * train_correct / max(train_total, 1)
-            val_loss, val_acc, _ = _evaluate_classifier(model_stage2, val_loader, criterion, device)
-            scheduler.step(val_loss)
-
-            if val_loss < stage2_best_val_loss - min_delta:
-                stage2_best_val_loss = val_loss
-                stage2_best_epoch = epoch + 1
-                torch.save(model_stage2.state_dict(), stage2_model_path)
-                no_improve = 0
-            else:
-                no_improve += 1
-
-            mask_info = f"; Mask: {model_stage2.mask_l1.item():.2%}" if model_stage2.mask_l1 is not None else ""
-            print(
-                f"Epoch [{epoch+1}/{epochs_stage2}]: "
-                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
-                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}" + mask_info
-            )
-
-            if wandb_run is not None:
-                wandb_run.log({
-                    "stage": 2,
-                    "epoch": epoch + 1,
-                    "train_loss": train_loss,
-                    "train_acc": train_acc,
-                    "val_loss": val_loss,
-                    "val_acc": val_acc,
-                    "best_val_loss": stage2_best_val_loss,
-                    "lr_backbone": optimizer.param_groups[0]["lr"],
-                    "lr_gumbel_bin": optimizer.param_groups[1]["lr"],
-                    "mask_l1": model_stage2.mask_l1.item() if model_stage2.mask_l1 is not None else None,
-                })
-
-            if no_improve >= patience:
-                print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage2}] (patience={patience}).")
-                break
-
-    if not use_pretrained_stage2:
-        model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
-    stage2_test_loss, stage2_test_acc, stage2_test_f1 = _evaluate_classifier(model_stage2, test_loader, criterion, device)
-    hard_bin_mask = _get_hard_bin_mask_from_model(model_stage2).detach().cpu()
-    bin_keep_ratio = hard_bin_mask.mean().item()
-
-    print("-" * 50)
-    print("Stage 2 Summary:")
-    if stage2_best_val_loss is not None:
-        print(f"Best Val Loss: {stage2_best_val_loss:.4f} at Epoch {stage2_best_epoch}")
-    else:
-        print("Best Val Loss: not available (loaded pretrained stage2 checkpoint)")
-    print(f"Test Loss: {stage2_test_loss:.4f} | Test Acc: {stage2_test_acc:.2f}% | Test F1 Macro: {stage2_test_f1:.4f}")
-    print(f"Hard input bins kept: {(hard_bin_mask > 0.5).sum().item()}/{hard_bin_mask.numel()} ({bin_keep_ratio:.1%})")
-
-
-    if wandb_run is not None:
-        wandb_run.log({
-            "stage1_test_loss": stage1_test_loss,
-            "stage1_test_acc": stage1_test_acc,
-            "stage1_test_f1": stage1_test_f1,
-            "stage2_test_loss": stage2_test_loss,
-            "stage2_test_acc": stage2_test_acc,
-            "stage2_test_f1": stage2_test_f1,
-            "bin_keep_ratio": bin_keep_ratio,
-        })
-
-    print("\n" + "=" * 60)
-    print("TWO-STAGE TRAINING COMPLETE")
-    print("=" * 60)
-    print(f"Stage 1 (SeparableConvCNN): Test Acc: {stage1_test_acc:.2f}% | F1: {stage1_test_f1:.4f}")
-    print(f"Stage 2 (Input Bin Pruning): Test Acc: {stage2_test_acc:.2f}% | F1: {stage2_test_f1:.4f}")
-
-    return {
-        "stage1": {
-            "model": "SeparableConvCNN",
-            "best_val_loss": stage1_best_val_loss,
-            "best_epoch": stage1_best_epoch,
-            "test_loss": stage1_test_loss,
-            "test_acc": stage1_test_acc,
-            "test_f1_macro": stage1_test_f1,
-            "model_path": str(stage1_model_path),
-            "loaded_from_checkpoint": use_pretrained_stage1,
-        },
-        "stage2": {
-            "model": "GumbelMaskSeparableConvCNN",
-            "best_val_loss": stage2_best_val_loss,
-            "best_epoch": stage2_best_epoch,
-            "test_loss": stage2_test_loss,
-            "test_acc": stage2_test_acc,
-            "test_f1_macro": stage2_test_f1,
-            "model_path": str(stage2_model_path),
-            "hard_bin_mask": hard_bin_mask.numpy(),
-            "bin_keep_ratio": bin_keep_ratio,
-            "loaded_from_checkpoint": use_pretrained_stage2,
-        },
-    }
-
-def train_loso_wear_three_stage(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
+def train_loso_wear_three_stage_input_pruning(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
     """
     Three-stage LOSO training for WEAR dataset:
     Stage 1: Train SeparableConvCNN on full input.
@@ -2328,7 +2084,16 @@ def train_loso_wear_three_stage(root_path, train_subjects, val_subjects, wandb_r
     print(f"Test samples: {len(test_dataset)}")
 
     freq_bins = train_dataset[0][0].shape[-1]
-    criterion = nn.CrossEntropyLoss()
+    # Class-balanced loss for imbalanced WEAR labels.
+    class_counts = np.bincount(train_dataset.labels.astype(int), minlength=8).astype(np.float32)
+    class_counts = np.clip(class_counts, 1.0, None)
+    class_weights = class_counts.sum() / class_counts
+    class_weights = class_weights / class_weights.mean()
+    class_weights = torch.as_tensor(class_weights, dtype=torch.float32, device=device)
+    print(f"Class counts: {class_counts.tolist()}")
+    print(f"Class weights: {class_weights.detach().cpu().numpy().round(3).tolist()}")
+    criterion = nn.CrossEntropyLoss(weight=class_weights).to(device)
+    # criterion = nn.CrossEntropyLoss()
 
     # ============================================================
     # STAGE 1
@@ -2444,7 +2209,7 @@ def train_loso_wear_three_stage(root_path, train_subjects, val_subjects, wandb_r
         model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
     else:
         print("\nLoading Stage 1 weights into Stage 2 model:")
-        _load_stage1_weights_to_gumbel_model(model_stage2, torch.load(stage1_model_path, map_location=device))
+        _load_weights_to_gumbel_model(model_stage2, torch.load(stage1_model_path, map_location=device))
 
         stage2_backbone_lr = lr * stage2_backbone_lr_factor
         gumbel_params = [model_stage2.bin_logits]
@@ -2802,9 +2567,6 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
     val_dataset = WEAR_Dataset(root_path, split='train', subject_ids=val_subjects, preprocessing=preprocessing)
     test_dataset = WEAR_Dataset(root_path, split='test', subject_ids=None, preprocessing=preprocessing)
 
-    if len(train_dataset) == 0:
-        raise ValueError('Empty training dataset for selected subjects.')
-
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
@@ -2814,7 +2576,16 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
     print(f"Test samples: {len(test_dataset)}")
 
     freq_bins = train_dataset[0][0].shape[-1]
-    criterion = nn.CrossEntropyLoss()
+    # Class-balanced loss for imbalanced WEAR labels.
+    class_counts = np.bincount(train_dataset.labels.astype(int), minlength=8).astype(np.float32)
+    class_counts = np.clip(class_counts, 1.0, None)
+    class_weights = class_counts.sum() / class_counts
+    class_weights = class_weights / class_weights.mean()
+    class_weights = torch.as_tensor(class_weights, dtype=torch.float32, device=device)
+    print(f"Class counts: {class_counts.tolist()}")
+    print(f"Class weights: {class_weights.detach().cpu().numpy().round(3).tolist()}")
+    criterion = nn.CrossEntropyLoss(weight=class_weights).to(device)
+    # criterion = nn.CrossEntropyLoss()
 
     # ============================================================
     # STAGE 1
@@ -2894,7 +2665,9 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
                 break
 
     model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
-    stage1_test_loss, stage1_test_acc, stage1_test_f1 = _evaluate_classifier(model_stage1, test_loader, criterion, device)
+    stage1_test_loss, stage1_test_acc, stage1_test_f1, stage1_y_true, stage1_y_pred = _val_one_epoch(
+        model_stage1, test_loader, criterion, device
+    )
     print("-" * 50)
     print("Stage 1 Summary:")
     if stage1_best_val_loss is not None:
@@ -2902,6 +2675,17 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
     else:
         print("Best Val Loss: not available (loaded pretrained stage1 checkpoint)")
     print(f"Test Loss: {stage1_test_loss:.4f} | Test Acc: {stage1_test_acc:.2f}% | Test F1 Macro: {stage1_test_f1:.4f}")
+
+    _save_confusion_matrix_artifact(
+        y_true=stage1_y_true,
+        y_pred=stage1_y_pred,
+        output_dir=None,
+        stage_name='Stage 1',
+        model_name='SeparableConvCNN',
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage1-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
 
     # ============================================================
     # STAGE 2
@@ -2930,7 +2714,7 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
         model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
     else:
         print("\nLoading Stage 1 weights into Stage 2 model:")
-        _load_stage1_weights_to_gumbel_model(model_stage2, torch.load(stage1_model_path, map_location=device))
+        _load_weights_to_gumbel_model(model_stage2, torch.load(stage1_model_path, map_location=device))
 
         stage2_backbone_lr = lr * stage2_backbone_lr_factor
         gumbel_params = [model_stage2.bin_logits]
@@ -3120,7 +2904,9 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
                 break
 
         model_stage3.load_state_dict(torch.load(stage3_model_path, map_location=device))
-    stage3_test_loss, stage3_test_acc, stage3_test_f1 = _evaluate_classifier(model_stage3, pruned_test_loader, criterion, device)
+    stage3_test_loss, stage3_test_acc, stage3_test_f1, stage3_y_true, stage3_y_pred = _val_one_epoch(
+        model_stage3, pruned_test_loader, criterion, device
+    )
 
     print("-" * 50)
     print("Stage 3 Summary:")
@@ -3129,6 +2915,17 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
     else:
         print("Best Val Loss: not available (loaded pretrained stage3 checkpoint)")
     print(f"Test Loss: {stage3_test_loss:.4f} | Test Acc: {stage3_test_acc:.2f}% | Test F1 Macro: {stage3_test_f1:.4f}")
+
+    _save_confusion_matrix_artifact(
+        y_true=stage3_y_true,
+        y_pred=stage3_y_pred,
+        output_dir=None,
+        stage_name='Stage 3',
+        model_name='SeparableConvCNN',
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage3-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
 
     # ============================================================
     # STAGE 4
@@ -3157,7 +2954,7 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
         model_stage4.load_state_dict(torch.load(stage4_model_path, map_location=device))
     else:
         print("\nLoading Stage 3 weights into Stage 4 model:")
-        _load_stage1_weights_to_channel_gumbel_model(model_stage4, torch.load(stage3_model_path, map_location=device))
+        _load_weights_to_gumbel_model(model_stage4, torch.load(stage3_model_path, map_location=device))
 
         stage4_backbone_lr = lr * stage4_backbone_lr_factor
         named_params = list(model_stage4.named_parameters())
@@ -3379,7 +3176,9 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
 
         stage5_model.load_state_dict(torch.load(stage5_model_path, map_location=device))
 
-    stage5_test_loss, stage5_test_acc, stage5_test_f1 = _evaluate_classifier(stage5_model, pruned_test_loader, criterion, device)
+    stage5_test_loss, stage5_test_acc, stage5_test_f1, stage5_y_true, stage5_y_pred = _val_one_epoch(
+        stage5_model, pruned_test_loader, criterion, device
+    )
 
     print("-" * 50)
     print("Stage 5 Summary:")
@@ -3389,6 +3188,17 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
         print("Best Val Loss: not available (loaded pretrained stage5 checkpoint)")
     print(f"Test Loss: {stage5_test_loss:.4f} | Test Acc: {stage5_test_acc:.2f}% | Test F1 Macro: {stage5_test_f1:.4f}")
     print(f"Model size reduction: {param_reduction_pct:.2f}% ({pruned_param_count:,}/{dense_param_count:,} params)")
+
+    _save_confusion_matrix_artifact(
+        y_true=stage5_y_true,
+        y_pred=stage5_y_pred,
+        output_dir=None,
+        stage_name='Stage 5',
+        model_name='PrunedSeparableConvCNN',
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage5-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
 
     if wandb_run is not None:
         wandb_run.log({

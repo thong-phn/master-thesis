@@ -15,7 +15,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="torch.cuda")
 
 from lib.wear_train import train_loso_wear
-from lib.model import GumbelMaskSeparableConvCNN, SeparableConvCNN
+from lib.model import SeparableConvCNN
 
 
 def set_seed(seed: int = 42):
@@ -73,7 +73,6 @@ def main():
 	model_class = globals()[args.model]
 
 	for val_subject in all_subjects:
-	# for val_subject in [0]:
 		val_subjects = [val_subject]
 		train_subjects = [subject for subject in all_subjects if subject not in val_subjects]
 
@@ -83,14 +82,9 @@ def main():
 		print(f"Test subjects ({len(test_subjects)}): {test_subjects}")
 
 		# Tracking init
-		run_name = (
-			f"{args.wandb_run_name}-val-{val_subject}"
-			if args.wandb_run_name is not None
-			else f"wear-loso-val-{val_subject}-{args.preprocessing}"
-		)
 		wandb_run = wandb.init(
 			project="thesis",
-			name=run_name,
+			name=f"wear-loso-val-{val_subject}-{args.preprocessing}-{args.wandb_run_name}",
 			config={
 				"dataset": "WEAR",
 				"train_subjects": train_subjects,
@@ -117,9 +111,9 @@ def main():
 			device=device,
 			model_path=project_root / "models" / f"wear_best_model_subject{val_subject}_val.pth",
 			preprocessing=args.preprocessing,
-			sparsity_weight=args.sparsity_weight,
-			tau_start=20.0,
-			tau_end=1.0,
+			# sparsity_weight=args.sparsity_weight,
+			# tau_start=20.0,
+			# tau_end=1.0,
 		)
 
 		test_acc = metrics["test_acc"]

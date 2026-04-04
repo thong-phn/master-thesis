@@ -14,7 +14,7 @@ import os
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="torch.cuda")
 
-from lib.wear_train import train_loso_wear_three_stage
+from lib.wear_train import train_loso_wear_three_stage_input_pruning
 
 
 def set_seed(seed: int = 42):
@@ -62,8 +62,8 @@ def main():
                         help='Optional path to a pretrained Stage 2 checkpoint. If provided, Stage 2 training is skipped.')
     parser.add_argument('--stage3_model_path', type=str, default=None,
                         help='Optional path to a pretrained Stage 3 checkpoint. If provided, Stage 3 training is skipped.')
-    parser.add_argument('--single_subject_only', action='store_true',
-                        help='Run only one LOSO fold (subject 0 if available).')
+    parser.add_argument('--single_subject_only', type=str)
+    parser.add_argument('--run_name', type=str)
     
     args = parser.parse_args()
 
@@ -115,7 +115,7 @@ def main():
     stage2_label = 'GumbelMaskSeparableConvCNN'
     stage3_label = 'SeparableConvCNN (Pruned Input)'
 
-    fold_subjects = [all_subjects[12]] if args.single_subject_only else all_subjects
+    fold_subjects = [all_subjects[int(args.single_subject_only)]] if args.single_subject_only else all_subjects
 
     for val_subject in fold_subjects:
         val_subjects = [val_subject]
@@ -129,7 +129,7 @@ def main():
         # Tracking init
         wandb_run = wandb.init(
             project="thesis-analysis",
-            name=f"wear-loso-three-stage-val-{val_subject}-{args.preprocessing}",
+            name=f"wear-loso-three-stage-input-pruning-val-swb{args.sparsity_weight_bin}-{val_subject}-{args.preprocessing}-{args.run_name}",
             config={
                 "dataset": "WEAR",
                 "train_subjects": train_subjects,
@@ -151,7 +151,7 @@ def main():
             reinit=True
         )
 
-        metrics = train_loso_wear_three_stage(
+        metrics = train_loso_wear_three_stage_input_pruning(
             root_path=root_path,
             train_subjects=train_subjects,
             val_subjects=val_subjects,

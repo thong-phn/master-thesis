@@ -2,6 +2,7 @@ import torch
 from pathlib import Path
 from sklearn.metrics import f1_score
 import json
+import numpy as np
 
 def _load_weights_to_gumbel_model(gumbel_model, stage1_state_dict):
     """
@@ -24,11 +25,10 @@ def _load_weights_to_gumbel_model(gumbel_model, stage1_state_dict):
             print(f"  Skipped (not in Gumbel model): {name}")
     
     # The bin_logits will be initialized randomly (not loaded from stage 1)
-    print(f"  Kept random initialization: bin_logits (Gumbel-specific parameter)")
+    print(f"  Kept random initialization of Gumbel-specific parameter")
     
     gumbel_model.load_state_dict(gumbel_state_dict)
     return gumbel_model
-
 
 def _val_one_epoch(model, dataloader, criterion, 
                    device=torch.device("cuda" if torch.cuda.is_available() else "cpu")):
@@ -36,7 +36,7 @@ def _val_one_epoch(model, dataloader, criterion,
     args:
         model, dataloader, criterion
     return:
-        val_loss, val_acc, val_f1
+        val_loss, val_acc, val_f1, labels, predictions
     """
     model.eval()
     loss_sum, total, correct = 0.0, 0, 0
@@ -61,7 +61,7 @@ def _val_one_epoch(model, dataloader, criterion,
     val_loss = loss_sum / max(total, 1)
     val_acc = 100.0 * correct / max(total, 1)
     f1 = f1_score(all_labels, all_preds, average='macro') if len(all_labels) > 0 else 0.0
-    return val_loss, val_acc, f1
+    return val_loss, val_acc, f1, np.asarray(all_labels, dtype=np.int64), np.asarray(all_preds, dtype=np.int64)
 
 def _train_one_epoch(model, optimizer, dataloader, criterion, 
                      device=torch.device("cuda" if torch.cuda.is_available() else "cpu")):
@@ -117,7 +117,7 @@ def stage1_pipeline(model, train_loader, val_loader, test_loader,
             raise FileNotFoundError(f"pre-trained path not found: {checkpoint_path}")
         # Load pretrain model
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))
-        stage1_test_loss, stage1_test_acc, stage1_test_f1 = _val_one_epoch(model, test_loader, criterion, device)
+        stage1_test_loss, stage1_test_acc, stage1_test_f1, _, _ = _val_one_epoch(model, test_loader, criterion, device)
         print("-" * 50 + "\nStage 1 Summary:")
         print("Use pretrained model:")
         print(f"Test Loss: {stage1_test_loss:.4f} | Test Acc: {stage1_test_acc:.2f}% | Test F1 Macro: {stage1_test_f1:.4f}")
@@ -148,7 +148,7 @@ def stage1_pipeline(model, train_loader, val_loader, test_loader,
 
     for epoch in range(num_epochs):
         train_loss, train_acc = _train_one_epoch(model, optimizer, train_loader, criterion, device)
-        val_loss, val_acc, _ = _val_one_epoch(model, val_loader, criterion, device)
+        val_loss, val_acc, _, _, _ = _val_one_epoch(model, val_loader, criterion, device)
         scheduler.step(val_loss)
 
         if val_loss < stage1_best_val_loss - min_delta:
@@ -183,7 +183,7 @@ def stage1_pipeline(model, train_loader, val_loader, test_loader,
             break
 
     model.load_state_dict(torch.load(checkpoint_path, map_location=device))
-    stage1_test_loss, stage1_test_acc, stage1_test_f1 = _val_one_epoch(model, test_loader, criterion, device)
+    stage1_test_loss, stage1_test_acc, stage1_test_f1, _, _ = _val_one_epoch(model, test_loader, criterion, device)
     
     print("-" * 50 + "\nStage 1 Summary:")
     print(f"Best Val Loss: {stage1_best_val_loss:.4f} at Epoch {stage1_best_epoch}")
