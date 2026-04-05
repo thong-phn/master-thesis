@@ -17,29 +17,29 @@ Test F1 Macro: 0.6782
 
 Stage 2
 ------------------------------------------------------------
-Best Val Loss: 0.9787
-Best Epoch: 41
-Test Loss: 0.6541
-Test Acc: 79.24%
-Test F1 Macro: 0.6823
-block2_kept: 32/64 (50.0%)
-block3_kept: 48/128 (37.5%)
-block4_kept: 75/128 (58.6%)
-block2_Pruned_%: 50.000000
-block3_Pruned_%: 62.500000
-block4_Pruned_%: 41.406250
-Total_Pruned_%: 51.562500
+Best Val Loss: 1.0888
+Best Epoch: 10
+Test Loss: 0.7950
+Test Acc: 75.52%
+Test F1 Macro: 0.6161
+block2_kept: 21/64 (32.8%)
+block3_kept: 29/128 (22.7%)
+block4_kept: 55/128 (43.0%)
+block2_Pruned_%: 67.187500
+block3_Pruned_%: 77.343750
+block4_Pruned_%: 57.031250
+Total_Pruned_%: 67.187500
 
 Stage 3
 ------------------------------------------------------------
-Best Val Loss: 0.9035
-Best Epoch: 19
-Test Loss: 0.6131
-Test Acc: 79.09%
-Test F1 Macro: 0.6914
+Best Val Loss: 0.9424
+Best Epoch: 17
+Test Loss: 0.6591
+Test Acc: 78.82%
+Test F1 Macro: 0.6821
 Dense Params: 36998
-Pruned Params: 12476
-Param Reduction: 66.28%
-Block2 kept channels: 32
-Block3 kept channels: 48
-Block4 kept channels: 75
+Pruned Params: 7722
+Param Reduction: 79.13%
+Block2 kept channels: 21
+Block3 kept channels: 29
+Block4 kept channels: 55
