@@ -1,9 +1,9 @@
 THREE-STAGE CHANNEL PRUNING SUMMARY
 ============================================================
-Preprocessing: fft
+Preprocessing: ihw
 Train subjects: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 Val subjects: [17]
-Stage 1 checkpoint: /home/qphan/master-thesis/models/stage1/fft/wear_best_model_subject17_val.pth
+Stage 1 checkpoint: /home/qphan/master-thesis/models/stage1/ihw/wear_best_model_subject17_val.pth
 Stage 2 checkpoint: /home/qphan/master-thesis/models/wear_best_model_three_stage_channel_subject17_val_stage2_channel.pth
 Stage 3 checkpoint: /home/qphan/master-thesis/models/wear_best_model_three_stage_channel_subject17_val_stage3_pruned_channel.pth
 
@@ -11,35 +11,35 @@ Stage 1
 ------------------------------------------------------------
 Best Val Loss: N/A (pretrained stage1 checkpoint)
 Best Epoch: N/A
-Test Loss: 0.6479
-Test Acc: 78.88%
-Test F1 Macro: 0.6921
+Test Loss: 0.5429
+Test Acc: 82.53%
+Test F1 Macro: 0.7304
 
 Stage 2
 ------------------------------------------------------------
-Best Val Loss: 0.7968
-Best Epoch: 56
-Test Loss: 0.7370
-Test Acc: 77.04%
-Test F1 Macro: 0.6477
-block2_kept: 11/64 (17.2%)
-block3_kept: 16/128 (12.5%)
-block4_kept: 47/128 (36.7%)
-block2_Pruned_%: 82.812500
-block3_Pruned_%: 87.500000
-block4_Pruned_%: 63.281250
-Total_Pruned_%: 76.875000
+Best Val Loss: 0.5420
+Best Epoch: 37
+Test Loss: 0.5364
+Test Acc: 81.31%
+Test F1 Macro: 0.7203
+block2_kept: 64/64 (100.0%)
+block3_kept: 118/128 (92.2%)
+block4_kept: 128/128 (100.0%)
+block2_Pruned_%: 0.000000
+block3_Pruned_%: 7.812500
+block4_Pruned_%: 0.000000
+Total_Pruned_%: 3.125000
 
 Stage 3
 ------------------------------------------------------------
-Best Val Loss: 0.7674
-Best Epoch: 57
-Test Loss: 0.6854
-Test Acc: 78.00%
-Test F1 Macro: 0.6722
+Best Val Loss: 0.5712
+Best Epoch: 21
+Test Loss: 0.5859
+Test Acc: 80.58%
+Test F1 Macro: 0.7226
 Dense Params: 36998
-Pruned Params: 5483
-Param Reduction: 85.18%
-Block2 kept channels: 11
-Block3 kept channels: 16
-Block4 kept channels: 47
+Pruned Params: 35028
+Param Reduction: 5.32%
+Block2 kept channels: 64
+Block3 kept channels: 118
+Block4 kept channels: 128

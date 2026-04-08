@@ -50,8 +50,12 @@ def main():
                         help='Dropout rate')
     parser.add_argument('--pruning_ratio', type=float, default=0.3,
                         help='Amount of channels to prune evenly in stage 2 using L1-norm')
+    parser.add_argument('--performance', action='store_true',
+                        help='Enable dataloader performance optimizations (workers, pin_memory, prefetch).')
+    parser.add_argument('--log_every_n_epochs', type=int, default=5,
+                        help='Log training metrics to W&B every N epochs')
     parser.add_argument('--stage1_model_path', type=str, default=None,
-                        help='Optional pretrained Stage 1 checkpoint path; if set, Stage 1 training is skipped.')
+                        help='Optional pretrained Stage 1 checkpoint path; if set, Stage 1 training is skipped. Supports {subject} placeholder for per-fold checkpoints.')
     parser.add_argument('--stage3_model_path', type=str, default=None,
                         help='Optional Stage 3 output checkpoint path override.')
     parser.add_argument('--single_subject_only', action='store_true',
@@ -82,6 +86,7 @@ def main():
         f.write(f"Epochs Stage 1: {args.epochs_stage1}\n")
         f.write(f"Epochs Stage 3: {args.epochs_stage3}\n")
         f.write(f"Pruning Ratio: {args.pruning_ratio}\n")
+        f.write(f"Performance Mode: {args.performance}\n")
         if args.stage1_model_path is not None:
             f.write(f"Stage 1 Checkpoint Override: {args.stage1_model_path}\n")
         if args.stage3_model_path is not None:
@@ -96,6 +101,10 @@ def main():
     for val_subject in fold_subjects:
         val_subjects = [val_subject]
         train_subjects = [subject for subject in all_subjects if subject not in val_subjects]
+
+        resolved_stage1_model_path = args.stage1_model_path
+        if resolved_stage1_model_path is not None and '{subject}' in resolved_stage1_model_path:
+            resolved_stage1_model_path = resolved_stage1_model_path.format(subject=val_subject)
 
         print("=" * 50)
         print(f"Fold: Val Subject {val_subjects[0]}")
@@ -116,8 +125,10 @@ def main():
                 "batch_size": args.batch_size,
                 "preprocessing": args.preprocessing,
                 "pruning_ratio": args.pruning_ratio,
+                "performance": args.performance,
+                "log_every_n_epochs": args.log_every_n_epochs,
                 "training_type": "three_stage_channel_static_pruning",
-                "stage1_model_path": args.stage1_model_path,
+                "stage1_model_path": resolved_stage1_model_path,
                 "stage3_model_path": args.stage3_model_path,
             },
             reinit=True
@@ -142,8 +153,10 @@ def main():
             model_path=fold_model_path,
             preprocessing=args.preprocessing,
             pruning_ratio=args.pruning_ratio,
+            performance=args.performance,
             dropout=args.dropout,
-            stage1_model_path=args.stage1_model_path,
+            stage1_model_path=resolved_stage1_model_path,
+            log_every_n_epochs=args.log_every_n_epochs,
         )
 
         for stage in stage_names:
@@ -153,6 +166,8 @@ def main():
         with open(results_log_path, "a") as f:
             f.write(f"\n{'='*50}\n")
             f.write(f"Fold Val Subject {val_subjects[0]}:\n")
+            if resolved_stage1_model_path is not None:
+                f.write(f"  Stage 1 Checkpoint Used: {resolved_stage1_model_path}\n")
 
             for stage in stage_names:
                 f.write(f"\n{stage.upper()} ({metrics[stage]['model']}):\n")

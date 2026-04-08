@@ -10,6 +10,7 @@ from scipy.fftpack import dct
 from scipy.signal import butter, filtfilt
 from lib.ml_lib import _val_one_epoch, stage1_pipeline, stage2_channel_gumbel_pruning_pipeline, _load_weights_to_gumbel_model
 from lib.signal_lib import _load_and_window_subject_csv
+from lib.train import UCIHAR_Dataset
 
 
 def _resolve_device(device):
@@ -154,7 +155,7 @@ class WEAR_Dataset(Dataset):
         return ihw.astype(np.int16)
 
     def __getitem__(self, idx):
-        signal = self.signals[idx]  # (3, window_size)
+        signal = self.signals[idx]  # (6, window_size)
 
         if self.preprocessing == 'dct':
             mag = self._compute_dct(signal)
@@ -788,19 +789,21 @@ def _save_confusion_matrix_artifact(
     wandb_run=None,
     artifact_name=None,
     preprocessing=None,
+    class_names=None,
 ):
     from sklearn.metrics import confusion_matrix
 
-    class_names = [
-        'jogging',
-        'stretching',
-        'lunges',
-        'sit-ups',
-        'push-ups',
-        'burpees',
-        'bench-dips',
-        'null',
-    ]
+    if class_names is None:
+        class_names = [
+            'jogging',
+            'stretching',
+            'lunges',
+            'sit-ups',
+            'push-ups',
+            'burpees',
+            'bench-dips',
+            'null',
+        ]
     labels = list(range(len(class_names)))
     cm = confusion_matrix(y_true, y_pred, labels=labels)
 
@@ -835,16 +838,15 @@ def _get_hard_bin_mask_from_model(model):
 
 def train_loso_wear(root_path, model_class, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
     """
-    LOSO training for WEAR dataset.
-    Baseline for TD, FD
+    LOSO training for WEAR or UCI-HAR dataset.
     Args:
-        root_path: path to WEAR dataset root
+        root_path: path to dataset root
         model_class: model constructor (e.g. SeparableConvCNN)
         train_subjects: list of subject IDs for training
         val_subjects: list of subject IDs for validation
         wandb_run: optional wandb run for logging
         **train_kwargs: epochs, lr, batch_size, device, patience, min_delta,
-                        model_path, preprocessing
+                        model_path, preprocessing, dataset_name
     """
     # Hyperparameters
     epochs = train_kwargs.get('epochs', 60)
@@ -856,29 +858,60 @@ def train_loso_wear(root_path, model_class, train_subjects, val_subjects, wandb_
     min_delta = train_kwargs.get('min_delta', 1e-3)
     model_path = Path(train_kwargs.get('model_path', './models/best_wear_model.pth'))
     model_path.parent.mkdir(parents=True, exist_ok=True)
-
     preprocessing = train_kwargs.get('preprocessing', 'fft')
+    dataset_name = str(train_kwargs.get('dataset_name', 'wear')).strip().lower()
+    if dataset_name == 'wear':
+        dataset_class = WEAR_Dataset
+        num_classes = 8
+        class_names = [
+            'jogging',
+            'stretching',
+            'lunges',
+            'sit-ups',
+            'push-ups',
+            'burpees',
+            'bench-dips',
+            'null',
+        ]
+    elif dataset_name == 'uci-har':
+        dataset_class = UCIHAR_Dataset
+        num_classes = 6
+        class_names = [
+            'walking',
+            'walking_upstairs',
+            'walking_downstairs',
+            'sitting',
+            'standing',
+            'laying',
+        ]
+    else:
+        raise ValueError(f"Unsupported dataset_name: {dataset_name}")
 
     # Create datasets
-    train_dataset = WEAR_Dataset(
+    train_dataset = dataset_class(
         root_path,
         split='train',
         subject_ids=train_subjects,
         preprocessing=preprocessing,
     )
 
-    val_dataset = WEAR_Dataset(
+    val_dataset = dataset_class(
         root_path,
         split='train',
         subject_ids=val_subjects,
         preprocessing=preprocessing,
     )
-    test_dataset = WEAR_Dataset(
+    test_dataset = dataset_class(
         root_path,
         split='test',
         subject_ids=None,
         preprocessing=preprocessing,
     )
+
+    if len(train_dataset) == 0:
+        raise ValueError(
+            f"No training samples loaded for dataset='{dataset_name}' with train_subjects={train_subjects}."
+        )
 
     cpu_count = os.cpu_count() or 1
     if performance_mode:
@@ -919,9 +952,9 @@ def train_loso_wear(root_path, model_class, train_subjects, val_subjects, wandb_
     freq_bins = train_dataset[0][0].shape[-1]
     
     dropout = train_kwargs.get('dropout', 0.4)
-    model = model_class(num_classes=8, num_channels=6, freq_bins=freq_bins, dropout=dropout).to(device)
+    model = model_class(num_classes=num_classes, num_channels=6, freq_bins=freq_bins, dropout=dropout).to(device)
     
-    class_counts = np.bincount(train_dataset.labels.astype(int), minlength=8).astype(np.float32)
+    class_counts = np.bincount(train_dataset.labels.astype(int), minlength=num_classes).astype(np.float32)
     class_counts = np.clip(class_counts, 1.0, None)
     class_weights = class_counts.sum() / class_counts
     class_weights = class_weights / class_weights.mean()
@@ -972,6 +1005,7 @@ def train_loso_wear(root_path, model_class, train_subjects, val_subjects, wandb_
         wandb_run=wandb_run,
         artifact_name=f"{model_path.stem}-stage1-confusion-matrix".replace('.', '_'),
         preprocessing=preprocessing,
+        class_names=class_names,
     )
 
     return {

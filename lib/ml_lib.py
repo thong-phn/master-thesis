@@ -96,7 +96,6 @@ def _train_one_epoch(model, optimizer, dataloader, criterion,
     train_acc = 100.0 * train_correct / max(train_total, 1)
     return train_loss, train_acc
 
-
 def stage1_pipeline(model, train_loader, val_loader, test_loader, 
                     criterion, optimizer, scheduler, checkpoint_path,
                     num_epochs=60, patience=10, min_delta=1e-3,

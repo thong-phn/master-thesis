@@ -54,12 +54,17 @@ def main():
                         help='Dropout rate')
     parser.add_argument('--pruning_ratio', type=float, default=0.3,
                         help='Amount of channels to prune randomly in stage 2')
+    parser.add_argument('--log_every_n_epochs', type=int, default=5,
+                        help='Log training metrics to W&B every N epochs')
     parser.add_argument('--stage1_model_path', type=str, default=None,
-                        help='Optional pretrained Stage 1 checkpoint path; if set, Stage 1 training is skipped.')
+                        help='Optional pretrained Stage 1 checkpoint path; if set, Stage 1 training is skipped. Supports {subject} placeholder for per-fold checkpoints.')
     parser.add_argument('--stage2_model_path', type=str, default=None,
                         help='Optional Stage 2 output checkpoint path override.')
     parser.add_argument('--single_subject_only', action='store_true',
                         help='Run only the first LOSO fold (subject 0 if available).')
+    parser.add_argument('--performance', action='store_true')
+    parser.add_argument('--run_name', type=str)
+
     # Backward-compatible no-op; retained so older run scripts do not break.
     parser.add_argument('--model', type=str, choices=['Separable'], default='Separable',
                         help=argparse.SUPPRESS)
@@ -104,6 +109,10 @@ def main():
         val_subjects = [val_subject]
         train_subjects = [subject for subject in all_subjects if subject not in val_subjects]
 
+        resolved_stage1_model_path = args.stage1_model_path
+        if resolved_stage1_model_path is not None and "{subject}" in resolved_stage1_model_path:
+            resolved_stage1_model_path = resolved_stage1_model_path.format(subject=val_subject)
+
         print("=" * 50)
         print(f"Fold: Val Subject {val_subjects[0]}")
         print(f"Train subjects ({len(train_subjects)}): {train_subjects}")
@@ -111,7 +120,7 @@ def main():
 
         wandb_run = wandb.init(
             project="thesis",
-            name=f"wear-loso-two-stage-channel-random-val-{val_subject}-{args.preprocessing}",
+            name=f"wear-loso-RandomPruning-val-{val_subject}-{args.preprocessing}-ratio{args.pruning_ratio}",
             config={
                 "dataset": "WEAR",
                 "train_subjects": train_subjects,
@@ -124,8 +133,9 @@ def main():
                 "batch_size": args.batch_size,
                 "preprocessing": args.preprocessing,
                 "pruning_ratio": args.pruning_ratio,
+                "log_every_n_epochs": args.log_every_n_epochs,
                 "training_type": "two_stage_channel_random_pruning",
-                "stage1_model_path": args.stage1_model_path,
+                "stage1_model_path": resolved_stage1_model_path,
                 "stage2_model_path": args.stage2_model_path,
             },
             reinit=True
@@ -134,7 +144,7 @@ def main():
         fold_model_path = (
             Path(args.stage2_model_path).expanduser()
             if args.stage2_model_path is not None
-            else project_root / "models" / f"wear_best_model_two_stage_channel_random_subject{val_subject}_val.pth"
+            else project_root / "models" / f"wear_best_model_channel_random_subject{val_subject}_val.pth"
         )
 
         metrics = train_loso_wear_two_stage_random_pruning(
@@ -152,7 +162,9 @@ def main():
             pruning_ratio=args.pruning_ratio,
             dropout=args.dropout,
             stage2_backbone_lr_factor=args.stage2_backbone_lr_factor,
-            stage1_model_path=args.stage1_model_path,
+            stage1_model_path=resolved_stage1_model_path,
+            log_every_n_epochs=args.log_every_n_epochs,
+            performance=args.performance
         )
 
         for stage in stage_names:
@@ -162,6 +174,8 @@ def main():
         with open(results_log_path, "a") as f:
             f.write(f"\n{'='*50}\n")
             f.write(f"Fold Val Subject {val_subjects[0]}:\n")
+            if resolved_stage1_model_path is not None:
+                f.write(f"  Stage 1 Checkpoint Used: {resolved_stage1_model_path}\n")
 
             for stage in stage_names:
                 f.write(f"\n{stage.upper()} ({metrics[stage]['model']}):\n")

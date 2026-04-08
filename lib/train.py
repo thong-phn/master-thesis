@@ -85,8 +85,39 @@ class UCIHAR_Dataset(Dataset):
             mag[..., 1:-1] *= 2
         else:
             mag[..., 1:] *= 2
-
+        
         return mag
+
+    @staticmethod
+    def _compute_ihw(signal, fixed_point_scale=1024):
+        # Keep fixed-point precision, then emulate signed int16 arithmetic like C.
+        int_signal = np.rint(signal * fixed_point_scale).astype(np.int64)
+
+        def to_int16_np(val):
+            val = np.bitwise_and(val, 0xFFFF)
+            return np.where(val > 32767, val - 65536, val).astype(np.int64)
+
+        length = int_signal.shape[-1]
+        half_len = length // 2
+
+        even = to_int16_np(int_signal[..., 0:2 * half_len:2])
+        odd = to_int16_np(int_signal[..., 1:2 * half_len:2])
+
+        # Detail: d = to_int16(odd - even)
+        detail = to_int16_np(odd - even)
+        # Approximation: a = to_int16(even + (d >> 1))
+        approx = to_int16_np(even + np.right_shift(detail, 1))
+
+        ihw = np.zeros_like(int_signal, dtype=np.int64)
+        ihw[..., :half_len] = approx
+        ihw[..., half_len:half_len + half_len] = detail
+
+        # Preserve odd tail sample if present.
+        if length % 2 == 1:
+            ihw[..., -1] = to_int16_np(int_signal[..., -1])
+
+        # Return raw integer coefficients for MCU-style integer pipeline simulation.
+        return ihw.astype(np.int16)
 
     @staticmethod
     def _compute_dct(signal):
@@ -94,17 +125,18 @@ class UCIHAR_Dataset(Dataset):
         return np.abs(dct_vals)
 
     def __getitem__(self, idx):
-        # Get time-domain signal (6, 128) for accel + gyro
-        signal = self.signals[idx]
+        signal = self.signals[idx]  # (6, window_size)
 
         if self.preprocessing == 'dct':
             mag = self._compute_dct(signal)
+        elif self.preprocessing == 'ihw':
+            mag = self._compute_ihw(signal)
         elif self.preprocessing == 'no':
-            mag = self.signals[idx]
+            mag = signal
         elif self.preprocessing == 'fft':
             mag = self._compute_fft_magnitude(signal)
         else:
-            mag = None
+            raise ValueError(f"Unsupported preprocessing: {self.preprocessing}")
 
         return torch.FloatTensor(mag), torch.LongTensor([self.labels[idx]])[0]
         
