@@ -2352,6 +2352,8 @@ def train_loso_wear_three_stage_input_pruning(root_path, train_subjects, val_sub
     tau_end = train_kwargs.get('tau_end', 1.0)
     sparsity_weight_bin = train_kwargs.get('sparsity_weight_bin', train_kwargs.get('sparsity_weight', 0.01))
     stage2_backbone_lr_factor = train_kwargs.get('stage2_backbone_lr_factor', 0.1)
+    performance_mode = bool(train_kwargs.get('performance', False))
+    log_every_n_epochs = train_kwargs.get('log_every_n_epochs', 5)
 
     model_path = Path(train_kwargs.get('model_path', './models/best_wear_model_three_stage.pth'))
     model_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2392,13 +2394,40 @@ def train_loso_wear_three_stage_input_pruning(root_path, train_subjects, val_sub
     val_dataset = WEAR_Dataset(root_path, split='train', subject_ids=val_subjects, preprocessing=preprocessing)
     test_dataset = WEAR_Dataset(root_path, split='test', subject_ids=None, preprocessing=preprocessing)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    cpu_count = os.cpu_count() or 1
+    if performance_mode:
+        num_workers = max(0, min(6, cpu_count - 2))
+        prefetch_factor = 2
+        pin_memory = device.type == 'cuda'
+        persistent_workers = num_workers > 0
+    else:
+        num_workers = 0
+        prefetch_factor = 2
+        pin_memory = False
+        persistent_workers = False
+
+    common_loader_kwargs = {
+        'batch_size': batch_size,
+        'num_workers': num_workers,
+        'pin_memory': pin_memory,
+    }
+    if num_workers > 0:
+        common_loader_kwargs['persistent_workers'] = persistent_workers
+        common_loader_kwargs['prefetch_factor'] = prefetch_factor
+
+    train_loader = DataLoader(train_dataset, shuffle=True, **common_loader_kwargs)
+    val_loader = DataLoader(val_dataset, shuffle=False, **common_loader_kwargs)
+    test_loader = DataLoader(test_dataset, shuffle=False, **common_loader_kwargs)
 
     print(f"Train samples: {len(train_dataset)}")
     print(f"Val samples: {len(val_dataset)}")
     print(f"Test samples: {len(test_dataset)}")
+    print(f"Performance mode: {performance_mode}")
+    print(
+        f"DataLoader settings: workers={num_workers}, pin_memory={pin_memory}, "
+        f"persistent_workers={persistent_workers if num_workers > 0 else False}, "
+        f"prefetch_factor={prefetch_factor if num_workers > 0 else 'n/a'}"
+    )
 
     freq_bins = train_dataset[0][0].shape[-1]
     # Class-balanced loss for imbalanced WEAR labels.
@@ -2467,23 +2496,24 @@ def train_loso_wear_three_stage_input_pruning(root_path, train_subjects, val_sub
             else:
                 no_improve += 1
 
-            print(
-                f"Epoch [{epoch+1}/{epochs_stage1}]: "
-                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
-                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
-            )
+            if (epoch + 1) % log_every_n_epochs == 0 or (epoch + 1) == epochs_stage1:
+                print(
+                    f"Epoch [{epoch+1}/{epochs_stage1}]: "
+                    f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                    f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
+                )
 
-            if wandb_run is not None:
-                wandb_run.log({
-                    "stage": 1,
-                    "epoch": epoch + 1,
-                    "train_loss": train_loss,
-                    "train_acc": train_acc,
-                    "val_loss": val_loss,
-                    "val_acc": val_acc,
-                    "best_val_loss": stage1_best_val_loss,
-                    "lr": optimizer.param_groups[0]["lr"],
-                })
+                if wandb_run is not None:
+                    wandb_run.log({
+                        "stage": 1,
+                        "epoch": epoch + 1,
+                        "train_loss": train_loss,
+                        "train_acc": train_acc,
+                        "val_loss": val_loss,
+                        "val_acc": val_acc,
+                        "best_val_loss": stage1_best_val_loss,
+                        "lr": optimizer.param_groups[0]["lr"],
+                    })
 
             if no_improve >= patience:
                 print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage1}] (patience={patience}).")
@@ -2581,26 +2611,27 @@ def train_loso_wear_three_stage_input_pruning(root_path, train_subjects, val_sub
             else:
                 no_improve += 1
 
-            mask_info = f"; Mask: {model_stage2.mask_l1.item():.2%}" if model_stage2.mask_l1 is not None else ""
-            print(
-                f"Epoch [{epoch+1}/{epochs_stage2}]: "
-                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
-                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}" + mask_info
-            )
+            if (epoch + 1) % log_every_n_epochs == 0 or (epoch + 1) == epochs_stage2:
+                mask_info = f"; Mask: {model_stage2.mask_l1.item():.2%}" if model_stage2.mask_l1 is not None else ""
+                print(
+                    f"Epoch [{epoch+1}/{epochs_stage2}]: "
+                    f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                    f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}" + mask_info
+                )
 
-            if wandb_run is not None:
-                wandb_run.log({
-                    "stage": 2,
-                    "epoch": epoch + 1,
-                    "train_loss": train_loss,
-                    "train_acc": train_acc,
-                    "val_loss": val_loss,
-                    "val_acc": val_acc,
-                    "best_val_loss": stage2_best_val_loss,
-                    "lr_backbone": optimizer.param_groups[0]["lr"],
-                    "lr_gumbel_bin": optimizer.param_groups[1]["lr"],
-                    "mask_l1": model_stage2.mask_l1.item() if model_stage2.mask_l1 is not None else None,
-                })
+                if wandb_run is not None:
+                    wandb_run.log({
+                        "stage": 2,
+                        "epoch": epoch + 1,
+                        "train_loss": train_loss,
+                        "train_acc": train_acc,
+                        "val_loss": val_loss,
+                        "val_acc": val_acc,
+                        "best_val_loss": stage2_best_val_loss,
+                        "lr_backbone": optimizer.param_groups[0]["lr"],
+                        "lr_gumbel_bin": optimizer.param_groups[1]["lr"],
+                        "mask_l1": model_stage2.mask_l1.item() if model_stage2.mask_l1 is not None else None,
+                    })
 
             if no_improve >= patience:
                 print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage2}] (patience={patience}).")
@@ -2703,23 +2734,25 @@ def train_loso_wear_three_stage_input_pruning(root_path, train_subjects, val_sub
             else:
                 no_improve += 1
 
-            print(
-                f"Epoch [{epoch+1}/{epochs_stage3}]: "
-                f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
-                f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
-            )
+            if (epoch + 1) % log_every_n_epochs == 0 or (epoch + 1) == epochs_stage3:
+                print(
+                    f"Epoch [{epoch+1}/{epochs_stage3}]: "
+                    f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                    f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
+                )
 
-            if wandb_run is not None:
-                wandb_run.log({
-                    "stage": 3,
-                    "epoch": epoch + 1,
-                    "train_loss": train_loss,
-                    "train_acc": train_acc,
-                    "val_loss": val_loss,
-                    "val_acc": val_acc,
-                    "best_val_loss": stage3_best_val_loss,
-                    "lr": optimizer.param_groups[0]["lr"],
-                })
+                if wandb_run is not None:
+                    wandb_run.log({
+                        "stage": 3,
+                        "epoch": epoch + 1,
+                        "train_loss": train_loss,
+                        "train_acc": train_acc,
+                        "val_loss": val_loss,
+                        "val_acc": val_acc,
+                        "best_val_loss": stage3_best_val_loss,
+                        "lr": optimizer.param_groups[0]["lr"],
+                    })
+
 
             if no_improve >= patience:
                 print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage3}] (patience={patience}).")
