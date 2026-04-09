@@ -1,6 +1,6 @@
 WEAR LOSO Three-Stage Training Results
 Preprocessing: fft
-Sparsity Weight Bin: 1.0
+Sparsity Weight Bin: 2.0
 Epochs Stage 1: 60
 Epochs Stage 2: 60
 Epochs Stage 3: 60
@@ -18,93 +18,33 @@ Stage 1 (SeparableConvCNN):
   Test F1 Macro: 0.6742
 
 Stage 2 (GumbelMaskSeparableConvCNN):
-  Test Accuracy: 73.09%
-  Test F1 Macro: 0.6030
+  Test Accuracy: 66.98%
+  Test F1 Macro: 0.5615
 
 Stage 3 (SeparableConvCNN (Pruned Input)):
-  Test Accuracy: 75.98%
-  Test F1 Macro: 0.6398
+  Test Accuracy: 72.64%
+  Test F1 Macro: 0.5984
 
-  Improvement Stage2 - Stage1: -4.40%
-  Improvement Stage3 - Stage1: -1.50%
-  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  Improvement Stage2 - Stage1: -10.51%
+  Improvement Stage3 - Stage1: -4.84%
+  Hard Bin Mask: [0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 ==================================================
-Fold Val Subject 1:
-  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject1_val.pth
-
-Stage 1 (SeparableConvCNN):
-  Test Accuracy: 78.70%
-  Test F1 Macro: 0.6782
-
-Stage 2 (GumbelMaskSeparableConvCNN):
-  Test Accuracy: 74.20%
-  Test F1 Macro: 0.6242
-
-Stage 3 (SeparableConvCNN (Pruned Input)):
-  Test Accuracy: 70.51%
-  Test F1 Macro: 0.5921
-
-  Improvement Stage2 - Stage1: -4.50%
-  Improvement Stage3 - Stage1: -8.19%
-  Hard Bin Mask: [1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
+Overall WEAR LOSO Three-Stage Results
 ==================================================
-Fold Val Subject 2:
-  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject2_val.pth
 
 Stage 1 (SeparableConvCNN):
-  Test Accuracy: 77.75%
-  Test F1 Macro: 0.6896
+  Test Accuracy: 77.49% ± 0.00%
+  Test F1 Macro: 0.6742 ± 0.0000
 
 Stage 2 (GumbelMaskSeparableConvCNN):
-  Test Accuracy: 76.31%
-  Test F1 Macro: 0.6466
+  Test Accuracy: 66.98% ± 0.00%
+  Test F1 Macro: 0.5615 ± 0.0000
 
 Stage 3 (SeparableConvCNN (Pruned Input)):
-  Test Accuracy: 76.08%
-  Test F1 Macro: 0.6416
+  Test Accuracy: 72.64% ± 0.00%
+  Test F1 Macro: 0.5984 ± 0.0000
 
-  Improvement Stage2 - Stage1: -1.44%
-  Improvement Stage3 - Stage1: -1.67%
-  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-==================================================
-Fold Val Subject 3:
-  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject3_val.pth
-
-Stage 1 (SeparableConvCNN):
-  Test Accuracy: 74.66%
-  Test F1 Macro: 0.6673
-
-Stage 2 (GumbelMaskSeparableConvCNN):
-  Test Accuracy: 67.27%
-  Test F1 Macro: 0.5440
-
-Stage 3 (SeparableConvCNN (Pruned Input)):
-  Test Accuracy: 69.60%
-  Test F1 Macro: 0.5692
-
-  Improvement Stage2 - Stage1: -7.39%
-  Improvement Stage3 - Stage1: -5.06%
-  Hard Bin Mask: [1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
-==================================================
-Fold Val Subject 4:
-  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject4_val.pth
-
-Stage 1 (SeparableConvCNN):
-  Test Accuracy: 78.17%
-  Test F1 Macro: 0.6701
-
-Stage 2 (GumbelMaskSeparableConvCNN):
-  Test Accuracy: 61.61%
-  Test F1 Macro: 0.5304
-
-Stage 3 (SeparableConvCNN (Pruned Input)):
-  Test Accuracy: 65.50%
-  Test F1 Macro: 0.5618
-
-  Improvement Stage2 - Stage1: -16.56%
-  Improvement Stage3 - Stage1: -12.66%
-  Hard Bin Mask: [0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+Improvement (Stage 3 - Stage 1):
+  Accuracy: -4.84%
+  F1 Macro: -0.0758

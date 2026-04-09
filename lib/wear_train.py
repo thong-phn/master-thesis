@@ -1776,6 +1776,13 @@ def train_loso_wear_two_stage_input_pruning(root_path, train_subjects, val_subje
     print(f"Test Loss: {stage2_test_loss:.4f} | Test Acc: {stage2_test_acc:.2f}% | Test F1 Macro: {stage2_test_f1:.4f}")
     print(f"Hard input bins kept: {(hard_bin_mask > 0.5).sum().item()}/{hard_bin_mask.numel()} ({bin_keep_ratio:.1%})")
 
+    if wandb_run is not None:
+        wandb_run.log({
+            "stage2_hard_bin_mask": hard_bin_mask.tolist(),
+            "stage2_hard_bin_mask_kept": int((hard_bin_mask > 0.5).sum().item()),
+            "stage2_hard_bin_mask_total": int(hard_bin_mask.numel()),
+        })
+
     val_subject_tag = "-".join(str(s) for s in np.atleast_1d(val_subjects).tolist())
     final_log_path = model_path.parent / f"{model_path.stem}_final_summary_val_{val_subject_tag}.txt"
 
@@ -2520,7 +2527,9 @@ def train_loso_wear_three_stage_input_pruning(root_path, train_subjects, val_sub
                 break
 
     model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
-    stage1_test_loss, stage1_test_acc, stage1_test_f1 = _evaluate_classifier(model_stage1, test_loader, criterion, device)
+    stage1_test_loss, stage1_test_acc, stage1_test_f1, stage1_y_true, stage1_y_pred = _val_one_epoch(
+        model_stage1, test_loader, criterion, device
+    )
     print("-" * 50)
     print("Stage 1 Summary:")
     if stage1_best_val_loss is not None:
@@ -2528,6 +2537,17 @@ def train_loso_wear_three_stage_input_pruning(root_path, train_subjects, val_sub
     else:
         print("Best Val Loss: not available (loaded pretrained stage1 checkpoint)")
     print(f"Test Loss: {stage1_test_loss:.4f} | Test Acc: {stage1_test_acc:.2f}% | Test F1 Macro: {stage1_test_f1:.4f}")
+
+    _save_confusion_matrix_artifact(
+        y_true=stage1_y_true,
+        y_pred=stage1_y_pred,
+        output_dir=None,
+        stage_name='Stage 1',
+        model_name='SeparableConvCNN',
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage1-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
 
     # ============================================================
     # STAGE 2
@@ -2759,7 +2779,9 @@ def train_loso_wear_three_stage_input_pruning(root_path, train_subjects, val_sub
                 break
 
         model_stage3.load_state_dict(torch.load(stage3_model_path, map_location=device))
-    stage3_test_loss, stage3_test_acc, stage3_test_f1 = _evaluate_classifier(model_stage3, pruned_test_loader, criterion, device)
+    stage3_test_loss, stage3_test_acc, stage3_test_f1, stage3_y_true, stage3_y_pred = _val_one_epoch(
+        model_stage3, pruned_test_loader, criterion, device
+    )
 
     print("-" * 50)
     print("Stage 3 Summary:")
@@ -2769,7 +2791,19 @@ def train_loso_wear_three_stage_input_pruning(root_path, train_subjects, val_sub
         print("Best Val Loss: not available (loaded pretrained stage3 checkpoint)")
     print(f"Test Loss: {stage3_test_loss:.4f} | Test Acc: {stage3_test_acc:.2f}% | Test F1 Macro: {stage3_test_f1:.4f}")
 
+    _save_confusion_matrix_artifact(
+        y_true=stage3_y_true,
+        y_pred=stage3_y_pred,
+        output_dir=None,
+        stage_name='Stage 3',
+        model_name='SeparableConvCNN',
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage3-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
+
     if wandb_run is not None:
+        stage2_hard_bin_mask_str = str(hard_bin_mask.tolist())
         wandb_run.log({
             "stage1_test_loss": stage1_test_loss,
             "stage1_test_acc": stage1_test_acc,
@@ -2781,6 +2815,7 @@ def train_loso_wear_three_stage_input_pruning(root_path, train_subjects, val_sub
             "stage3_test_acc": stage3_test_acc,
             "stage3_test_f1": stage3_test_f1,
             "bin_keep_ratio": bin_keep_ratio,
+            "stage2_hard_bin_mask_str": stage2_hard_bin_mask_str,
         })
 
     print("\n" + "=" * 60)
