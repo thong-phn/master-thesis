@@ -10,7 +10,7 @@ from scipy.fftpack import dct
 from scipy.signal import butter, filtfilt
 from lib.ml_lib import _val_one_epoch, stage1_pipeline, stage2_channel_gumbel_pruning_pipeline, _load_weights_to_gumbel_model
 from lib.signal_lib import _load_and_window_subject_csv
-from lib.train import UCIHAR_Dataset
+from lib.uci_train import UCIHAR_Dataset
 
 
 def _resolve_device(device):
@@ -2817,6 +2817,7 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
     dropout = train_kwargs.get('dropout', 0.4)
     tau_start = train_kwargs.get('tau_start', 10.0)
     tau_end = train_kwargs.get('tau_end', 1.0)
+    performance_mode = bool(train_kwargs.get('performance', False))
 
     sparsity_weight_bin = train_kwargs.get('sparsity_weight_bin', train_kwargs.get('sparsity_weight', 0.01))
     sparsity_weight_channel = train_kwargs.get('sparsity_weight_channel', train_kwargs.get('sparsity_weight', 0.01))
@@ -2884,13 +2885,40 @@ def train_loso_wear_multi_stage(root_path, train_subjects, val_subjects, wandb_r
     val_dataset = WEAR_Dataset(root_path, split='train', subject_ids=val_subjects, preprocessing=preprocessing)
     test_dataset = WEAR_Dataset(root_path, split='test', subject_ids=None, preprocessing=preprocessing)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    cpu_count = os.cpu_count() or 1
+    if performance_mode:
+        num_workers = max(0, min(6, cpu_count - 2))
+        prefetch_factor = 2
+        pin_memory = device.type == 'cuda'
+        persistent_workers = num_workers > 0
+    else:
+        num_workers = 0
+        prefetch_factor = 2
+        pin_memory = False
+        persistent_workers = False
+
+    common_loader_kwargs = {
+        'batch_size': batch_size,
+        'num_workers': num_workers,
+        'pin_memory': pin_memory,
+    }
+    if num_workers > 0:
+        common_loader_kwargs['persistent_workers'] = persistent_workers
+        common_loader_kwargs['prefetch_factor'] = prefetch_factor
+
+    train_loader = DataLoader(train_dataset, shuffle=True, **common_loader_kwargs)
+    val_loader = DataLoader(val_dataset, shuffle=False, **common_loader_kwargs)
+    test_loader = DataLoader(test_dataset, shuffle=False, **common_loader_kwargs)
 
     print(f"Train samples: {len(train_dataset)}")
     print(f"Val samples: {len(val_dataset)}")
     print(f"Test samples: {len(test_dataset)}")
+    print(f"Performance mode: {performance_mode}")
+    print(
+        f"DataLoader settings: workers={num_workers}, pin_memory={pin_memory}, "
+        f"persistent_workers={persistent_workers if num_workers > 0 else False}, "
+        f"prefetch_factor={prefetch_factor if num_workers > 0 else 'n/a'}"
+    )
 
     freq_bins = train_dataset[0][0].shape[-1]
     # Class-balanced loss for imbalanced WEAR labels.

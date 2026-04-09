@@ -12,7 +12,7 @@ import numpy as np
 import torch
 import os
 
-from lib.train import train_loso
+from lib.uci_train import train_loso
 from lib.model import SeparableConvCNN
 from wear_main_loso_baseline import set_seed
 

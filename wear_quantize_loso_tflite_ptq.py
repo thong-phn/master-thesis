@@ -311,6 +311,8 @@ def main():
                              "Defaults to the matching file under log/.")
     parser.add_argument("--preprocessing", type=str, default="fft",
                         choices=["fft", "dct", "ihw", "no"])
+    parser.add_argument("--wandb", type=bool, default=None)
+    parser.add_argument("--tflite-output-path", type=Path, default=None)
     args = parser.parse_args()
 
     set_seed(42)
@@ -326,14 +328,15 @@ def main():
 
     results_path = project_root / "log" / f"wear_ptq_results_stage{args.stage}_tflite.txt"
     results_path.parent.mkdir(parents=True, exist_ok=True)
-
-    wandb.login()
-    wandb.init(
-        project="thesis",
-        name=f"tflite-ptq-stage{args.stage}",
-        job_type="upload",
-        config=vars(args),
-    )
+    
+    if args.wandb == False:
+        wandb.login()
+        wandb.init(
+            project="thesis",
+            name=f"tflite-ptq-stage{args.stage}",
+            job_type="upload",
+            config=vars(args),
+        )
 
     with open(results_path, "w") as f:
         f.write(f"TFLite PTQ Results – Stage {args.stage}\n{'=' * 50}\n\n")
@@ -415,6 +418,10 @@ def main():
                 # Optionally save .tflite for inspection
                 tflite_out = tmpdir / f"model_{cfg}.tflite"
                 tflite_out.write_bytes(tflite_model)
+                if args.tflite_output_path is not None:
+                    dest_path = args.tflite_output_path / f"subject{val_subject}_{cfg}.tflite"
+                    shutil.copy(tflite_out, dest_path)
+                    print(f"  TFLite model path: {dest_path}")
 
                 ops_str  = f"{ops/1e6:.3f} M" if ops is not None else "N/A"
                 macs_str = f"{macs/1e6:.3f} M" if macs is not None else "N/A"
@@ -444,13 +451,14 @@ def main():
                         f"|  F1: {np.mean(f1s):.4f} ± {np.std(f1s):.4f}\n")
 
     # ── WandB artifact ───────────────────────────────────────────────────────
-    artifact = wandb.Artifact(
-        name=f"wear-tflite-ptq-stage{args.stage}", type="results-log",
-    )
-    artifact.add_file(str(results_path))
-    wandb.log_artifact(artifact)
-    print(f"\nResults saved → {results_path}  (uploaded to W&B)")
-    wandb.finish()
+    if args.wandb == False:
+        artifact = wandb.Artifact(
+            name=f"wear-tflite-ptq-stage{args.stage}", type="results-log",
+        )
+        artifact.add_file(str(results_path))
+        wandb.log_artifact(artifact)
+        print(f"\nResults saved → {results_path}  (uploaded to W&B)")
+        wandb.finish()
 
 
 if __name__ == "__main__":

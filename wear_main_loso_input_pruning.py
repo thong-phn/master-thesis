@@ -57,7 +57,7 @@ def main():
     parser.add_argument('--tau_end', type=float, default=1.0,
                         help='Final temperature for Gumbel-Softmax in stage 2')
     parser.add_argument('--stage1_model_path', type=str, default=None,
-                        help='Optional path to a pretrained Stage 1 checkpoint. If provided, Stage 1 training is skipped.')
+                        help='Optional pretrained Stage 1 checkpoint path; if set, Stage 1 training is skipped. Supports {subject} placeholder for per-fold checkpoints.')
     parser.add_argument('--stage2_model_path', type=str, default=None,
                         help='Optional path to a pretrained Stage 2 checkpoint. If provided, Stage 2 training is skipped.')
     parser.add_argument('--stage3_model_path', type=str, default=None,
@@ -121,6 +121,10 @@ def main():
         val_subjects = [val_subject]
         train_subjects = [subject for subject in all_subjects if subject not in val_subjects]
 
+        resolved_stage1_model_path = args.stage1_model_path
+        if resolved_stage1_model_path is not None and "{subject}" in resolved_stage1_model_path:
+            resolved_stage1_model_path = resolved_stage1_model_path.format(subject=val_subject)
+
         print("=" * 50)
         print(f"Fold: Val Subject {val_subjects[0]}")
         print(f"Train subjects ({len(train_subjects)}): {train_subjects}")
@@ -144,7 +148,7 @@ def main():
                 "preprocessing": args.preprocessing,
                 "sparsity_weight_bin": args.sparsity_weight_bin,
                 "training_type": "three_stage",
-                "stage1_model_path": args.stage1_model_path,
+                "stage1_model_path": resolved_stage1_model_path,
                 "stage2_model_path": args.stage2_model_path,
                 "stage3_model_path": args.stage3_model_path,
             },
@@ -169,7 +173,7 @@ def main():
             tau_end=args.tau_end,
             dropout=args.dropout,
             stage2_backbone_lr_factor=args.stage2_backbone_lr_factor,
-            stage1_model_path=args.stage1_model_path,
+            stage1_model_path=resolved_stage1_model_path,
             stage2_model_path=args.stage2_model_path,
             stage3_model_path=args.stage3_model_path,
         )
@@ -197,6 +201,8 @@ def main():
         with open(results_log_path, "a") as f:
             f.write(f"\n{'='*50}\n")
             f.write(f"Fold Val Subject {val_subjects[0]}:\n")
+            if resolved_stage1_model_path is not None:
+                f.write(f"  Stage 1 Checkpoint Used: {resolved_stage1_model_path}\n")
             f.write(f"\nStage 1 ({stage1_label}):\n")
             f.write(f"  Test Accuracy: {test_acc_stage1:.2f}%\n")
             f.write(f"  Test F1 Macro: {test_f1_stage1:.4f}\n")

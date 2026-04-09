@@ -1,0 +1,93 @@
+UCI-HAR LOSO Results
+Batch size: 64
+Performance mode: True
+
+Fold Val Subject 1:
+  Test Accuracy: 91.72%
+  Test F1 Macro: 0.9191
+
+Fold Val Subject 3:
+  Test Accuracy: 89.85%
+  Test F1 Macro: 0.8992
+
+Fold Val Subject 5:
+  Test Accuracy: 91.75%
+  Test F1 Macro: 0.9194
+
+Fold Val Subject 6:
+  Test Accuracy: 90.19%
+  Test F1 Macro: 0.9036
+
+Fold Val Subject 7:
+  Test Accuracy: 90.63%
+  Test F1 Macro: 0.9078
+
+Fold Val Subject 8:
+  Test Accuracy: 91.25%
+  Test F1 Macro: 0.9145
+
+Fold Val Subject 11:
+  Test Accuracy: 89.62%
+  Test F1 Macro: 0.8961
+
+Fold Val Subject 14:
+  Test Accuracy: 83.41%
+  Test F1 Macro: 0.8308
+
+Fold Val Subject 15:
+  Test Accuracy: 88.29%
+  Test F1 Macro: 0.8870
+
+Fold Val Subject 16:
+  Test Accuracy: 68.00%
+  Test F1 Macro: 0.6591
+
+Fold Val Subject 17:
+  Test Accuracy: 92.53%
+  Test F1 Macro: 0.9271
+
+Fold Val Subject 19:
+  Test Accuracy: 90.77%
+  Test F1 Macro: 0.9092
+
+Fold Val Subject 21:
+  Test Accuracy: 91.11%
+  Test F1 Macro: 0.9123
+
+Fold Val Subject 22:
+  Test Accuracy: 84.02%
+  Test F1 Macro: 0.8383
+
+Fold Val Subject 23:
+  Test Accuracy: 91.01%
+  Test F1 Macro: 0.9112
+
+Fold Val Subject 25:
+  Test Accuracy: 92.03%
+  Test F1 Macro: 0.9219
+
+Fold Val Subject 26:
+  Test Accuracy: 92.23%
+  Test F1 Macro: 0.9244
+
+Fold Val Subject 27:
+  Test Accuracy: 90.70%
+  Test F1 Macro: 0.9084
+
+Fold Val Subject 28:
+  Test Accuracy: 81.57%
+  Test F1 Macro: 0.8214
+
+Fold Val Subject 29:
+  Test Accuracy: 91.28%
+  Test F1 Macro: 0.9159
+
+Fold Val Subject 30:
+  Test Accuracy: 92.16%
+  Test F1 Macro: 0.9235
+
+==================================================
+Overall UCI-HAR LOSO Results
+Model: SeparableConvCNN
+Test Accuracy: 88.77% ± 5.51%
+Test F1 Macro: 0.8881 ± 0.0594

@@ -9,7 +9,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="torch.cuda")
 
 from lib.wear_train import train_loso_wear
-from lib.model import GumbelMaskSeparableConvCNN, SeparableConvCNN
+from lib.model import SeparableConvCNN
 
 
 def set_seed(seed: int = 42):
@@ -35,6 +35,7 @@ def main():
 	                    help='Enable auto-tuned high-throughput DataLoader settings')
 	parser.add_argument('--wandb_run_name', type=str, default=None,
 	                    help='Optional base W&B run name. If provided, fold and summary suffixes are appended.')
+	parser.add_argument('--wandb', type=bool, default=False)
 	args = parser.parse_args()
 
 	set_seed(42)
@@ -53,7 +54,7 @@ def main():
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f"Using device: {device}")
 
-	results_log_path = project_root / 'log' / f"uci_loso_results_{args.model}_{args.preprocessing}.txt"
+	results_log_path = project_root / 'log' / f"uci_loso_baseline_{args.preprocessing}.txt"
 	results_log_path.parent.mkdir(parents=True, exist_ok=True)
 	with open(results_log_path, "w") as f:
 		f.write("UCI-HAR LOSO Results\n")
@@ -75,23 +76,26 @@ def main():
 		print(f"Test subjects ({len(test_subjects)}): {test_subjects}")
 
 		# Tracking init
-		wandb_run = wandb.init(
-			project="thesis-uci",
-			name=f"uci-loso-val-{val_subject}-{args.preprocessing}-{args.wandb_run_name}",
-			config={
-				"dataset": "UCI-HAR",
-				"train_subjects": train_subjects,
-				"val_subjects": val_subjects,
-				"test_subjects": test_subjects,
-				"epochs": 60,
-				"lr": 1e-3,
-				"batch_size": args.batch_size,
-				"performance": args.performance,
-				"model": args.model,
-				"preprocessing": args.preprocessing,
-			},
-			reinit=True
-		)
+		if args.wandb is not False:
+			wandb_run = wandb.init(
+				project="thesis-uci",
+				name=f"uci-loso-val-{val_subject}-{args.preprocessing}-{args.wandb_run_name}",
+				config={
+					"dataset": "UCI-HAR",
+					"train_subjects": train_subjects,
+					"val_subjects": val_subjects,
+					"test_subjects": test_subjects,
+					"epochs": 60,
+					"lr": 1e-3,
+					"batch_size": args.batch_size,
+					"performance": args.performance,
+					"model": args.model,
+					"preprocessing": args.preprocessing,
+				},
+				reinit=True
+			)
+		else: 
+			wandb_run = None
 
 		metrics = train_loso_wear(
 			root_path=root_path,
@@ -143,35 +147,36 @@ def main():
 		f.write(f"Test F1 Macro: {mean_f1:.4f} ± {std_f1:.4f}\n")
 
 	# Upload final training log as a W&B artifact.
-	artifact_run_name = (
-		f"{args.wandb_run_name}-summary" if args.wandb_run_name is not None
-		else f"uci-loso-summary-{args.model}-{args.preprocessing}"
-	)
-	artifact_name = (
-		f"uci-loso-log-{args.model}-{args.preprocessing}"
-		.replace(".", "_")
-	)
-	artifact_run = wandb.init(
-		project="thesis-uci",
-		name=artifact_run_name,
-		job_type="log-upload",
-		reinit=True,
-		config={
-			"dataset": "UCI-HAR",
-			"model": args.model,
-			"preprocessing": args.preprocessing,
-			"log_path": str(results_log_path),
-		}
-	)
-	artifact = wandb.Artifact(
-		name=artifact_name,
-		type="training-log",
-		description="Final UCI-HAR LOSO training log file"
-	)
-	artifact.add_file(str(results_log_path))
-	artifact_run.log_artifact(artifact)
-	artifact_run.finish()
-	print(f"Uploaded log artifact '{artifact_name}' from: {results_log_path}")
+	if args.wandb is not False:
+		artifact_run_name = (
+			f"{args.wandb_run_name}-summary" if args.wandb_run_name is not None
+			else f"uci-loso-summary-{args.model}-{args.preprocessing}"
+		)
+		artifact_name = (
+			f"uci-loso-log-{args.model}-{args.preprocessing}"
+			.replace(".", "_")
+		)
+		artifact_run = wandb.init(
+			project="thesis-uci",
+			name=artifact_run_name,
+			job_type="log-upload",
+			reinit=True,
+			config={
+				"dataset": "UCI-HAR",
+				"model": args.model,
+				"preprocessing": args.preprocessing,
+				"log_path": str(results_log_path),
+			}
+		)
+		artifact = wandb.Artifact(
+			name=artifact_name,
+			type="training-log",
+			description="Final UCI-HAR LOSO training log file"
+		)
+		artifact.add_file(str(results_log_path))
+		artifact_run.log_artifact(artifact)
+		artifact_run.finish()
+		print(f"Uploaded log artifact '{artifact_name}' from: {results_log_path}")
 
 
 if __name__ == "__main__":

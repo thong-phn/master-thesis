@@ -2,6 +2,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import warnings
+
+
+def _safe_max_pool1d(x, pool_layer):
+    """Apply 1D max-pooling only when temporal length allows it."""
+    if x.size(-1) <= 1:
+        warnings.warn("[WARNING] Input length is too short for max-pooling.")
+        return x
+    return pool_layer(x)
 
 class GumbelMaskSeparableConvCNN(nn.Module):
     """
@@ -75,22 +84,22 @@ class GumbelMaskSeparableConvCNN(nn.Module):
         # x = self.bn0(x)
         x = F.relu(self.sep_conv1(x))
         x = self.bn1(x)
-        x = self.pool1(x)
+        x = _safe_max_pool1d(x, self.pool1)
 
         # Block 2
         x = F.relu(self.sep_conv2(x))
         x = self.bn2(x)
-        x = self.pool2(x)
+        x = _safe_max_pool1d(x, self.pool2)
 
         # Block 3
         x = F.relu(self.sep_conv3(x))
         x = self.bn3(x)
-        x = self.pool3(x)
+        x = _safe_max_pool1d(x, self.pool3)
 
         # Block 4
         x = F.relu(self.sep_conv4(x))
         x = self.bn4(x)
-        x = self.pool4(x)
+        x = _safe_max_pool1d(x, self.pool4)
 
         # Global average pooling
         x = self.global_avg_pool(x)
@@ -170,22 +179,22 @@ class SeparableConvCNN(nn.Module):
         # x = self.bn0(x)
         x = F.relu(self.sep_conv1(x))
         x = self.bn1(x)
-        x = self.pool1(x)
+        x = _safe_max_pool1d(x, self.pool1)
         
         # Block 2
         x = F.relu(self.sep_conv2(x))
         x = self.bn2(x)
-        x = self.pool2(x)
+        x = _safe_max_pool1d(x, self.pool2)
         
         # Block 3
         x = F.relu(self.sep_conv3(x))
         x = self.bn3(x)
-        x = self.pool3(x)
+        x = _safe_max_pool1d(x, self.pool3)
         
         # Block 4
         x = F.relu(self.sep_conv4(x))
         x = self.bn4(x)
-        x = self.pool4(x)
+        x = _safe_max_pool1d(x, self.pool4)
         
         # Global average pooling
         x = self.global_avg_pool(x)  # (batch, 128, 1)
@@ -254,22 +263,22 @@ class PrunedSeparableConvCNN(nn.Module):
         # x = self.bn0(x)
         x = F.relu(self.sep_conv1(x))
         x = self.bn1(x)
-        x = self.pool1(x)
+        x = _safe_max_pool1d(x, self.pool1)
 
         # Block 2
         x = F.relu(self.sep_conv2(x))
         x = self.bn2(x)
-        x = self.pool2(x)
+        x = _safe_max_pool1d(x, self.pool2)
 
         # Block 3
         x = F.relu(self.sep_conv3(x))
         x = self.bn3(x)
-        x = self.pool3(x)
+        x = _safe_max_pool1d(x, self.pool3)
 
         # Block 4
         x = F.relu(self.sep_conv4(x))
         x = self.bn4(x)
-        x = self.pool4(x)
+        x = _safe_max_pool1d(x, self.pool4)
 
         x = self.global_avg_pool(x)
         x = x.squeeze(-1)
@@ -349,28 +358,28 @@ class GumbelChannelPruningCNN(nn.Module):
         # Stem
         # x = self.bn0(x)
         x = F.relu(self.bn1(self.sep_conv1(x)))
-        x = self.pool1(x)
+        x = _safe_max_pool1d(x, self.pool1)
 
         # Block 2: apply mask after BN+ReLU
         x = F.relu(self.bn2(self.sep_conv2(x)))
         mask2 = self._get_channel_mask(self.chan_logits_2, batch_size)
         self.last_mask_2 = mask2.mean(dim=0).detach()
         x = x * mask2.unsqueeze(-1)
-        x = self.pool2(x)
+        x = _safe_max_pool1d(x, self.pool2)
 
         # Block 3: apply mask after BN+ReLU
         x = F.relu(self.bn3(self.sep_conv3(x)))
         mask3 = self._get_channel_mask(self.chan_logits_3, batch_size)
         self.last_mask_3 = mask3.mean(dim=0).detach()
         x = x * mask3.unsqueeze(-1)
-        x = self.pool3(x)
+        x = _safe_max_pool1d(x, self.pool3)
 
         # Block 4: apply mask after BN+ReLU
         x = F.relu(self.bn4(self.sep_conv4(x)))
         mask4 = self._get_channel_mask(self.chan_logits_4, batch_size)
         self.last_mask_4 = mask4.mean(dim=0).detach()
         x = x * mask4.unsqueeze(-1)
-        x = self.pool4(x)
+        x = _safe_max_pool1d(x, self.pool4)
 
         # Average "on" probability for training logs.
         self.mask_l1 = self.get_sparsity_loss()
@@ -494,25 +503,25 @@ class RandomChannelPruningCNN(nn.Module):
         # Stem
         # x = self.bn0(x)
         x = F.relu(self.bn1(self.sep_conv1(x)))
-        x = self.pool1(x)
+        x = _safe_max_pool1d(x, self.pool1)
 
         # Block 2
         x = F.relu(self.bn2(self.sep_conv2(x)))
         x = x * self.mask2.unsqueeze(-1)
         self.last_mask_2 = self.mask2.detach()
-        x = self.pool2(x)
+        x = _safe_max_pool1d(x, self.pool2)
 
         # Block 3
         x = F.relu(self.bn3(self.sep_conv3(x)))
         x = x * self.mask3.unsqueeze(-1)
         self.last_mask_3 = self.mask3.detach()
-        x = self.pool3(x)
+        x = _safe_max_pool1d(x, self.pool3)
 
         # Block 4
         x = F.relu(self.bn4(self.sep_conv4(x)))
         x = x * self.mask4.unsqueeze(-1)
         self.last_mask_4 = self.mask4.detach()
-        x = self.pool4(x)
+        x = _safe_max_pool1d(x, self.pool4)
 
         x = self.global_avg_pool(x).squeeze(-1)
         x = self.dropout(x)
