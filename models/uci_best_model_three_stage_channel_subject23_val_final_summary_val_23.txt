@@ -1,0 +1,45 @@
+THREE-STAGE CHANNEL PRUNING SUMMARY
+============================================================
+Preprocessing: ihw
+Train subjects: [1, 3, 5, 6, 7, 8, 11, 14, 15, 16, 17, 19, 21, 22, 25, 26, 27, 28, 29, 30]
+Val subjects: [23]
+Stage 1 checkpoint: /home/qphan/master-thesis/models/uci/stage1/ihw/uci_best_model_subject23_val.pth
+Stage 2 checkpoint: /home/qphan/master-thesis/models/uci_best_model_three_stage_channel_subject23_val_stage2_channel.pth
+Stage 3 checkpoint: /home/qphan/master-thesis/models/uci_best_model_three_stage_channel_subject23_val_stage3_pruned_channel.pth
+
+Stage 1
+------------------------------------------------------------
+Best Val Loss: N/A (pretrained stage1 checkpoint)
+Best Epoch: N/A
+Test Loss: 0.3139
+Test Acc: 91.01%
+Test F1 Macro: 0.9112
+
+Stage 2
+------------------------------------------------------------
+Best Val Loss: 0.6394
+Best Epoch: 52
+Test Loss: 0.6684
+Test Acc: 61.18%
+Test F1 Macro: 0.5599
+block2_kept: 6/64 (9.4%)
+block3_kept: 13/128 (10.2%)
+block4_kept: 19/128 (14.8%)
+block2_Pruned_%: 90.625000
+block3_Pruned_%: 89.843750
+block4_Pruned_%: 85.156250
+Total_Pruned_%: 88.125000
+
+Stage 3
+------------------------------------------------------------
+Best Val Loss: 0.5183
+Best Epoch: 59
+Test Loss: 0.6114
+Test Acc: 71.97%
+Test F1 Macro: 0.7028
+Dense Params: 36868
+Pruned Params: 2702
+Param Reduction: 92.67%
+Block2 kept channels: 6
+Block3 kept channels: 13
+Block4 kept channels: 19

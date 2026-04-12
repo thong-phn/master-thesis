@@ -580,6 +580,471 @@ def _get_hard_bin_mask_from_model(model):
     return hard
 
 
+def train_loso_uci_three_stage_input_pruning(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
+    """
+    Three-stage LOSO training for UCI-HAR dataset:
+    Stage 1: Train SeparableConvCNN on full input.
+    Stage 2: Load stage-1 weights into GumbelMaskSeparableConvCNN and learn input-bin pruning.
+    Stage 3: Apply hard bin mask to data and retrain SeparableConvCNN.
+    """
+    from lib.model import SeparableConvCNN, GumbelMaskSeparableConvCNN
+
+    epochs_stage1 = train_kwargs.get('epochs_stage1', 60)
+    epochs_stage2 = train_kwargs.get('epochs_stage2', 60)
+    epochs_stage3 = train_kwargs.get('epochs_stage3', 60)
+    lr = train_kwargs.get('lr', 1e-3)
+    batch_size = train_kwargs.get('batch_size', 64)
+    device = _resolve_device(train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
+    patience = train_kwargs.get('patience', 10)
+    min_delta = train_kwargs.get('min_delta', 1e-3)
+    preprocessing = train_kwargs.get('preprocessing', 'fft')
+    dropout = train_kwargs.get('dropout', 0.4)
+    tau_start = train_kwargs.get('tau_start', 10.0)
+    tau_end = train_kwargs.get('tau_end', 1.0)
+    sparsity_weight_bin = train_kwargs.get('sparsity_weight_bin', train_kwargs.get('sparsity_weight', 0.01))
+    stage2_backbone_lr_factor = train_kwargs.get('stage2_backbone_lr_factor', 0.1)
+    performance_mode = bool(train_kwargs.get('performance', False))
+    log_every_n_epochs = max(1, int(train_kwargs.get('log_every_n_epochs', 5)))
+
+    model_path = Path(train_kwargs.get('model_path', './models/best_uci_model_three_stage_input_pruning.pth'))
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+
+    stage1_model_path_arg = train_kwargs.get('stage1_model_path')
+    if stage1_model_path_arg is not None:
+        stage1_model_path = Path(stage1_model_path_arg).expanduser()
+    else:
+        stage1_model_path = model_path.parent / f"{model_path.stem}_stage1.pth"
+    stage1_model_path.parent.mkdir(parents=True, exist_ok=True)
+
+    stage2_model_path_arg = train_kwargs.get('stage2_model_path')
+    if stage2_model_path_arg is not None:
+        stage2_model_path = Path(stage2_model_path_arg).expanduser()
+    else:
+        stage2_model_path = model_path.parent / f"{model_path.stem}_stage2_bin.pth"
+    stage2_model_path.parent.mkdir(parents=True, exist_ok=True)
+
+    stage3_model_path_arg = train_kwargs.get('stage3_model_path')
+    if stage3_model_path_arg is not None:
+        stage3_model_path = Path(stage3_model_path_arg).expanduser()
+    else:
+        stage3_model_path = model_path.parent / f"{model_path.stem}_stage3_pruned_input.pth"
+    stage3_model_path.parent.mkdir(parents=True, exist_ok=True)
+
+    use_pretrained_stage1 = stage1_model_path_arg is not None
+    use_pretrained_stage2 = stage2_model_path_arg is not None
+    use_pretrained_stage3 = stage3_model_path_arg is not None
+
+    if use_pretrained_stage1 and not stage1_model_path.exists():
+        raise FileNotFoundError(f"Provided stage1 model path does not exist: {stage1_model_path}")
+    if use_pretrained_stage2 and not stage2_model_path.exists():
+        raise FileNotFoundError(f"Provided stage2 model path does not exist: {stage2_model_path}")
+    if use_pretrained_stage3 and not stage3_model_path.exists():
+        raise FileNotFoundError(f"Provided stage3 model path does not exist: {stage3_model_path}")
+
+    train_dataset = UCIHAR_Dataset(root_path, split='train', subject_ids=train_subjects, preprocessing=preprocessing)
+    val_dataset = UCIHAR_Dataset(root_path, split='train', subject_ids=val_subjects, preprocessing=preprocessing)
+    test_dataset = UCIHAR_Dataset(root_path, split='test', subject_ids=None, preprocessing=preprocessing)
+
+    cpu_count = os.cpu_count() or 1
+    if performance_mode:
+        num_workers = max(0, min(6, cpu_count - 2))
+        prefetch_factor = 2
+        pin_memory = device.type == 'cuda'
+        persistent_workers = num_workers > 0
+    else:
+        num_workers = 0
+        prefetch_factor = 2
+        pin_memory = False
+        persistent_workers = False
+
+    common_loader_kwargs = {
+        'batch_size': batch_size,
+        'num_workers': num_workers,
+        'pin_memory': pin_memory,
+    }
+    if num_workers > 0:
+        common_loader_kwargs['persistent_workers'] = persistent_workers
+        common_loader_kwargs['prefetch_factor'] = prefetch_factor
+
+    train_loader = DataLoader(train_dataset, shuffle=True, **common_loader_kwargs)
+    val_loader = DataLoader(val_dataset, shuffle=False, **common_loader_kwargs)
+    test_loader = DataLoader(test_dataset, shuffle=False, **common_loader_kwargs)
+
+    print(f"Train samples: {len(train_dataset)}")
+    print(f"Val samples: {len(val_dataset)}")
+    print(f"Test samples: {len(test_dataset)}")
+    print(f"Performance mode: {performance_mode}")
+    print(
+        f"DataLoader settings: workers={num_workers}, pin_memory={pin_memory}, "
+        f"persistent_workers={persistent_workers if num_workers > 0 else False}, "
+        f"prefetch_factor={prefetch_factor if num_workers > 0 else 'n/a'}"
+    )
+
+    freq_bins = train_dataset[0][0].shape[-1]
+    class_counts = np.bincount(train_dataset.labels.astype(int), minlength=6).astype(np.float32)
+    class_counts = np.clip(class_counts, 1.0, None)
+    class_weights = class_counts.sum() / class_counts
+    class_weights = class_weights / class_weights.mean()
+    class_weights = torch.as_tensor(class_weights, dtype=torch.float32, device=device)
+    print(f"Class counts: {class_counts.tolist()}")
+    print(f"Class weights: {class_weights.detach().cpu().numpy().round(3).tolist()}")
+    criterion = nn.CrossEntropyLoss(weight=class_weights).to(device)
+
+    # ============================================================
+    # STAGE 1
+    # ============================================================
+    print("\n" + "=" * 60)
+    if use_pretrained_stage1:
+        print("STAGE 1: Loading pretrained SeparableConvCNN")
+        print(f"Checkpoint: {stage1_model_path}")
+    else:
+        print("STAGE 1: Training SeparableConvCNN")
+    print("=" * 60)
+
+    model_stage1 = SeparableConvCNN(num_classes=6, num_channels=6, freq_bins=freq_bins, dropout=dropout).to(device)
+    optimizer = torch.optim.Adam(model_stage1.parameters(), lr=lr)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-6)
+
+    stage1_result = stage1_pipeline(
+        model=model_stage1,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        test_loader=test_loader,
+        criterion=criterion,
+        optimizer=optimizer,
+        scheduler=scheduler,
+        checkpoint_path=stage1_model_path,
+        num_epochs=epochs_stage1,
+        patience=patience,
+        min_delta=min_delta,
+        log_every_n_epochs=log_every_n_epochs,
+        wandb_run=wandb_run,
+        use_pretrained=use_pretrained_stage1,
+        device=device,
+    )
+
+    model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
+    _, _, _, stage1_y_true, stage1_y_pred = _val_one_epoch(model_stage1, test_loader, criterion, device)
+    _save_confusion_matrix_artifact(
+        y_true=stage1_y_true,
+        y_pred=stage1_y_pred,
+        output_dir=None,
+        stage_name='Stage 1',
+        model_name='SeparableConvCNN',
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage1-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
+
+    stage1_best_val_loss = stage1_result['best_val_loss']
+    stage1_best_epoch = stage1_result['best_epoch']
+    stage1_test_loss = stage1_result['test_loss']
+    stage1_test_acc = stage1_result['test_acc']
+    stage1_test_f1 = stage1_result['test_f1']
+
+    # ============================================================
+    # STAGE 2
+    # ============================================================
+    print("\n" + "=" * 60)
+    if use_pretrained_stage2:
+        print("STAGE 2: Loading pretrained GumbelMaskSeparableConvCNN (input-bin pruning)")
+        print(f"Checkpoint: {stage2_model_path}")
+    else:
+        print("STAGE 2: Training GumbelMaskSeparableConvCNN (input-bin pruning)")
+    print("=" * 60)
+
+    model_stage2 = GumbelMaskSeparableConvCNN(
+        num_classes=6,
+        num_channels=6,
+        freq_bins=freq_bins,
+        dropout=dropout,
+        tau_start=tau_start,
+        tau_end=tau_end,
+    ).to(device)
+
+    stage2_best_val_loss = None
+    stage2_best_epoch = None
+
+    if use_pretrained_stage2:
+        model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
+    else:
+        print("\nLoading Stage 1 weights into Stage 2 model:")
+        _load_weights_to_gumbel_model(model_stage2, torch.load(stage1_model_path, map_location=device))
+
+        stage2_backbone_lr = lr * stage2_backbone_lr_factor
+        gumbel_params = [model_stage2.bin_logits]
+        gumbel_ids = {id(p) for p in gumbel_params}
+        backbone_params = [p for p in model_stage2.parameters() if id(p) not in gumbel_ids]
+
+        optimizer = torch.optim.Adam(
+            [
+                {'params': backbone_params, 'lr': stage2_backbone_lr},
+                {'params': gumbel_params, 'lr': lr},
+            ]
+        )
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-6)
+
+        stage2_best_val_loss = float('inf')
+        stage2_best_epoch = 0
+        no_improve = 0
+
+        for epoch in range(epochs_stage2):
+            model_stage2.train()
+            if hasattr(model_stage2, 'set_tau'):
+                model_stage2.set_tau(epoch, epochs_stage2)
+
+            train_loss_sum, train_correct, train_total = 0.0, 0, 0
+            for x, y in train_loader:
+                x, y = x.to(device), y.to(device)
+                out = model_stage2(x)
+                loss = criterion(out, y)
+                if model_stage2.mask_l1 is not None:
+                    loss = loss + sparsity_weight_bin * model_stage2.mask_l1
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                bs = y.size(0)
+                train_loss_sum += loss.item() * bs
+                _, pred = out.max(1)
+                train_total += bs
+                train_correct += pred.eq(y).sum().item()
+
+            train_loss = train_loss_sum / max(train_total, 1)
+            train_acc = 100.0 * train_correct / max(train_total, 1)
+            val_loss, val_acc, _ = _evaluate_classifier(model_stage2, val_loader, criterion, device)
+            scheduler.step(val_loss)
+
+            if val_loss < stage2_best_val_loss - min_delta:
+                stage2_best_val_loss = val_loss
+                stage2_best_epoch = epoch + 1
+                torch.save(model_stage2.state_dict(), stage2_model_path)
+                no_improve = 0
+            else:
+                no_improve += 1
+
+            should_log_epoch = ((epoch + 1) % log_every_n_epochs == 0) or ((epoch + 1) == epochs_stage2)
+            mask_info = f"; Mask: {model_stage2.mask_l1.item():.2%}" if model_stage2.mask_l1 is not None else ""
+            if should_log_epoch:
+                print(
+                    f"Epoch [{epoch+1}/{epochs_stage2}]: "
+                    f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                    f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}" + mask_info
+                )
+
+            if wandb_run is not None and should_log_epoch:
+                wandb_run.log({
+                    'stage': 2,
+                    'epoch': epoch + 1,
+                    'train_loss': train_loss,
+                    'train_acc': train_acc,
+                    'val_loss': val_loss,
+                    'val_acc': val_acc,
+                    'best_val_loss': stage2_best_val_loss,
+                    'lr_backbone': optimizer.param_groups[0]['lr'],
+                    'lr_gumbel_bin': optimizer.param_groups[1]['lr'],
+                    'mask_l1': model_stage2.mask_l1.item() if model_stage2.mask_l1 is not None else None,
+                })
+
+            if no_improve >= patience:
+                print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage2}] (patience={patience}).")
+                break
+
+    if not use_pretrained_stage2:
+        model_stage2.load_state_dict(torch.load(stage2_model_path, map_location=device))
+    stage2_test_loss, stage2_test_acc, stage2_test_f1 = _evaluate_classifier(model_stage2, test_loader, criterion, device)
+    hard_bin_mask = _get_hard_bin_mask_from_model(model_stage2).detach().cpu()
+    bin_keep_ratio = hard_bin_mask.mean().item()
+
+    print('-' * 50)
+    print('Stage 2 Summary:')
+    if stage2_best_val_loss is not None:
+        print(f"Best Val Loss: {stage2_best_val_loss:.4f} at Epoch {stage2_best_epoch}")
+    else:
+        print('Best Val Loss: not available (loaded pretrained stage2 checkpoint)')
+    print(f"Test Loss: {stage2_test_loss:.4f} | Test Acc: {stage2_test_acc:.2f}% | Test F1 Macro: {stage2_test_f1:.4f}")
+    print(f"Hard input bins kept: {(hard_bin_mask > 0.5).sum().item()}/{hard_bin_mask.numel()} ({bin_keep_ratio:.1%})")
+
+    # ============================================================
+    # STAGE 3
+    # ============================================================
+    print("\n" + "=" * 60)
+    if use_pretrained_stage3:
+        print('STAGE 3: Loading pretrained SeparableConvCNN on pruned input')
+        print(f'Checkpoint: {stage3_model_path}')
+    else:
+        print('STAGE 3: Retraining SeparableConvCNN on pruned input')
+    print('=' * 60)
+
+    keep_indices = torch.where(hard_bin_mask > 0.5)[0]
+    if keep_indices.numel() == 0:
+        raise ValueError('Stage 2 pruned all bins; cannot run Stage 3 with empty input.')
+
+    pruned_train_dataset = SlicedUCIDataset(train_dataset, keep_indices)
+    pruned_val_dataset = SlicedUCIDataset(val_dataset, keep_indices)
+    pruned_test_dataset = SlicedUCIDataset(test_dataset, keep_indices)
+
+    pruned_train_loader = DataLoader(pruned_train_dataset, shuffle=True, **common_loader_kwargs)
+    pruned_val_loader = DataLoader(pruned_val_dataset, shuffle=False, **common_loader_kwargs)
+    pruned_test_loader = DataLoader(pruned_test_dataset, shuffle=False, **common_loader_kwargs)
+
+    pruned_freq_bins = int(keep_indices.numel())
+    model_stage3 = SeparableConvCNN(num_classes=6, num_channels=6, freq_bins=pruned_freq_bins, dropout=dropout).to(device)
+    stage3_best_val_loss = None
+    stage3_best_epoch = None
+
+    if use_pretrained_stage3:
+        model_stage3.load_state_dict(torch.load(stage3_model_path, map_location=device))
+    else:
+        stage2_state = torch.load(stage2_model_path, map_location=device)
+        _load_matching_weights(model_stage3, stage2_state)
+
+        optimizer = torch.optim.Adam(model_stage3.parameters(), lr=lr)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=10, min_lr=1e-6)
+        stage3_best_val_loss = float('inf')
+        stage3_best_epoch = 0
+        no_improve = 0
+
+        for epoch in range(epochs_stage3):
+            model_stage3.train()
+            train_loss_sum, train_correct, train_total = 0.0, 0, 0
+
+            for x, y in pruned_train_loader:
+                x, y = x.to(device), y.to(device)
+                out = model_stage3(x)
+                loss = criterion(out, y)
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                bs = y.size(0)
+                train_loss_sum += loss.item() * bs
+                _, pred = out.max(1)
+                train_total += bs
+                train_correct += pred.eq(y).sum().item()
+
+            train_loss = train_loss_sum / max(train_total, 1)
+            train_acc = 100.0 * train_correct / max(train_total, 1)
+            val_loss, val_acc, _ = _evaluate_classifier(model_stage3, pruned_val_loader, criterion, device)
+            scheduler.step(val_loss)
+
+            if val_loss < stage3_best_val_loss - min_delta:
+                stage3_best_val_loss = val_loss
+                stage3_best_epoch = epoch + 1
+                torch.save(model_stage3.state_dict(), stage3_model_path)
+                no_improve = 0
+            else:
+                no_improve += 1
+
+            should_log_epoch = ((epoch + 1) % log_every_n_epochs == 0) or ((epoch + 1) == epochs_stage3)
+            if should_log_epoch:
+                print(
+                    f"Epoch [{epoch+1}/{epochs_stage3}]: "
+                    f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                    f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
+                )
+
+            if wandb_run is not None and should_log_epoch:
+                wandb_run.log({
+                    'stage': 3,
+                    'epoch': epoch + 1,
+                    'train_loss': train_loss,
+                    'train_acc': train_acc,
+                    'val_loss': val_loss,
+                    'val_acc': val_acc,
+                    'best_val_loss': stage3_best_val_loss,
+                    'lr': optimizer.param_groups[0]['lr'],
+                })
+
+            if no_improve >= patience:
+                print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage3}] (patience={patience}).")
+                break
+
+        model_stage3.load_state_dict(torch.load(stage3_model_path, map_location=device))
+
+    stage3_test_loss, stage3_test_acc, stage3_test_f1, stage3_y_true, stage3_y_pred = _val_one_epoch(
+        model_stage3, pruned_test_loader, criterion, device
+    )
+
+    _save_confusion_matrix_artifact(
+        y_true=stage3_y_true,
+        y_pred=stage3_y_pred,
+        output_dir=None,
+        stage_name='Stage 3',
+        model_name='SeparableConvCNN',
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage3-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
+
+    print('-' * 50)
+    print('Stage 3 Summary:')
+    if stage3_best_val_loss is not None:
+        print(f"Best Val Loss: {stage3_best_val_loss:.4f} at Epoch {stage3_best_epoch}")
+    else:
+        print('Best Val Loss: not available (loaded pretrained stage3 checkpoint)')
+    print(f"Test Loss: {stage3_test_loss:.4f} | Test Acc: {stage3_test_acc:.2f}% | Test F1 Macro: {stage3_test_f1:.4f}")
+
+    if wandb_run is not None:
+        wandb_run.log({
+            'stage1_test_loss': stage1_test_loss,
+            'stage1_test_acc': stage1_test_acc,
+            'stage1_test_f1': stage1_test_f1,
+            'stage2_test_loss': stage2_test_loss,
+            'stage2_test_acc': stage2_test_acc,
+            'stage2_test_f1': stage2_test_f1,
+            'stage3_test_loss': stage3_test_loss,
+            'stage3_test_acc': stage3_test_acc,
+            'stage3_test_f1': stage3_test_f1,
+            'bin_keep_ratio': bin_keep_ratio,
+            'stage2_hard_bin_mask_str': str(hard_bin_mask.tolist()),
+        })
+
+    print("\n" + "=" * 60)
+    print("THREE-STAGE TRAINING COMPLETE")
+    print("=" * 60)
+    print(f"Stage 1 (SeparableConvCNN): Test Acc: {stage1_test_acc:.2f}% | F1: {stage1_test_f1:.4f}")
+    print(f"Stage 2 (Input Bin Pruning): Test Acc: {stage2_test_acc:.2f}% | F1: {stage2_test_f1:.4f}")
+    print(f"Stage 3 (Pruned Input Retrain): Test Acc: {stage3_test_acc:.2f}% | F1: {stage3_test_f1:.4f}")
+
+    return {
+        'stage1': {
+            'model': 'SeparableConvCNN',
+            'best_val_loss': stage1_best_val_loss,
+            'best_epoch': stage1_best_epoch,
+            'test_loss': stage1_test_loss,
+            'test_acc': stage1_test_acc,
+            'test_f1_macro': stage1_test_f1,
+            'model_path': str(stage1_model_path),
+            'loaded_from_checkpoint': use_pretrained_stage1,
+        },
+        'stage2': {
+            'model': 'GumbelMaskSeparableConvCNN',
+            'best_val_loss': stage2_best_val_loss,
+            'best_epoch': stage2_best_epoch,
+            'test_loss': stage2_test_loss,
+            'test_acc': stage2_test_acc,
+            'test_f1_macro': stage2_test_f1,
+            'model_path': str(stage2_model_path),
+            'hard_bin_mask': hard_bin_mask.numpy(),
+            'bin_keep_ratio': bin_keep_ratio,
+            'loaded_from_checkpoint': use_pretrained_stage2,
+        },
+        'stage3': {
+            'model': 'SeparableConvCNN',
+            'best_val_loss': stage3_best_val_loss,
+            'best_epoch': stage3_best_epoch,
+            'test_loss': stage3_test_loss,
+            'test_acc': stage3_test_acc,
+            'test_f1_macro': stage3_test_f1,
+            'model_path': str(stage3_model_path),
+            'loaded_from_checkpoint': use_pretrained_stage3,
+        },
+    }
+
+
 def train_loso_uci_multi_stage(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
     """
     Five-stage LOSO training for UCI-HAR dataset:
@@ -1265,6 +1730,459 @@ def train_loso_uci_multi_stage(root_path, train_subjects, val_subjects, wandb_ru
     }
 
 
+def train_loso_uci_three_stage_pruning_channel(root_path, train_subjects, val_subjects, wandb_run=None, **train_kwargs):
+    """
+    Three-stage LOSO training for UCI-HAR dataset with channel pruning:
+    Stage 1: Train SeparableConvCNN on full channels.
+    Stage 2: Train GumbelChannelPruningCNN to learn hard channel masks.
+    Stage 3: Physically prune inactive channels and fine-tune the compact model.
+    """
+    from lib.model import SeparableConvCNN, GumbelChannelPruningCNN
 
+    epochs_stage1 = train_kwargs.get('epochs_stage1', 60)
+    epochs_stage2 = train_kwargs.get('epochs_stage2', 60)
+    epochs_stage3 = train_kwargs.get('epochs_stage3', 60)
+    lr = train_kwargs.get('lr', 1e-3)
+    batch_size = train_kwargs.get('batch_size', 64)
+    performance_mode = bool(train_kwargs.get('performance', False))
+    device = _resolve_device(train_kwargs.get('device', torch.device('cuda' if torch.cuda.is_available() else 'cpu')))
+    patience = train_kwargs.get('patience', 10)
+    min_delta = train_kwargs.get('min_delta', 1e-3)
+    sparsity_weight = train_kwargs.get('sparsity_weight', 0.01)
+    log_every_n_epochs = max(1, int(train_kwargs.get('log_every_n_epochs', 5)))
+    stage3_loaded_lr_factor = train_kwargs.get('stage3_loaded_lr_factor', 0.1)
+    model_path = Path(train_kwargs.get('model_path', './models/best_uci_model_three_stage_channel.pth'))
+    model_path.parent.mkdir(parents=True, exist_ok=True)
+    preprocessing = train_kwargs.get('preprocessing', 'fft')
 
-    
+    stage1_model_path_arg = train_kwargs.get('stage1_model_path')
+    if stage1_model_path_arg is not None:
+        stage1_model_path = Path(stage1_model_path_arg).expanduser()
+    else:
+        stage1_model_path = model_path.parent / f"{model_path.stem}_stage1.pth"
+    stage1_model_path.parent.mkdir(parents=True, exist_ok=True)
+
+    stage2_model_path_arg = train_kwargs.get('stage2_model_path')
+    if stage2_model_path_arg is not None:
+        stage2_model_path = Path(stage2_model_path_arg).expanduser()
+    else:
+        stage2_model_path = model_path.parent / f"{model_path.stem}_stage2_channel.pth"
+    stage2_model_path.parent.mkdir(parents=True, exist_ok=True)
+
+    stage3_model_path_arg = train_kwargs.get('stage3_model_path')
+    if stage3_model_path_arg is not None:
+        stage3_model_path = Path(stage3_model_path_arg).expanduser()
+    else:
+        stage3_model_path = model_path.parent / f"{model_path.stem}_stage3_pruned_channel.pth"
+    stage3_model_path.parent.mkdir(parents=True, exist_ok=True)
+
+    use_pretrained_stage1 = stage1_model_path_arg is not None
+    use_pretrained_stage2 = stage2_model_path_arg is not None
+    use_pretrained_stage3 = stage3_model_path_arg is not None
+
+    if use_pretrained_stage1 and not stage1_model_path.exists():
+        raise FileNotFoundError(f"Provided stage1 model path does not exist: {stage1_model_path}")
+    if use_pretrained_stage2 and not stage2_model_path.exists():
+        raise FileNotFoundError(f"Provided stage2 model path does not exist: {stage2_model_path}")
+    if use_pretrained_stage3 and not stage3_model_path.exists():
+        raise FileNotFoundError(f"Provided stage3 model path does not exist: {stage3_model_path}")
+
+    train_dataset = UCIHAR_Dataset(root_path, split='train', subject_ids=train_subjects, preprocessing=preprocessing)
+    val_dataset = UCIHAR_Dataset(root_path, split='train', subject_ids=val_subjects, preprocessing=preprocessing)
+    test_dataset = UCIHAR_Dataset(root_path, split='test', subject_ids=None, preprocessing=preprocessing)
+
+    cpu_count = os.cpu_count() or 1
+    if performance_mode:
+        num_workers = max(0, min(6, cpu_count - 2))
+        prefetch_factor = 2
+        pin_memory = device.type == 'cuda'
+        persistent_workers = num_workers > 0
+    else:
+        num_workers = 0
+        prefetch_factor = 2
+        pin_memory = False
+        persistent_workers = False
+
+    common_loader_kwargs = {
+        'batch_size': batch_size,
+        'num_workers': num_workers,
+        'pin_memory': pin_memory,
+    }
+    if num_workers > 0:
+        common_loader_kwargs['persistent_workers'] = persistent_workers
+        common_loader_kwargs['prefetch_factor'] = prefetch_factor
+
+    train_loader = DataLoader(train_dataset, shuffle=True, **common_loader_kwargs)
+    val_loader = DataLoader(val_dataset, shuffle=False, **common_loader_kwargs)
+    test_loader = DataLoader(test_dataset, shuffle=False, **common_loader_kwargs)
+
+    print(f"Train samples: {len(train_dataset)}")
+    print(f"Val samples: {len(val_dataset)}")
+    print(f"Test samples: {len(test_dataset)}")
+    print(f"Performance mode: {performance_mode}")
+    print(
+        f"DataLoader settings: workers={num_workers}, pin_memory={pin_memory}, "
+        f"persistent_workers={persistent_workers if num_workers > 0 else False}, "
+        f"prefetch_factor={prefetch_factor if num_workers > 0 else 'n/a'}"
+    )
+
+    freq_bins = train_dataset[0][0].shape[-1]
+    class_counts = np.bincount(train_dataset.labels.astype(int), minlength=6).astype(np.float32)
+    class_counts = np.clip(class_counts, 1.0, None)
+    class_weights = class_counts.sum() / class_counts
+    class_weights = class_weights / class_weights.mean()
+    class_weights = torch.as_tensor(class_weights, dtype=torch.float32, device=device)
+    print(f"Class counts: {class_counts.tolist()}")
+    print(f"Class weights: {class_weights.detach().cpu().numpy().round(3).tolist()}")
+    criterion = nn.CrossEntropyLoss(weight=class_weights).to(device)
+
+    model_stage1 = SeparableConvCNN(num_classes=6, num_channels=6, freq_bins=freq_bins, dropout=train_kwargs.get('dropout', 0.4)).to(device)
+    optimizer = torch.optim.Adam(model_stage1.parameters(), lr=lr)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6)
+
+    # ============================================================
+    # STAGE 1
+    # ============================================================
+    print("\n" + "=" * 60 + "\nSTAGE 1: Train SeparableConvCNN model" + "\n" + "="*60)
+    stage1_result = stage1_pipeline(model_stage1, train_loader, val_loader, test_loader, 
+                                    criterion, optimizer, scheduler, checkpoint_path=stage1_model_path, 
+                                    num_epochs=epochs_stage1,
+                                    patience=patience, min_delta=min_delta,
+                                    log_every_n_epochs=log_every_n_epochs,
+                                    wandb_run=wandb_run, use_pretrained=use_pretrained_stage1, device=device)
+
+    model_stage1.load_state_dict(torch.load(stage1_model_path, map_location=device))
+    model_stage1.eval()
+    _, _, _, stage1_y_true, stage1_y_pred = _val_one_epoch(model_stage1, test_loader, criterion, device)
+    _save_confusion_matrix_artifact(
+        y_true=stage1_y_true,
+        y_pred=stage1_y_pred,
+        output_dir=None,
+        stage_name='Stage 1',
+        model_name='SeparableConvCNN',
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage1-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
+
+    # ============================================================
+    # STAGE 2
+    # ============================================================
+    print("\n" + "=" * 60)
+    if use_pretrained_stage2:
+        print("STAGE 2: Loading pretrained GumbelChannelPruningCNN")
+        print(f"Checkpoint: {stage2_model_path}")
+    else:
+        print("STAGE 2: Training GumbelChannelPruningCNN (learn hard channel masks)")
+    print("=" * 60)
+
+    model_stage2 = GumbelChannelPruningCNN(
+        num_classes=6,
+        num_channels=6,
+        freq_bins=freq_bins,
+        dropout=train_kwargs.get('dropout', 0.4),
+        tau_start=train_kwargs.get('tau_start', 10.0),
+        tau_end=train_kwargs.get('tau_end', 1.0),
+    ).to(device)
+
+    stage2_result = stage2_channel_gumbel_pruning_pipeline(
+        model=model_stage2,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        test_loader=test_loader,
+        criterion=criterion,
+        checkpoint_path=stage2_model_path,
+        stage1_checkpoint_path=stage1_model_path,
+        lr=lr,
+        backbone_lr_factor=train_kwargs.get('stage2_backbone_lr_factor', 0.1),
+        sparsity_weight=sparsity_weight,
+        num_epochs=epochs_stage2,
+        patience=patience,
+        min_delta=min_delta,
+        log_every_n_epochs=log_every_n_epochs,
+        wandb_run=wandb_run,
+        use_pretrained=use_pretrained_stage2,
+        device=device,
+    )
+
+    stage2_best_val_loss = stage2_result["best_val_loss"]
+    stage2_best_epoch = stage2_result["best_epoch"]
+    stage2_test_loss = stage2_result["test_loss"]
+    stage2_test_acc = stage2_result["test_acc"]
+    stage2_test_f1 = stage2_result["test_f1"]
+    hard_masks = stage2_result["hard_masks"]
+    pruning_stats = stage2_result["pruning_stats"]
+
+    # ============================================================
+    # STAGE 3
+    # ============================================================
+    print("\n" + "=" * 60)
+    if use_pretrained_stage3:
+        print("STAGE 3: Loading pretrained compact channel-pruned model")
+        print(f"Checkpoint: {stage3_model_path}")
+    else:
+        print("STAGE 3: Building compact pruned model and fine-tuning")
+    print("=" * 60)
+
+    stage3_model, keep_indices = _build_pruned_channel_model_from_stage2(
+        stage2_model=model_stage2,
+        num_classes=6,
+        dropout=train_kwargs.get('dropout', 0.4),
+        device=device,
+    )
+
+    dense_reference_model = SeparableConvCNN(num_classes=6, num_channels=6, freq_bins=freq_bins, dropout=train_kwargs.get('dropout', 0.4))
+    dense_param_count = _count_parameters(dense_reference_model)
+    pruned_param_count = _count_parameters(stage3_model)
+    param_reduction_pct = (1.0 - pruned_param_count / max(dense_param_count, 1)) * 100.0
+
+    print(
+        f"Stage 3 model size: {pruned_param_count:,} params vs dense {dense_param_count:,} params "
+        f"({param_reduction_pct:.2f}% reduction)"
+    )
+    print(
+        f"Stage 3 widths: block2={keep_indices['block2'].numel()}, "
+        f"block3={keep_indices['block3'].numel()}, block4={keep_indices['block4'].numel()}"
+    )
+
+    stage3_best_val_loss = None
+    stage3_best_epoch = None
+
+    if use_pretrained_stage3:
+        stage3_model.load_state_dict(torch.load(stage3_model_path, map_location=device))
+    else:
+        loaded_params = list(stage3_model.parameters())
+        optimizer = torch.optim.Adam(
+            [{"params": loaded_params, "lr": lr * stage3_loaded_lr_factor}]
+        )
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=10, min_lr=1e-6)
+
+        stage3_best_val_loss = float('inf')
+        stage3_best_epoch = 0
+        no_improve = 0
+
+        for epoch in range(epochs_stage3):
+            stage3_model.train()
+            train_loss_sum, train_correct, train_total = 0.0, 0, 0
+
+            for x, y in train_loader:
+                x, y = x.to(device), y.to(device)
+                out = stage3_model(x)
+                loss = criterion(out, y)
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                bs = y.size(0)
+                train_loss_sum += loss.item() * bs
+                _, pred = out.max(1)
+                train_total += bs
+                train_correct += pred.eq(y).sum().item()
+
+            train_loss = train_loss_sum / max(train_total, 1)
+            train_acc = 100.0 * train_correct / max(train_total, 1)
+
+            val_loss, val_acc, _ = _evaluate_classifier(stage3_model, val_loader, criterion, device)
+            scheduler.step(val_loss)
+
+            if val_loss < stage3_best_val_loss - min_delta:
+                stage3_best_val_loss = val_loss
+                stage3_best_epoch = epoch + 1
+                torch.save(stage3_model.state_dict(), stage3_model_path)
+                no_improve = 0
+            else:
+                no_improve += 1
+
+            should_log_epoch = ((epoch + 1) % log_every_n_epochs == 0) or ((epoch + 1) == epochs_stage3)
+            if should_log_epoch:
+                print(
+                    f"Epoch [{epoch+1}/{epochs_stage3}]: "
+                    f"Train Loss: {train_loss:.4f}; Train Acc: {train_acc:.2f}; "
+                    f"Val Loss: {val_loss:.4f}; Val Acc: {val_acc:.2f}"
+                )
+
+            if wandb_run is not None and should_log_epoch:
+                wandb_run.log({
+                    "stage": 3,
+                    "epoch": epoch + 1,
+                    "train_loss": train_loss,
+                    "train_acc": train_acc,
+                    "val_loss": val_loss,
+                    "val_acc": val_acc,
+                    "best_val_loss": stage3_best_val_loss,
+                    "lr_loaded_weights": optimizer.param_groups[0]["lr"],
+                    "model_param_count": pruned_param_count,
+                    "model_param_reduction_pct": param_reduction_pct,
+                })
+
+            if no_improve >= patience:
+                print(f"Early Stopping at Epoch [{epoch+1}/{epochs_stage3}] (patience={patience}).")
+                break
+
+        stage3_model.load_state_dict(torch.load(stage3_model_path, map_location=device))
+
+    stage3_test_loss, stage3_test_acc, stage3_test_f1, stage3_y_true, stage3_y_pred = _val_one_epoch(
+        stage3_model, test_loader, criterion, device
+    )
+
+    _save_confusion_matrix_artifact(
+        y_true=stage3_y_true,
+        y_pred=stage3_y_pred,
+        output_dir=None,
+        stage_name='Stage 3',
+        model_name='PrunedSeparableConvCNN',
+        wandb_run=wandb_run,
+        artifact_name=f"{model_path.stem}-stage3-confusion-matrix".replace('.', '_'),
+        preprocessing=preprocessing,
+    )
+
+    print("-" * 50)
+    print("Stage 3 Summary:")
+    if stage3_best_val_loss is not None:
+        print(f"Best Val Loss: {stage3_best_val_loss:.4f} at Epoch {stage3_best_epoch}")
+    else:
+        print("Best Val Loss: not available (loaded pretrained stage3 checkpoint)")
+    print(f"Test Loss: {stage3_test_loss:.4f} | Test Acc: {stage3_test_acc:.2f}% | Test F1 Macro: {stage3_test_f1:.4f}")
+    print(f"Model size reduction: {param_reduction_pct:.2f}% ({pruned_param_count:,}/{dense_param_count:,} params)")
+
+    if wandb_run is not None:
+        wandb_run.log({
+            "stage1_test_loss": stage1_result["test_loss"],
+            "stage1_test_acc": stage1_result["test_acc"],
+            "stage1_test_f1": stage1_result["test_f1"],
+            "stage2_test_loss": stage2_test_loss,
+            "stage2_test_acc": stage2_test_acc,
+            "stage2_test_f1": stage2_test_f1,
+            "stage3_test_loss": stage3_test_loss,
+            "stage3_test_acc": stage3_test_acc,
+            "stage3_test_f1": stage3_test_f1,
+            "model_param_count_dense": dense_param_count,
+            "model_param_count_pruned": pruned_param_count,
+            "model_param_reduction_pct": param_reduction_pct,
+            **pruning_stats,
+        })
+
+    val_subject_tag = "-".join(str(s) for s in np.atleast_1d(val_subjects).tolist())
+    final_log_path = model_path.parent / f"{model_path.stem}_final_summary_val_{val_subject_tag}.txt"
+
+    with open(final_log_path, "w") as f:
+        f.write("THREE-STAGE CHANNEL PRUNING SUMMARY\n")
+        f.write("=" * 60 + "\n")
+        f.write(f"Preprocessing: {preprocessing}\n")
+        f.write(f"Train subjects: {list(train_subjects)}\n")
+        f.write(f"Val subjects: {list(np.atleast_1d(val_subjects).tolist())}\n")
+        f.write(f"Stage 1 checkpoint: {stage1_model_path}\n")
+        f.write(f"Stage 2 checkpoint: {stage2_model_path}\n")
+        f.write(f"Stage 3 checkpoint: {stage3_model_path}\n\n")
+
+        f.write("Stage 1\n")
+        f.write("-" * 60 + "\n")
+        if stage1_result["best_val_loss"] is not None:
+            f.write(f"Best Val Loss: {stage1_result['best_val_loss']:.4f}\n")
+            f.write(f"Best Epoch: {stage1_result['best_epoch']}\n")
+        else:
+            f.write("Best Val Loss: N/A (pretrained stage1 checkpoint)\n")
+            f.write("Best Epoch: N/A\n")
+        f.write(f"Test Loss: {stage1_result['test_loss']:.4f}\n")
+        f.write(f"Test Acc: {stage1_result['test_acc']:.2f}%\n")
+        f.write(f"Test F1 Macro: {stage1_result['test_f1']:.4f}\n\n")
+
+        f.write("Stage 2\n")
+        f.write("-" * 60 + "\n")
+        if stage2_best_val_loss is not None:
+            f.write(f"Best Val Loss: {stage2_best_val_loss:.4f}\n")
+            f.write(f"Best Epoch: {stage2_best_epoch}\n")
+        else:
+            f.write("Best Val Loss: N/A (pretrained stage2 checkpoint)\n")
+            f.write("Best Epoch: N/A\n")
+        f.write(f"Test Loss: {stage2_test_loss:.4f}\n")
+        f.write(f"Test Acc: {stage2_test_acc:.2f}%\n")
+        f.write(f"Test F1 Macro: {stage2_test_f1:.4f}\n")
+        for block_name in ("block2", "block3", "block4"):
+            block_mask = hard_masks[block_name].detach().cpu().numpy()
+            kept = int((block_mask > 0.5).sum())
+            total = int(block_mask.shape[0])
+            f.write(f"{block_name}_kept: {kept}/{total} ({kept / max(total, 1):.1%})\n")
+        for k, v in pruning_stats.items():
+            f.write(f"{k}: {float(v):.6f}\n")
+        f.write("\n")
+
+        f.write("Stage 3\n")
+        f.write("-" * 60 + "\n")
+        if stage3_best_val_loss is not None:
+            f.write(f"Best Val Loss: {stage3_best_val_loss:.4f}\n")
+            f.write(f"Best Epoch: {stage3_best_epoch}\n")
+        else:
+            f.write("Best Val Loss: N/A (pretrained stage3 checkpoint)\n")
+            f.write("Best Epoch: N/A\n")
+        f.write(f"Test Loss: {stage3_test_loss:.4f}\n")
+        f.write(f"Test Acc: {stage3_test_acc:.2f}%\n")
+        f.write(f"Test F1 Macro: {stage3_test_f1:.4f}\n")
+        f.write(f"Dense Params: {dense_param_count}\n")
+        f.write(f"Pruned Params: {pruned_param_count}\n")
+        f.write(f"Param Reduction: {param_reduction_pct:.2f}%\n")
+        f.write(f"Block2 kept channels: {int(keep_indices['block2'].numel())}\n")
+        f.write(f"Block3 kept channels: {int(keep_indices['block3'].numel())}\n")
+        f.write(f"Block4 kept channels: {int(keep_indices['block4'].numel())}\n")
+
+    if wandb_run is not None:
+        import wandb
+
+        final_log_artifact = wandb.Artifact(
+            name=f"{model_path.stem}-final-summary-val-{val_subject_tag}".replace('.', '_'),
+            type="results-log",
+        )
+        final_log_artifact.add_file(str(final_log_path))
+        wandb_run.log_artifact(final_log_artifact)
+        wandb_run.log({"final_summary_log_path": str(final_log_path)})
+
+    print("\n" + "=" * 60)
+    print("THREE-STAGE CHANNEL PRUNING TRAINING COMPLETE")
+    print("=" * 60)
+    print(f"Stage 1 (SeparableConvCNN): Test Acc: {stage1_result['test_acc']:.2f}% | F1: {stage1_result['test_f1']:.4f}")
+    print(f"Stage 2 (GumbelChannelPruningCNN): Test Acc: {stage2_test_acc:.2f}% | F1: {stage2_test_f1:.4f}")
+    print(f"Stage 3 (Pruned SeparableConvCNN): Test Acc: {stage3_test_acc:.2f}% | F1: {stage3_test_f1:.4f}")
+    print(f"Stage 3 size reduction: {param_reduction_pct:.2f}%")
+
+    return {
+        "stage1": {
+            "model": "SeparableConvCNN",
+            "best_val_loss": stage1_result["best_val_loss"],
+            "best_epoch": stage1_result["best_epoch"],
+            "test_loss": stage1_result["test_loss"],
+            "test_acc": stage1_result["test_acc"],
+            "test_f1_macro": stage1_result["test_f1"],
+            "model_path": str(stage1_model_path),
+            "loaded_from_checkpoint": use_pretrained_stage1,
+        },
+        "stage2": {
+            "model": "GumbelChannelPruningCNN",
+            "best_val_loss": stage2_best_val_loss,
+            "best_epoch": stage2_best_epoch,
+            "test_loss": stage2_test_loss,
+            "test_acc": stage2_test_acc,
+            "test_f1_macro": stage2_test_f1,
+            "model_path": str(stage2_model_path),
+            "hard_masks": {k: v.detach().cpu().numpy() for k, v in hard_masks.items()},
+            "final_mask": {k: v.detach().cpu().numpy() for k, v in hard_masks.items()},
+            "pruning_stats": pruning_stats,
+        },
+        "stage3": {
+            "model": "PrunedSeparableConvCNN",
+            "best_val_loss": stage3_best_val_loss,
+            "best_epoch": stage3_best_epoch,
+            "test_loss": stage3_test_loss,
+            "test_acc": stage3_test_acc,
+            "test_f1_macro": stage3_test_f1,
+            "model_path": str(stage3_model_path),
+            "loaded_from_checkpoint": use_pretrained_stage3,
+            "dense_param_count": dense_param_count,
+            "pruned_param_count": pruned_param_count,
+            "param_reduction_pct": param_reduction_pct,
+            "block2_keep": int(keep_indices['block2'].numel()),
+            "block3_keep": int(keep_indices['block3'].numel()),
+            "block4_keep": int(keep_indices['block4'].numel()),
+        },
+    }
+
