@@ -7,10 +7,10 @@ cd ..
 # python wear_main_loso_input_pruning.py --run_name "Input-pruning-Fine-tuned" --sparsity_weight_bin 0.4 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth" --preprocessing 'fft'
 # python wear_main_loso_input_pruning.py --run_name "Input-pruning-Fine-tuned" --sparsity_weight_bin 0.5 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth" --preprocessing 'fft'
 # python wear_main_loso_input_pruning.py --run_name "Input-pruning-Fine-tuned" --sparsity_weight_bin 0.6 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth" --preprocessing 'fft'
-python wear_main_loso_input_pruning.py --run_name "Input-pruning-Fine-tuned" --sparsity_weight_bin 0.7 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth" --preprocessing 'fft'
-python wear_main_loso_input_pruning.py --run_name "Input-pruning-Fine-tuned" --sparsity_weight_bin 0.8 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth" --preprocessing 'fft' 
-python wear_main_loso_input_pruning.py --run_name "Input-pruning-Fine-tuned" --sparsity_weight_bin 1.0 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth" --preprocessing 'fft'
-python wear_main_loso_input_pruning.py --run_name "Input-pruning-Fine-tuned" --sparsity_weight_bin 2.0 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth" --preprocessing 'fft'
+# python wear_main_loso_input_pruning.py --run_name "Input-pruning-Fine-tuned" --sparsity_weight_bin 0.7 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth" --preprocessing 'fft'
+# python wear_main_loso_input_pruning.py --run_name "Input-pruning-Fine-tuned" --sparsity_weight_bin 0.8 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth" --preprocessing 'fft' 
+# python wear_main_loso_input_pruning.py --run_name "Input-pruning-Fine-tuned" --sparsity_weight_bin 1.0 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth" --preprocessing 'fft'
+# python wear_main_loso_input_pruning.py --run_name "Input-pruning-Fine-tuned" --sparsity_weight_bin 2.0 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth" --preprocessing 'fft'
 
 # FFT-Channel pruning
 # python wear_main_loso_channel_pruning.py --run_name "Channel-pruning0.1-wCEL" --sparsity_weight 0.1 --performance --stage1_model_path "/home/qphan/master-thesis/models/stage1/fft/wear_best_model_subject{subject}_val.pth"
@@ -37,7 +37,15 @@ python wear_main_loso_input_pruning.py --run_name "Input-pruning-Fine-tuned" --s
 # python wear_main_loso_channel_pruning.py --preprocessing 'ihw' --run_name "IHW-Channel-pruning0.6-wCEL" --sparsity_weight 0.6 --performance --stage1_model_path "/home/qphan/master-thesis/models/stage1/ihw/wear_best_model_subject{subject}_val.pth"
 # python wear_main_loso_channel_pruning.py --preprocessing 'ihw' --run_name "IHW-Channel-pruning0.8-wCEL" --sparsity_weight 0.8 --performance --stage1_model_path "/home/qphan/master-thesis/models/stage1/ihw/wear_best_model_subject{subject}_val.pth"
 # python wear_main_loso_channel_pruning.py --preprocessing 'ihw' --run_name "IHW-Channel-pruning1.0-wCEL" --sparsity_weight 1 --performance --stage1_model_path "/home/qphan/master-thesis/models/stage1/ihw/wear_best_model_subject{subject}_val.pth"
-# python wear_main_loso_channel_pruning.py --preprocessing 'ihw' --run_name "IHW-Channel-pruning2.0-wCEL" --sparsity_weight 2 --performance --stage1_model_path "/home/qphan/master-thesis/models/stage1/ihw/wear_best_model_subject{subject}_val.pth"
+python wear_main_loso_channel_pruning.py --preprocessing 'ihw' --run_name "IHW-Channel-pruning2.0-wCEL" --sparsity_weight 2 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/ihw/wear_best_model_subject{subject}_val.pth"
+
+# DCT-Channel pruning
+python wear_main_loso_channel_pruning.py --preprocessing 'dct' --run_name "DCT-Channel-pruning2.0-wCEL" --sparsity_weight 2 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject{subject}_val.pth"
+python wear_main_loso_channel_pruning.py --preprocessing 'dct' --run_name "DCT-Channel-pruning2.0-wCEL" --sparsity_weight 0.2 --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject{subject}_val.pth"
+
+
+
+
 
 # FFT-Random pruning
 # python wear_main_loso_channel_pruning_random.py --preprocessing 'fft' --pruning_ratio 0.05 --performance --stage1_model_path "/home/qphan/master-thesis/models/stage1/fft/wear_best_model_subject{subject}_val.pth"

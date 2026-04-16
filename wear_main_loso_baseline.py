@@ -35,8 +35,8 @@ def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--preprocessing', type=str, choices=['fft', 'dct', 'ihw', 'no'], default='fft',
 	                    help='Preprocessing applied to signals: fft, dct, ihw, or no')
-	parser.add_argument('--model', type=str, choices=['GumbelMaskSeparableConvCNN', 'SeparableConvCNN'], 
-	                    default='GumbelMaskSeparableConvCNN', help='Model architectur to use')
+	parser.add_argument('--model', type=str, choices=['SeparableConvCNN'], 
+	                    default='SeparableConvCNN', help='Model architecture to use')
 	parser.add_argument('--batch_size', type=int, default=64,
 	                    help='Batch size')
 	parser.add_argument('--performance', action='store_true',
