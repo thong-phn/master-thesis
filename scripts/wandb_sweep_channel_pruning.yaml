@@ -39,4 +39,3 @@ command:
   - --batch_size=64
   - --dropout=0.4
   - --performance 
-  - --stage1_model_path="/root/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth"
