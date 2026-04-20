@@ -35,8 +35,8 @@ command:
   - ${program}
   - ${args_no_boolean_flags}
   - --preprocessing=fft
-  - --single_subject_only 0
+  - --single_subject_only=0
   - --batch_size=64
   - --dropout=0.4
   - --performance 
-  - --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth"
+  - --stage1_model_path="/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth"
