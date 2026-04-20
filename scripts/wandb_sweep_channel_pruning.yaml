@@ -1,11 +1,11 @@
 # W&B Sweep for WEAR four-stage training
 # Tunes sparsity penalties and Gumbel temperature start.
-name: wear-channel_pruning
+name: wear-channel_pruning_and_tau
 project: thesis-sweep
-method: bayes
+method: grid
 
 metric:
-  name: stage2_test_f1
+  name: stage3_test_f1
   goal: maximize
 
 early_terminate:
@@ -14,10 +14,10 @@ early_terminate:
 
 parameters:
   sparsity_weight:
-    values: [0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    values: [0.01, 0.1, 0.3, 0.6, 1.0, 2.0]
 
   tau_start:
-    values: [10.0]
+    values: [1.0, 5.0, 10.0, 20.0]
 
   lr:
     values: [0.001]
@@ -33,10 +33,10 @@ command:
   - ${env}
   - ${interpreter}
   - ${program}
+  - ${args_no_boolean_flags}
   - --preprocessing=fft
-  - --single_subject_only
-  - --epochs_stage1=60
-  - --epochs_stage2=60
+  - --single_subject_only 0
   - --batch_size=64
   - --dropout=0.4
-  - ${args_no_boolean_flags}
+  - --performance 
+  - --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth"

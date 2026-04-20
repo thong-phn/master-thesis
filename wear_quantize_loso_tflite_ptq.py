@@ -38,6 +38,17 @@ from lib.wear_train import WEAR_Dataset, SlicedWEARDataset
 # Helpers
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _str2bool(value):
+    """Parse common CLI boolean strings so '--wandb False' works as expected."""
+    if isinstance(value, bool):
+        return value
+    val = str(value).strip().lower()
+    if val in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if val in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
+
 def set_seed(seed: int = 42):
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -45,7 +56,7 @@ def set_seed(seed: int = 42):
 
 
 def _load_subject_ids(path):
-    return sorted(np.atleast_1d(np.loadtxt(path, dtype=int)).astype(int).tolist())
+    return sorted(np.unique(np.atleast_1d(np.loadtxt(path, dtype=int)).astype(int).tolist()))
 
 
 def _parse_subject_selection(subjects_arg: str | None):
@@ -160,7 +171,7 @@ def _make_representative_gen(dataset, n_samples: int = 256):
 
 
 # ── TFLite conversion ────────────────────────────────────────────────────────
-PTQ_CONFIGS = ["W8A16_FLOAT_IO", "W8A16_INT_IO", "W8A8_INT_IO"]
+PTQ_CONFIGS = ["W8A16_INT_IO"]
 
 
 def _parse_macs_from_log(log_text: str):
@@ -296,9 +307,7 @@ def _evaluate_tflite(tflite_model: bytes, dataloader: DataLoader):
     return acc, f1
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
 # Main
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def main():
     parser = argparse.ArgumentParser(description="TFLite PTQ evaluation for WEAR models")
@@ -311,7 +320,15 @@ def main():
                              "Defaults to the matching file under log/.")
     parser.add_argument("--preprocessing", type=str, default="fft",
                         choices=["fft", "dct", "ihw", "no"])
-    parser.add_argument("--wandb", type=bool, default=None)
+    parser.add_argument(
+        "--wandb",
+        type=_str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="Enable or disable W&B logging (e.g., --wandb False to disable).",
+    )
+    parser.add_argument("--log_name", type=str, default=None)
     parser.add_argument("--tflite-output-path", type=Path, default=None)
     args = parser.parse_args()
 
@@ -326,10 +343,10 @@ def main():
 
     mask_log_file = args.mask_log_file or (project_root / "log" / f"wear_loso_five_stage_results_{args.preprocessing}.txt")
 
-    results_path = project_root / "log" / f"wear_ptq_results_stage{args.stage}_tflite.txt"
+    results_path = project_root / "log" / f"wear_ptq_stage{args.stage}_{args.log_name}.txt"
     results_path.parent.mkdir(parents=True, exist_ok=True)
     
-    if args.wandb == False:
+    if args.wandb:
         wandb.login()
         wandb.init(
             project="thesis",
@@ -352,9 +369,11 @@ def main():
 
         # checkpoint path
         if args.stage == 1:
-            ckpt = project_root / "models" / f"wear_best_model_five_stage_subject{val_subject}_val_stage1.pth"
+            ckpt = project_root / "models" / "wear" / "stage1" / f"{args.preprocessing}"/f"wear_best_model_subject{val_subject}_val.pth"
         elif args.stage == 3:
-            ckpt = project_root / "models" / f"wear_best_model_five_stage_subject{val_subject}_val_stage3_pruned_input.pth"
+            ckpt = project_root / "models" / f"wear_best_model_three_stage_subject{val_subject}_val_stage3_pruned_input.pth"
+        elif args.stage == 5:
+            ckpt = project_root / "models" / f"wear_best_model_three_stage_channel_subject{val_subject}_val_stage3_pruned_channel.pth"
         else:
             ckpt = project_root / "models" / f"wear_best_model_five_stage_subject{val_subject}_val_stage5_compact.pth"
 
@@ -451,7 +470,7 @@ def main():
                         f"|  F1: {np.mean(f1s):.4f} ± {np.std(f1s):.4f}\n")
 
     # ── WandB artifact ───────────────────────────────────────────────────────
-    if args.wandb == False:
+    if args.wandb:
         artifact = wandb.Artifact(
             name=f"wear-tflite-ptq-stage{args.stage}", type="results-log",
         )
@@ -459,6 +478,8 @@ def main():
         wandb.log_artifact(artifact)
         print(f"\nResults saved → {results_path}  (uploaded to W&B)")
         wandb.finish()
+    else:
+        print(f"\nResults saved → {results_path}")
 
 
 if __name__ == "__main__":

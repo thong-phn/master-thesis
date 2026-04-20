@@ -1,7 +1,5 @@
 # Wandb
 wandb/
-# models/
-# !/models/wear/stage1/
 # Dataset
 uci-har/
 wear/

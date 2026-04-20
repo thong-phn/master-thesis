@@ -1,6 +1,0 @@
-WEAR LOSO Results
-Batch size: 64
-DataLoader num_workers: 6
-DataLoader prefetch_factor: 2
-DataLoader pin_memory: True
-DataLoader persistent_workers: True

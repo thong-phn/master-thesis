@@ -7,6 +7,17 @@ Three-Stage Channel-Pruning Training for WEAR Dataset LOSO:
 from pathlib import Path
 import argparse
 import wandb
+
+def _str2bool(value):
+    """Parse common CLI boolean strings so '--wandb False' works as expected."""
+    if isinstance(value, bool):
+        return value
+    val = str(value).strip().lower()
+    if val in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if val in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
 import random
 import numpy as np
 import torch
@@ -74,6 +85,14 @@ def main():
     parser.add_argument('--model', type=str, choices=['Separable'], default='Separable',
                         help=argparse.SUPPRESS)
     parser.add_argument('--run_name', type=str)
+    parser.add_argument(
+        '--wandb',
+        type=_str2bool,
+        nargs='?',
+        const=True,
+        default=True,
+        help='Enable or disable W&B logging (e.g., --wandb False to disable).',
+    )
     args = parser.parse_args()
 
     set_seed(42)
@@ -134,31 +153,34 @@ def main():
         print(f"Train subjects ({len(train_subjects)}): {train_subjects}")
         print(f"Test subjects ({len(test_subjects)}): {test_subjects}")
 
-        wandb_run = wandb.init(
-            project="thesis",
-            name=f"wear-loso-three-stage-channel-val-{val_subject}-{args.preprocessing}-{args.run_name}",
-            config={
-                "dataset": "WEAR",
-                "train_subjects": train_subjects,
-                "val_subjects": val_subjects,
-                "test_subjects": test_subjects,
-                "epochs_stage1": args.epochs_stage1,
-                "epochs_stage2": args.epochs_stage2,
-                "epochs_stage3": args.epochs_stage3,
-                "lr": args.lr,
-                "stage2_backbone_lr_factor": args.stage2_backbone_lr_factor,
-                "stage3_loaded_lr_factor": args.stage3_loaded_lr_factor,
-                "batch_size": args.batch_size,
-                "performance": args.performance,
-                "preprocessing": args.preprocessing,
-                "sparsity_weight": args.sparsity_weight,
-                "training_type": "three_stage_channel_pruning",
-                "stage1_model_path": resolved_stage1_model_path,
-                "stage2_model_path": args.stage2_model_path,
-                "stage3_model_path": args.stage3_model_path,
-            },
-            reinit=True
-        )
+        wandb_run = None
+        if args.wandb:
+            wandb.login()
+            wandb_run = wandb.init(
+                project="thesis",
+                name=f"wear-loso-three-stage-channel-val-{val_subject}-{args.preprocessing}-{args.run_name}",
+                config={
+                    "dataset": "WEAR",
+                    "train_subjects": train_subjects,
+                    "val_subjects": val_subjects,
+                    "test_subjects": test_subjects,
+                    "epochs_stage1": args.epochs_stage1,
+                    "epochs_stage2": args.epochs_stage2,
+                    "epochs_stage3": args.epochs_stage3,
+                    "lr": args.lr,
+                    "stage2_backbone_lr_factor": args.stage2_backbone_lr_factor,
+                    "stage3_loaded_lr_factor": args.stage3_loaded_lr_factor,
+                    "batch_size": args.batch_size,
+                    "performance": args.performance,
+                    "preprocessing": args.preprocessing,
+                    "sparsity_weight": args.sparsity_weight,
+                    "training_type": "three_stage_channel_pruning",
+                    "stage1_model_path": resolved_stage1_model_path,
+                    "stage2_model_path": args.stage2_model_path,
+                    "stage3_model_path": args.stage3_model_path,
+                },
+                reinit=True
+            )
 
         fold_model_path = (
             Path(args.stage3_model_path).expanduser()
@@ -287,5 +309,4 @@ def main():
 
 
 if __name__ == "__main__":
-    wandb.login()
     main()

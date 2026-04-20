@@ -17,6 +17,18 @@ warnings.filterwarnings("ignore", category=UserWarning, module="torch.cuda")
 from lib.wear_train import train_loso_wear_three_stage_input_pruning
 
 
+def _str2bool(value):
+    """Parse common CLI boolean strings so '--wandb False' works as expected."""
+    if isinstance(value, bool):
+        return value
+    val = str(value).strip().lower()
+    if val in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if val in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
+
+
 def set_seed(seed: int = 42):
     random.seed(seed)
     os.environ['SEED'] = str(seed)
@@ -66,6 +78,14 @@ def main():
                         help='Optional path to a pretrained Stage 3 checkpoint. If provided, Stage 3 training is skipped.')
     parser.add_argument('--single_subject_only', type=str)
     parser.add_argument('--run_name', type=str)
+    parser.add_argument(
+        '--wandb',
+        type=_str2bool,
+        nargs='?',
+        const=True,
+        default=True,
+        help='Enable or disable W&B logging (e.g., --wandb False to disable).',
+    )
     
     args = parser.parse_args()
 
@@ -134,30 +154,33 @@ def main():
         print(f"Test subjects ({len(test_subjects)}): {test_subjects}")
 
         # Tracking init
-        wandb_run = wandb.init(
-            project="thesis-analysis",
-            name=f"wear-loso-three-stage-input-pruning-val-swb{args.sparsity_weight_bin}-{val_subject}-{args.preprocessing}-{args.run_name}",
-            config={
-                "dataset": "WEAR",
-                "train_subjects": train_subjects,
-                "val_subjects": val_subjects,
-                "test_subjects": test_subjects,
-                "epochs_stage1": args.epochs_stage1,
-                "epochs_stage2": args.epochs_stage2,
-                "epochs_stage3": args.epochs_stage3,
-                "lr": args.lr,
-                "stage2_backbone_lr_factor": args.stage2_backbone_lr_factor,
-                "performance": args.performance,
-                "batch_size": args.batch_size,
-                "preprocessing": args.preprocessing,
-                "sparsity_weight_bin": args.sparsity_weight_bin,
-                "training_type": "three_stage",
-                "stage1_model_path": resolved_stage1_model_path,
-                "stage2_model_path": args.stage2_model_path,
-                "stage3_model_path": args.stage3_model_path,
-            },
-            reinit=True
-        )
+        if not args.wandb:
+            wandb_run = None
+        else:
+            wandb_run = wandb.init(
+                project="thesis-analysis",
+                name=f"wear-loso-three-stage-input-pruning-val-swb{args.sparsity_weight_bin}-{val_subject}-{args.preprocessing}-{args.run_name}",
+                config={
+                    "dataset": "WEAR",
+                    "train_subjects": train_subjects,
+                    "val_subjects": val_subjects,
+                    "test_subjects": test_subjects,
+                    "epochs_stage1": args.epochs_stage1,
+                    "epochs_stage2": args.epochs_stage2,
+                    "epochs_stage3": args.epochs_stage3,
+                    "lr": args.lr,
+                    "stage2_backbone_lr_factor": args.stage2_backbone_lr_factor,
+                    "performance": args.performance,
+                    "batch_size": args.batch_size,
+                    "preprocessing": args.preprocessing,
+                    "sparsity_weight_bin": args.sparsity_weight_bin,
+                    "training_type": "three_stage",
+                    "stage1_model_path": resolved_stage1_model_path,
+                    "stage2_model_path": args.stage2_model_path,
+                    "stage3_model_path": args.stage3_model_path,
+                },
+                reinit=True
+            )
 
         metrics = train_loso_wear_three_stage_input_pruning(
             root_path=root_path,
@@ -279,40 +302,40 @@ def main():
         f.write(f"  F1 Macro: {mean_f1_stage3 - mean_f1_stage1:.4f}\n")
 
     # Upload the final consolidated log file as a W&B artifact.
-    artifact_run = wandb.init(
-        project="thesis-analysis",
-        name=f"wear-loso-three-stage-log-artifact-{args.preprocessing}",
-        config={
-            "dataset": "WEAR",
-            "training_type": "three_stage",
-            "preprocessing": args.preprocessing,
-            "sparsity_weight_bin": args.sparsity_weight_bin,
-            "fold_count": len(fold_subjects),
-            "results_log_path": str(results_log_path),
-        },
-        job_type="log-artifact",
-        reinit=True,
-    )
-
-    if artifact_run is not None:
-        artifact = wandb.Artifact(
-            name=f"wear-loso-three-stage-results-{args.preprocessing}",
-            type="results-log",
-            metadata={
+    if args.wandb:
+        artifact_run = wandb.init(
+            project="thesis-analysis",
+            name=f"wear-loso-three-stage-log-artifact-{args.preprocessing}",
+            config={
                 "dataset": "WEAR",
+                "training_type": "three_stage",
                 "preprocessing": args.preprocessing,
                 "sparsity_weight_bin": args.sparsity_weight_bin,
-                "epochs_stage1": args.epochs_stage1,
-                "epochs_stage2": args.epochs_stage2,
-                "epochs_stage3": args.epochs_stage3,
-                "performance": args.performance,
+                "fold_count": len(fold_subjects),
+                "results_log_path": str(results_log_path),
             },
+            job_type="log-artifact",
+            reinit=True,
         )
-        artifact.add_file(str(results_log_path))
-        artifact_run.log_artifact(artifact)
-        artifact_run.finish()
+
+        if artifact_run is not None:
+            artifact = wandb.Artifact(
+                name=f"wear-loso-three-stage-results-{args.preprocessing}",
+                type="results-log",
+                metadata={
+                    "dataset": "WEAR",
+                    "preprocessing": args.preprocessing,
+                    "sparsity_weight_bin": args.sparsity_weight_bin,
+                    "epochs_stage1": args.epochs_stage1,
+                    "epochs_stage2": args.epochs_stage2,
+                    "epochs_stage3": args.epochs_stage3,
+                    "performance": args.performance,
+                },
+            )
+            artifact.add_file(str(results_log_path))
+            artifact_run.log_artifact(artifact)
+            artifact_run.finish()
 
 
 if __name__ == "__main__":
-    wandb.login()
     main()

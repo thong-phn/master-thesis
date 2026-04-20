@@ -32,9 +32,22 @@ def set_seed(seed: int = 42):
 	torch.backends.cudnn.benchmark = False
 
 
+def _str2bool(value):
+	"""Parse common CLI boolean strings so '--wandb False' works as expected."""
+	if isinstance(value, bool):
+		return value
+	val = str(value).strip().lower()
+	if val in {"1", "true", "t", "yes", "y", "on"}:
+		return True
+	if val in {"0", "false", "f", "no", "n", "off"}:
+		return False
+	raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
+
+
 def _load_subject_ids(path):
 	# subject_*.txt stores one subject ID per sample; LOSO needs unique subject IDs.
-	return sorted(np.atleast_1d(np.loadtxt(path, dtype=int)).astype(int).tolist())
+	ids = np.atleast_1d(np.loadtxt(path, dtype=int)).astype(int)
+	return sorted(np.unique(ids).tolist())
 
 
 def _parse_subject_selection(subjects_arg: str | None):
@@ -136,7 +149,14 @@ def main():
 	parser.add_argument('--subjects', type=str, default=None,
 						help='Optional LOSO validation subjects to run, e.g. "1,2,3". If omitted, runs all subjects.')
 	parser.add_argument('--run_name', type=str, default=None)
-	parser.add_argument('--wandb', type=bool, default=None, help='Disable wandb logging')
+	parser.add_argument(
+		'--wandb',
+		type=_str2bool,
+		nargs='?',
+		const=True,
+		default=True,
+		help='Enable or disable W&B logging (e.g., --wandb False to disable).',
+	)
 	parser.add_argument('--wandb_project', type=str, default='thesis-uci',
 						help='W&B project name for fold runs and summary upload')
 
@@ -200,11 +220,11 @@ def main():
 
 		print('=' * 50)
 		print(f"Fold: Val Subject {val_subjects[0]}")
-		print(f"Train subjects ({len(train_subjects)}): {train_subjects}")
-		print(f"Val subjects ({len(val_subjects)}): {val_subjects}")
-		print(f"Test subjects ({len(test_subjects)}): {test_subjects}")
+		print(f"Train subjects: {sorted(set(train_subjects))}")
+		print(f"Val subjects: {sorted(set(val_subjects))}")
+		print(f"Test subjects: {sorted(set(test_subjects))}")
 
-		if args.wandb is False:
+		if not args.wandb:
 			wandb_run = None
 		else:
 			run_name = args.run_name if args.run_name is not None else 'default'
@@ -314,15 +334,15 @@ def main():
 		f.write(f"  Accuracy: {improve_acc:.2f}%\n")
 		f.write(f"  F1 Macro: {improve_f1:.4f}\n")
 
-	_upload_results_log_to_wandb(
-		log_path=results_log_path,
-		preprocessing=args.preprocessing,
-		selected_subjects=fold_subjects,
-		all_subjects=all_subjects,
-		project_name=args.wandb_project,
-	)
+	if args.wandb:
+		_upload_results_log_to_wandb(
+			log_path=results_log_path,
+			preprocessing=args.preprocessing,
+			selected_subjects=fold_subjects,
+			all_subjects=all_subjects,
+			project_name=args.wandb_project,
+		)
 
 
 if __name__ == '__main__':
-	wandb.login()
 	main()
