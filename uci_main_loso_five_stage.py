@@ -35,8 +35,9 @@ def set_seed(seed: int = 42):
 
 
 def _load_subject_ids(path):
-	return sorted(np.atleast_1d(np.loadtxt(path, dtype=int)).astype(int).tolist())
-
+	# subject_*.txt stores one subject ID per sample; LOSO needs unique subject IDs.
+	ids = np.atleast_1d(np.loadtxt(path, dtype=int)).astype(int)
+	return sorted(np.unique(ids).tolist())
 
 def _parse_subject_selection(subjects_arg: str | None):
 	if subjects_arg is None:
@@ -139,7 +140,7 @@ def main():
 	parser.add_argument('--sparsity_weight_channel', type=float, default=0.3,
 						help='Sparsity weight for stage 4 channel pruning')
 	parser.add_argument('--stage1_model_path', type=str, default=None,
-						help='Optional pretrained Stage 1 checkpoint path; if set, Stage 1 training is skipped.')
+						help='Optional pretrained Stage 1 checkpoint path; if set, Stage 1 training is skipped. Supports {subject} placeholder.')
 	parser.add_argument('--stage2_model_path', type=str, default=None,
 						help='Optional pretrained Stage 2 checkpoint path; if set, Stage 2 training is skipped.')
 	parser.add_argument('--stage3_model_path', type=str, default=None,

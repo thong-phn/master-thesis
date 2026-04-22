@@ -1,5 +1,10 @@
 """
-TFLite Post-Training Quantization for UCI-HAR LOSO Models (Stage 1, 3, 5).
+TFLite Post-Training Quantization for UCI-HAR LOSO Models
+Note
+    Stage 1: Baseline model
+    Stage 3: Input pruning
+    Stage 5: Channel pruning
+    Stage 7: Channel pruning
 
 Pipeline:  PyTorch .pth  →  ONNX  →  TF SavedModel (via onnx2tf)  →  TFLite (PTQ)
 Configs:   W8A16_FLOAT_IO  |  W8A16_INT_IO  |  W8A8_INT_IO
@@ -7,8 +12,7 @@ Configs:   W8A16_FLOAT_IO  |  W8A16_INT_IO  |  W8A8_INT_IO
 Usage:
     python uci_quantize_loso_tflite_ptq.py --stage 1 --subjects '1'
     python uci_quantize_loso_tflite_ptq.py --stage 3 --subjects '1,2,3'
-    python uci_quantize_loso_tflite_ptq.py --stage 5
-    python uci_quantize_loso_tflite_ptq.py --stage 3 --mask-log-file log/custom_results.txt
+    python uci_quantize_loso_tflite_ptq.py --stage 5 --mask-log-file log/custom_results.txt
 """
 
 from __future__ import annotations
@@ -36,6 +40,16 @@ from lib.model import PrunedSeparableConvCNN, SeparableConvCNN
 from lib.uci_train import SlicedUCIDataset, UCIHAR_Dataset
 
 # Helpers
+def _str2bool(value):
+    """Parse common CLI boolean strings so '--wandb False' works as expected."""
+    if isinstance(value, bool):
+        return value
+    val = str(value).strip().lower()
+    if val in {"1", "true", "t", "yes", "y", "on"}:
+        return True
+    if val in {"0", "false", "f", "no", "n", "off"}:
+        return False
+    raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
 def set_seed(seed: int = 42):
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -85,9 +99,9 @@ def _load_pytorch_model(stage: int, model_path: Path, device: torch.device):
     num_channels = state_dict["sep_conv1.depthwise.weight"].shape[0]
     num_classes = state_dict["fc2.weight"].shape[0]
 
-    if stage in (1, 3):
+    if stage in (1, 3): # Default/Input pruning
         model = SeparableConvCNN(num_classes=num_classes, num_channels=num_channels)
-    elif stage == 5:
+    elif stage in (5, 7): # Dual pruning/Channel pruning
         b2 = state_dict["sep_conv2.pointwise.weight"].shape[0]
         b3 = state_dict["sep_conv3.pointwise.weight"].shape[0]
         b4 = state_dict["sep_conv4.pointwise.weight"].shape[0]
@@ -99,7 +113,7 @@ def _load_pytorch_model(stage: int, model_path: Path, device: torch.device):
             block4_channels=b4,
         )
     else:
-        raise ValueError("Only stages 1, 3, 5 are supported.")
+        raise ValueError("Only stages 1, 3, 5, 7 are supported.")
 
     model.load_state_dict(state_dict)
     model.eval()
@@ -186,11 +200,6 @@ def _convert_to_tflite(saved_model_dir: str, ptq_config: str, rep_gen):
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.representative_dataset = rep_gen
 
-    # if ptq_config == "W8A16_FLOAT_IO":
-    #     converter.target_spec.supported_ops = [
-    #         tf.lite.OpsSet.EXPERIMENTAL_TFLITE_BUILTINS_ACTIVATIONS_INT16_WEIGHTS_INT8,
-    #         tf.lite.OpsSet.TFLITE_BUILTINS,
-    #     ]
     if ptq_config == "W8A16_INT_IO":
         converter.target_spec.supported_ops = [
             tf.lite.OpsSet.EXPERIMENTAL_TFLITE_BUILTINS_ACTIVATIONS_INT16_WEIGHTS_INT8,
@@ -297,7 +306,7 @@ def _evaluate_tflite(tflite_model: bytes, dataloader: DataLoader):
 
 def main():
     parser = argparse.ArgumentParser(description="TFLite PTQ evaluation for UCI-HAR models")
-    parser.add_argument("--stage", type=int, required=True, choices=[1, 3, 5])
+    parser.add_argument("--stage", type=int, required=True)
     parser.add_argument(
         "--subjects",
         type=str,
@@ -316,7 +325,14 @@ def main():
         default="fft",
         choices=["fft", "dct", "ihw", "no"],
     )
-    parser.add_argument("--wandb", action="store_true", help="Enable W&B logging")
+    parser.add_argument(
+        "--wandb",
+        type=_str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+        help="Enable or disable W&B logging (e.g., --wandb False to disable).",
+    )
     parser.add_argument("--wandb-project", type=str, default="thesis-uci")
     parser.add_argument("--log_name", type=str, default=None)
     parser.add_argument("--tflite-output-path", type=Path, default=None)
@@ -341,7 +357,9 @@ def main():
 
     results_path = project_root / "log" / f"uci_ptq_stage{args.stage}_{args.log_name}.txt"
     results_path.parent.mkdir(parents=True, exist_ok=True)
-
+    # Ensure tflite_output_path exists if provided
+    if args.tflite_output_path is not None:
+        args.tflite_output_path.mkdir(parents=True, exist_ok=True)
     if args.wandb:
         wandb.login()
         wandb.init(
@@ -362,16 +380,21 @@ def main():
         print(f"  Fold – validation subject {val_subject}")
         print(f"{'=' * 60}")
 
-        if args.stage == 1:
+        if args.stage == 1: # Baseline 
             ckpt = project_root / "models" / "uci" / "stage1" / f"{args.preprocessing}"/ f"uci_best_model_subject{val_subject}_val.pth"
-        elif args.stage == 3:
-            # models/uci_best_model_three_stage_subject19_val_stage3_pruned_input.pth
+        elif args.stage == 3: # Input pruning original | Input pruning of Dual pruning
+            # Sample model path 1: models/uci_best_model_three_stage_subject19_val_stage3_pruned_input.pth
+            # Sample model path 2: models/uci_best_model_five_stage_subject19_val_stage3_pruned_input.pth
             ckpt = project_root / "models" / f"uci_best_model_three_stage_subject{val_subject}_val_stage3_pruned_input.pth"
-        else:
+            if not ckpt.exists():
+                ckpt = project_root / "models" / f"uci_best_model_five_stage_subject{val_subject}_val_stage3_pruned_input.pth"
+        elif args.stage == 7: # Channel pruning 
+            ckpt = project_root / "models" / f"uci_best_model_three_stage_channel_subject{val_subject}_val_stage3_pruned_channel.pth"
+        else: # Dual pruning 
             ckpt = project_root / "models" / f"uci_best_model_five_stage_subject{val_subject}_val_stage5_compact.pth"
 
         if not ckpt.exists():
-            print(f"  [skip] checkpoint not found: {ckpt}")
+            print(f"  [SKIP] checkpoint not found: {ckpt}")
             continue
 
         pt_model, in_channels = _load_pytorch_model(args.stage, ckpt, device)

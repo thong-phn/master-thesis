@@ -58,48 +58,49 @@ def _parse_subject_selection(subjects_arg: str | None):
 
 
 def _upload_results_log_to_wandb(
-    log_path: Path,
-    preprocessing: str,
-    selected_subjects: list[int],
-    all_subjects: list[int],
+    wandb_run,
+    log_path,
+    preprocessing,
+    selected_subjects,
+    all_subjects,
 ):
     if not log_path.exists():
         print(f"Skipping W&B upload: log file not found at {log_path}")
         return
+    if wandb_run is not None:
+        upload_run = None
+        try:
+            if selected_subjects == all_subjects:
+                run_suffix = "all-subjects"
+            else:
+                run_suffix = "subjects-" + "-".join(map(str, selected_subjects))
 
-    upload_run = None
-    try:
-        if selected_subjects == all_subjects:
-            run_suffix = "all-subjects"
-        else:
-            run_suffix = "subjects-" + "-".join(map(str, selected_subjects))
+            upload_run = wandb.init(
+                project="thesis",
+                name=f"wear-loso-five-stage-log-{preprocessing}-{run_suffix}",
+                job_type="results_log_upload",
+                reinit=True,
+                config={
+                    "dataset": "WEAR",
+                    "training_type": "five_stage",
+                    "preprocessing": preprocessing,
+                    "selected_subjects": selected_subjects,
+                    "results_log_file": str(log_path),
+                },
+            )
 
-        upload_run = wandb.init(
-            project="thesis",
-            name=f"wear-loso-five-stage-log-{preprocessing}-{run_suffix}",
-            job_type="results_log_upload",
-            reinit=True,
-            config={
-                "dataset": "WEAR",
-                "training_type": "five_stage",
-                "preprocessing": preprocessing,
-                "selected_subjects": selected_subjects,
-                "results_log_file": str(log_path),
-            },
-        )
-
-        artifact = wandb.Artifact(
-            name=f"wear-loso-five-stage-results-{preprocessing}-{run_suffix}",
-            type="results-log",
-        )
-        artifact.add_file(str(log_path))
-        upload_run.log_artifact(artifact)
-        print(f"Uploaded results log to W&B artifact: {log_path}")
-    except Exception as e:
-        print(f"Failed to upload results log to W&B: {e}")
-    finally:
-        if upload_run is not None:
-            upload_run.finish()
+            artifact = wandb.Artifact(
+                name=f"wear-loso-five-stage-results-{preprocessing}-{run_suffix}",
+                type="results-log",
+            )
+            artifact.add_file(str(log_path))
+            upload_run.log_artifact(artifact)
+            print(f"Uploaded results log to W&B artifact: {log_path}")
+        except Exception as e:
+            print(f"Failed to upload results log to W&B: {e}")
+        finally:
+            if upload_run is not None:
+                upload_run.finish()
 
 
 def main():
@@ -152,7 +153,17 @@ def main():
                         help='Optional LOSO validation subjects to run, e.g. "7,8,9". '
                              'If omitted, runs all subjects. Supports separators: comma, dot, whitespace.')
     parser.add_argument('--run_name', type=str, default=None)
-    parser.add_argument('--wandb', type=bool, default=None, help='Disable wandb logging')
+    def _str2bool(value):
+        if isinstance(value, bool):
+            return value
+        val = str(value).strip().lower()
+        if val in {"1", "true", "t", "yes", "y", "on"}:
+            return True
+        if val in {"0", "false", "f", "no", "n", "off"}:
+            return False
+        raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
+
+    parser.add_argument('--wandb', type=_str2bool, nargs="?", const=True, default=False, help='Enable or disable wandb logging (e.g., --wandb False to disable).')
 
     args = parser.parse_args()
 
@@ -376,6 +387,7 @@ def main():
         f.write(f"  F1 Macro: {improve_f1:.4f}\n")
 
     _upload_results_log_to_wandb(
+        wandb_run=wandb_run,
         log_path=results_log_path,
         preprocessing=args.preprocessing,
         selected_subjects=fold_subjects,

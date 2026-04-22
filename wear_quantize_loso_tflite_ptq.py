@@ -96,7 +96,7 @@ def _load_pytorch_model(stage: int, model_path: Path, device: torch.device):
 
     if stage in (1, 3):
         model = SeparableConvCNN(num_classes=num_classes, num_channels=num_channels)
-    elif stage == 5:
+    elif stage in (5, 7) :
         b2 = state_dict["sep_conv2.pointwise.weight"].shape[0]
         b3 = state_dict["sep_conv3.pointwise.weight"].shape[0]
         b4 = state_dict["sep_conv4.pointwise.weight"].shape[0]
@@ -105,7 +105,7 @@ def _load_pytorch_model(stage: int, model_path: Path, device: torch.device):
             block2_channels=b2, block3_channels=b3, block4_channels=b4,
         )
     else:
-        raise ValueError("Only stages 1, 3, 5 are supported.")
+        raise ValueError("Only stages 1, 3, 5, 7 are supported.")
 
     model.load_state_dict(state_dict)
     model.eval()
@@ -330,6 +330,7 @@ def main():
     )
     parser.add_argument("--log_name", type=str, default=None)
     parser.add_argument("--tflite-output-path", type=Path, default=None)
+
     args = parser.parse_args()
 
     set_seed(42)
@@ -345,7 +346,11 @@ def main():
 
     results_path = project_root / "log" / f"wear_ptq_stage{args.stage}_{args.log_name}.txt"
     results_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
+    # Ensure tflite_output_path exists if provided
+    if args.tflite_output_path is not None:
+        args.tflite_output_path.mkdir(parents=True, exist_ok=True)
+
     if args.wandb:
         wandb.login()
         wandb.init(
@@ -368,13 +373,15 @@ def main():
         print(f"{'=' * 60}")
 
         # checkpoint path
-        if args.stage == 1:
+        if args.stage == 1: # BaselineS
             ckpt = project_root / "models" / "wear" / "stage1" / f"{args.preprocessing}"/f"wear_best_model_subject{val_subject}_val.pth"
-        elif args.stage == 3:
+        elif args.stage == 3: # Input pruning (of DP or not)
             ckpt = project_root / "models" / f"wear_best_model_three_stage_subject{val_subject}_val_stage3_pruned_input.pth"
-        elif args.stage == 5:
+            if not ckpt.exists():
+                ckpt = project_root / "models" / f"wear_best_model_five_stage_subject{val_subject}_val_stage3_pruned_input.pth"
+        elif args.stage == 7: # Channel pruning
             ckpt = project_root / "models" / f"wear_best_model_three_stage_channel_subject{val_subject}_val_stage3_pruned_channel.pth"
-        else:
+        else: # Dual pruning
             ckpt = project_root / "models" / f"wear_best_model_five_stage_subject{val_subject}_val_stage5_compact.pth"
 
         if not ckpt.exists():
