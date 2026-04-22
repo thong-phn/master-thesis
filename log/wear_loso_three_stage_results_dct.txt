@@ -1,0 +1,390 @@
+WEAR LOSO Three-Stage Training Results
+Preprocessing: dct
+Sparsity Weight Bin: 0.1
+Epochs Stage 1: 60
+Epochs Stage 2: 60
+Epochs Stage 3: 60
+Stage 2 Backbone LR Factor: 0.1
+Performance Mode: True
+Stage 1 Checkpoint Override: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject{subject}_val.pth
+
+
+==================================================
+Fold Val Subject 0:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject0_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 78.77%
+  Test F1 Macro: 0.6768
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 75.41%
+  Test F1 Macro: 0.6450
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 77.38%
+  Test F1 Macro: 0.6775
+
+  Improvement Stage2 - Stage1: -3.36%
+  Improvement Stage3 - Stage1: -1.39%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 1:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject1_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 80.13%
+  Test F1 Macro: 0.7011
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 79.16%
+  Test F1 Macro: 0.6789
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 76.12%
+  Test F1 Macro: 0.6649
+
+  Improvement Stage2 - Stage1: -0.98%
+  Improvement Stage3 - Stage1: -4.02%
+  Hard Bin Mask: [1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 2:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject2_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 79.40%
+  Test F1 Macro: 0.6935
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 78.22%
+  Test F1 Macro: 0.6882
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 79.26%
+  Test F1 Macro: 0.6916
+
+  Improvement Stage2 - Stage1: -1.18%
+  Improvement Stage3 - Stage1: -0.14%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 3:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject3_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 79.40%
+  Test F1 Macro: 0.6917
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 72.96%
+  Test F1 Macro: 0.6417
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 76.60%
+  Test F1 Macro: 0.6569
+
+  Improvement Stage2 - Stage1: -6.44%
+  Improvement Stage3 - Stage1: -2.80%
+  Hard Bin Mask: [1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 4:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject4_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 76.93%
+  Test F1 Macro: 0.6636
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 76.81%
+  Test F1 Macro: 0.6616
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 78.09%
+  Test F1 Macro: 0.6764
+
+  Improvement Stage2 - Stage1: -0.12%
+  Improvement Stage3 - Stage1: 1.16%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 5:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject5_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 80.96%
+  Test F1 Macro: 0.6801
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 79.97%
+  Test F1 Macro: 0.6891
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 77.94%
+  Test F1 Macro: 0.6872
+
+  Improvement Stage2 - Stage1: -0.99%
+  Improvement Stage3 - Stage1: -3.02%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 6:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject6_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 79.44%
+  Test F1 Macro: 0.6827
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 77.50%
+  Test F1 Macro: 0.6744
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 79.53%
+  Test F1 Macro: 0.6960
+
+  Improvement Stage2 - Stage1: -1.95%
+  Improvement Stage3 - Stage1: 0.08%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 7:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject7_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 76.63%
+  Test F1 Macro: 0.6696
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 77.14%
+  Test F1 Macro: 0.6596
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 72.34%
+  Test F1 Macro: 0.6557
+
+  Improvement Stage2 - Stage1: 0.50%
+  Improvement Stage3 - Stage1: -4.29%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 8:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject8_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 78.64%
+  Test F1 Macro: 0.6942
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 79.32%
+  Test F1 Macro: 0.6912
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 79.01%
+  Test F1 Macro: 0.6815
+
+  Improvement Stage2 - Stage1: 0.68%
+  Improvement Stage3 - Stage1: 0.37%
+  Hard Bin Mask: [1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 9:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject9_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 79.99%
+  Test F1 Macro: 0.6875
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 75.86%
+  Test F1 Macro: 0.6642
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 79.56%
+  Test F1 Macro: 0.6891
+
+  Improvement Stage2 - Stage1: -4.13%
+  Improvement Stage3 - Stage1: -0.43%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 10:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject10_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 69.44%
+  Test F1 Macro: 0.6438
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 74.96%
+  Test F1 Macro: 0.6544
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 74.10%
+  Test F1 Macro: 0.6607
+
+  Improvement Stage2 - Stage1: 5.52%
+  Improvement Stage3 - Stage1: 4.66%
+  Hard Bin Mask: [1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 11:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject11_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 81.94%
+  Test F1 Macro: 0.7100
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 77.24%
+  Test F1 Macro: 0.6740
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 78.88%
+  Test F1 Macro: 0.6715
+
+  Improvement Stage2 - Stage1: -4.70%
+  Improvement Stage3 - Stage1: -3.06%
+  Hard Bin Mask: [1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 12:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject12_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 80.31%
+  Test F1 Macro: 0.6875
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 73.98%
+  Test F1 Macro: 0.6432
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 79.99%
+  Test F1 Macro: 0.6919
+
+  Improvement Stage2 - Stage1: -6.33%
+  Improvement Stage3 - Stage1: -0.32%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 13:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject13_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 78.96%
+  Test F1 Macro: 0.6917
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 76.27%
+  Test F1 Macro: 0.6749
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 78.62%
+  Test F1 Macro: 0.6860
+
+  Improvement Stage2 - Stage1: -2.69%
+  Improvement Stage3 - Stage1: -0.34%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 14:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject14_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 74.82%
+  Test F1 Macro: 0.6733
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 76.70%
+  Test F1 Macro: 0.6631
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 78.53%
+  Test F1 Macro: 0.6907
+
+  Improvement Stage2 - Stage1: 1.89%
+  Improvement Stage3 - Stage1: 3.71%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 15:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject15_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 78.54%
+  Test F1 Macro: 0.6881
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 79.76%
+  Test F1 Macro: 0.6918
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 78.92%
+  Test F1 Macro: 0.6905
+
+  Improvement Stage2 - Stage1: 1.23%
+  Improvement Stage3 - Stage1: 0.38%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 16:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject16_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 66.65%
+  Test F1 Macro: 0.6303
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 75.49%
+  Test F1 Macro: 0.6553
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 79.56%
+  Test F1 Macro: 0.6858
+
+  Improvement Stage2 - Stage1: 8.84%
+  Improvement Stage3 - Stage1: 12.91%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Fold Val Subject 17:
+  Stage 1 Checkpoint Used: /home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject17_val.pth
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 79.04%
+  Test F1 Macro: 0.6938
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 77.48%
+  Test F1 Macro: 0.6795
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 78.68%
+  Test F1 Macro: 0.6867
+
+  Improvement Stage2 - Stage1: -1.57%
+  Improvement Stage3 - Stage1: -0.36%
+  Hard Bin Mask: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+==================================================
+Overall WEAR LOSO Three-Stage Results
+==================================================
+
+Stage 1 (SeparableConvCNN):
+  Test Accuracy: 77.78% ± 3.81%
+  Test F1 Macro: 0.6811 ± 0.0191
+
+Stage 2 (GumbelMaskSeparableConvCNN):
+  Test Accuracy: 76.90% ± 1.90%
+  Test F1 Macro: 0.6683 ± 0.0161
+
+Stage 3 (SeparableConvCNN (Pruned Input)):
+  Test Accuracy: 77.95% ± 1.97%
+  Test F1 Macro: 0.6800 ± 0.0125
+
+Improvement (Stage 3 - Stage 1):
+  Accuracy: 0.17%
+  F1 Macro: -0.0010

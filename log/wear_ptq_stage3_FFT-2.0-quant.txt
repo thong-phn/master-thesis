@@ -1,0 +1,62 @@
+TFLite PTQ Results – Stage 3
+==================================================
+
+
+Fold 0 | Params: 36,998
+  W8A16_INT_IO | Acc: 72.46% | F1: 0.5964 | Size: 63.8 KB | OPs: 0.080 M | MACs: 0.040 M
+
+Fold 1 | Params: 36,998
+  W8A16_INT_IO | Acc: 73.16% | F1: 0.6158 | Size: 63.8 KB | OPs: 0.080 M | MACs: 0.040 M
+
+Fold 2 | Params: 36,998
+  W8A16_INT_IO | Acc: 73.29% | F1: 0.6152 | Size: 63.8 KB | OPs: 0.080 M | MACs: 0.040 M
+
+Fold 3 | Params: 36,998
+  W8A16_INT_IO | Acc: 65.35% | F1: 0.5409 | Size: 63.6 KB | OPs: 0.074 M | MACs: 0.037 M
+
+Fold 4 | Params: 36,998
+  W8A16_INT_IO | Acc: 64.99% | F1: 0.5558 | Size: 63.6 KB | OPs: 0.074 M | MACs: 0.037 M
+
+Fold 5 | Params: 36,998
+  W8A16_INT_IO | Acc: 71.75% | F1: 0.5865 | Size: 63.8 KB | OPs: 0.080 M | MACs: 0.040 M
+
+Fold 6 | Params: 36,998
+  W8A16_INT_IO | Acc: 73.63% | F1: 0.6244 | Size: 63.8 KB | OPs: 0.080 M | MACs: 0.040 M
+
+Fold 7 | Params: 36,998
+  W8A16_INT_IO | Acc: 66.74% | F1: 0.5723 | Size: 63.6 KB | OPs: 0.074 M | MACs: 0.037 M
+
+Fold 8 | Params: 36,998
+  W8A16_INT_IO | Acc: 76.27% | F1: 0.6444 | Size: 63.8 KB | OPs: 0.080 M | MACs: 0.040 M
+
+Fold 9 | Params: 36,998
+  W8A16_INT_IO | Acc: 48.75% | F1: 0.4312 | Size: 63.3 KB | OPs: 0.074 M | MACs: 0.037 M
+
+Fold 10 | Params: 36,998
+  W8A16_INT_IO | Acc: 68.74% | F1: 0.5881 | Size: 63.6 KB | OPs: 0.074 M | MACs: 0.037 M
+
+Fold 11 | Params: 36,998
+  W8A16_INT_IO | Acc: 71.54% | F1: 0.6093 | Size: 63.6 KB | OPs: 0.075 M | MACs: 0.037 M
+
+Fold 12 | Params: 36,998
+  W8A16_INT_IO | Acc: 70.27% | F1: 0.5775 | Size: 63.6 KB | OPs: 0.075 M | MACs: 0.037 M
+
+Fold 13 | Params: 36,998
+  W8A16_INT_IO | Acc: 69.99% | F1: 0.5815 | Size: 63.6 KB | OPs: 0.075 M | MACs: 0.037 M
+
+Fold 14 | Params: 36,998
+  W8A16_INT_IO | Acc: 70.08% | F1: 0.5811 | Size: 63.6 KB | OPs: 0.075 M | MACs: 0.037 M
+
+Fold 15 | Params: 36,998
+  W8A16_INT_IO | Acc: 73.79% | F1: 0.6208 | Size: 63.8 KB | OPs: 0.080 M | MACs: 0.040 M
+
+Fold 16 | Params: 36,998
+  W8A16_INT_IO | Acc: 75.73% | F1: 0.6343 | Size: 63.8 KB | OPs: 0.080 M | MACs: 0.040 M
+
+Fold 17 | Params: 36,998
+  W8A16_INT_IO | Acc: 76.20% | F1: 0.6413 | Size: 63.8 KB | OPs: 0.086 M | MACs: 0.043 M
+
+==================================================
+OVERALL AVERAGES
+==================================================
+W8A16_INT_IO  |  Acc: 70.15% ± 6.15%  |  F1: 0.5898 ± 0.0476

@@ -1,0 +1,81 @@
+WEAR LOSO Results
+Batch size: 64
+Performance mode: True
+
+Fold Val Subject 0:
+  Test Accuracy: 80.93%
+  Test F1 Macro: 0.7153
+
+Fold Val Subject 1:
+  Test Accuracy: 82.91%
+  Test F1 Macro: 0.7381
+
+Fold Val Subject 2:
+  Test Accuracy: 74.20%
+  Test F1 Macro: 0.6841
+
+Fold Val Subject 3:
+  Test Accuracy: 77.11%
+  Test F1 Macro: 0.6921
+
+Fold Val Subject 4:
+  Test Accuracy: 79.04%
+  Test F1 Macro: 0.6648
+
+Fold Val Subject 5:
+  Test Accuracy: 82.11%
+  Test F1 Macro: 0.7308
+
+Fold Val Subject 6:
+  Test Accuracy: 83.43%
+  Test F1 Macro: 0.7375
+
+Fold Val Subject 7:
+  Test Accuracy: 82.48%
+  Test F1 Macro: 0.7367
+
+Fold Val Subject 8:
+  Test Accuracy: 83.26%
+  Test F1 Macro: 0.7496
+
+Fold Val Subject 9:
+  Test Accuracy: 80.37%
+  Test F1 Macro: 0.7256
+
+Fold Val Subject 10:
+  Test Accuracy: 79.56%
+  Test F1 Macro: 0.6835
+
+Fold Val Subject 11:
+  Test Accuracy: 81.83%
+  Test F1 Macro: 0.7399
+
+Fold Val Subject 12:
+  Test Accuracy: 81.31%
+  Test F1 Macro: 0.7228
+
+Fold Val Subject 13:
+  Test Accuracy: 80.89%
+  Test F1 Macro: 0.7247
+
+Fold Val Subject 14:
+  Test Accuracy: 80.40%
+  Test F1 Macro: 0.7260
+
+Fold Val Subject 15:
+  Test Accuracy: 83.70%
+  Test F1 Macro: 0.7353
+
+Fold Val Subject 16:
+  Test Accuracy: 81.14%
+  Test F1 Macro: 0.7303
+
+Fold Val Subject 17:
+  Test Accuracy: 82.23%
+  Test F1 Macro: 0.7398
+
+==================================================
+Overall WEAR LOSO Results
+Model: SeparableConvCNN
+Test Accuracy: 80.94% ± 2.31%
+Test F1 Macro: 0.7210 ± 0.0231
