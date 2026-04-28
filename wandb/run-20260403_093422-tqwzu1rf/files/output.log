@@ -1,0 +1,40 @@
+Train samples: 50627
+Val samples: 2852
+Test samples: 9705
+
+============================================================
+STAGE 1: Training SeparableConvCNN
+============================================================
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_main_loso_five_stage.py", line 372, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_main_loso_five_stage.py", line 259, in main
+    metrics = train_loso_wear_multi_stage(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 2902, in train_loso_wear_multi_stage
+    for x, y in train_loader:
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/utils/data/dataloader.py", line 732, in __next__
+    data = self._next_data()
+           ^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/utils/data/dataloader.py", line 788, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/utils/data/_utils/fetch.py", line 52, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/utils/data/_utils/fetch.py", line 52, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+            ~~~~~~~~~~~~^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 264, in __getitem__
+    mag = self._compute_fft_magnitude(signal)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 203, in _compute_fft_magnitude
+    fft_vals = np.fft.rfft(signal, axis=-1)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/numpy/fft/_pocketfft.py", line 417, in rfft
+    output = _raw_fft(a, n, axis, True, True, norm, out=out)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/numpy/fft/_pocketfft.py", line 101, in _raw_fft
+    return ufunc(a, fct, axes=[(axis,), (), (axis,)], out=out)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

@@ -1,0 +1,12 @@
+{"time":"2026-04-16T22:20:14.689058587+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-16T22:20:14.952151803+02:00","level":"INFO","msg":"stream: created new stream","id":"wp10gkuj"}
+{"time":"2026-04-16T22:20:14.952268768+02:00","level":"INFO","msg":"handler: started","stream_id":"wp10gkuj"}
+{"time":"2026-04-16T22:20:14.952466417+02:00","level":"INFO","msg":"stream: started","id":"wp10gkuj"}
+{"time":"2026-04-16T22:20:14.952556303+02:00","level":"INFO","msg":"writer: started","stream_id":"wp10gkuj"}
+{"time":"2026-04-16T22:20:14.952621036+02:00","level":"INFO","msg":"sender: started","stream_id":"wp10gkuj"}
+{"time":"2026-04-16T22:26:42.93042128+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-16T22:26:43.348786147+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-16T22:26:43.360697785+02:00","level":"INFO","msg":"stream: closing","id":"wp10gkuj"}
+{"time":"2026-04-16T22:26:43.360731069+02:00","level":"INFO","msg":"handler: closed","stream_id":"wp10gkuj"}
+{"time":"2026-04-16T22:26:43.360861166+02:00","level":"INFO","msg":"sender: closed","stream_id":"wp10gkuj"}
+{"time":"2026-04-16T22:26:43.360890534+02:00","level":"INFO","msg":"stream: closed","id":"wp10gkuj"}

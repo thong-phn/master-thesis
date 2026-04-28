@@ -1,0 +1,12 @@
+{"time":"2026-04-04T17:57:16.186747232+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-04T17:57:16.443634121+02:00","level":"INFO","msg":"stream: created new stream","id":"epnalj19"}
+{"time":"2026-04-04T17:57:16.443719634+02:00","level":"INFO","msg":"handler: started","stream_id":"epnalj19"}
+{"time":"2026-04-04T17:57:16.443936845+02:00","level":"INFO","msg":"stream: started","id":"epnalj19"}
+{"time":"2026-04-04T17:57:16.444014502+02:00","level":"INFO","msg":"writer: started","stream_id":"epnalj19"}
+{"time":"2026-04-04T17:57:16.444104702+02:00","level":"INFO","msg":"sender: started","stream_id":"epnalj19"}
+{"time":"2026-04-04T17:58:25.865234522+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-04T17:58:26.092462798+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-04T17:58:26.104425403+02:00","level":"INFO","msg":"stream: closing","id":"epnalj19"}
+{"time":"2026-04-04T17:58:26.104461297+02:00","level":"INFO","msg":"handler: closed","stream_id":"epnalj19"}
+{"time":"2026-04-04T17:58:26.104576577+02:00","level":"INFO","msg":"sender: closed","stream_id":"epnalj19"}
+{"time":"2026-04-04T17:58:26.104626548+02:00","level":"INFO","msg":"stream: closed","id":"epnalj19"}

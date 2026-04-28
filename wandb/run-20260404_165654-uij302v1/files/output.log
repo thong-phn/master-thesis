@@ -1,0 +1,76 @@
+Train samples: 50686
+Val samples: 2793
+Test samples: 9705
+Class counts: [8161.0, 8100.0, 3188.0, 3483.0, 3225.0, 1577.0, 1433.0, 21519.0]
+Class weights: [0.3869999945163727, 0.38999998569488525, 0.9900000095367432, 0.906000018119812, 0.9779999852180481, 2.000999927520752, 2.2019999027252197, 0.1469999998807907]
+
+============================================================
+STAGE 1: Train SeparableConvCNN model
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Use pretrained model:
+Test Loss: 0.6163 | Test Acc: 79.20% | Test F1 Macro: 0.6841
+
+============================================================
+STAGE 2: Training GumbelChannelPruningCNN (learn hard channel masks)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [1/60]: Train Loss: 1.8060; Train Acc: 40.29; Val Loss: 1.1498; Val Acc: 44.86; Mask: 50.20%
+Epoch [2/60]: Train Loss: 1.4825; Train Acc: 41.33; Val Loss: 0.9553; Val Acc: 58.75; Mask: 50.45%
+Epoch [3/60]: Train Loss: 1.3444; Train Acc: 45.52; Val Loss: 0.8729; Val Acc: 60.40; Mask: 50.50%
+Epoch [4/60]: Train Loss: 1.2822; Train Acc: 47.41; Val Loss: 0.8222; Val Acc: 61.12; Mask: 50.46%
+Epoch [5/60]: Train Loss: 1.2446; Train Acc: 48.68; Val Loss: 0.8086; Val Acc: 61.83; Mask: 50.34%
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_main_loso_channel_pruning.py", line 279, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_main_loso_channel_pruning.py", line 160, in main
+    metrics = train_loso_wear_three_stage_pruning_channel(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 1811, in train_loso_wear_three_stage_pruning_channel
+    stage2_result = stage2_channel_gumbel_pruning_pipeline(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/ml_lib.py", line 281, in stage2_channel_gumbel_pruning_pipeline
+    loss.backward()
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

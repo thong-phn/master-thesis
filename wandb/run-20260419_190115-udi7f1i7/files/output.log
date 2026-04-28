@@ -1,0 +1,98 @@
+
+============================================================
+  Fold – validation subject 0
+============================================================
+  [skip] checkpoint not found: /home/qphan/master-thesis/models/wear_best_model_five_stage_subject0_val_stage3_pruned_input.pth
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_quantize_loso_tflite_ptq.py", line 466, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_quantize_loso_tflite_ptq.py", line 460, in main
+    wandb.log_artifact(artifact)
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/wandb_run.py", line 399, in wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/wandb_run.py", line 457, in wrapper_fn
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/wandb_run.py", line 444, in wrapper
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/wandb_run.py", line 3171, in log_artifact
+    return self._log_artifact(
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/wandb_run.py", line 3316, in _log_artifact
+    self._assert_can_log_artifact(artifact)
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/wandb_run.py", line 3377, in _assert_can_log_artifact
+    public_api = self._public_api()
+                 ^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/wandb_run.py", line 3365, in _public_api
+    self._cached_public_api = public.Api(overrides, api_key=self._settings.api_key)
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/apis/public/api.py", line 206, in __init__
+    wandb_login._verify_login(
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/wandb_login.py", line 299, in _verify_login
+    is_api_key_valid = api.validate_api_key()
+                       ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/apis/internal.py", line 66, in validate_api_key
+    return self.api.validate_api_key()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/internal/internal_api.py", line 405, in validate_api_key
+    res = self.gql(gql("query { viewer { id } }"))
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/internal/internal_api.py", line 364, in gql
+    ret = self._retry_gql(
+          ^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/lib/retry.py", line 160, in __call__
+    result = self._call_fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/internal/internal_api.py", line 394, in execute
+    return self.client.execute(*args, **kwargs)  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/client.py", line 52, in execute
+    result = self._get_result(document, *args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/vendor/gql-0.2.0/wandb_gql/client.py", line 60, in _get_result
+    return self.transport.execute(document, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/lib/gql_request.py", line 70, in execute
+    request = self.session.post(self.url, **post_args)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/requests/sessions.py", line 637, in post
+    return self.request("POST", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/requests/sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/requests/sessions.py", line 703, in send
+    r = adapter.send(request, **kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/requests/adapters.py", line 644, in send
+    resp = conn.urlopen(
+           ^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/urllib3/connectionpool.py", line 787, in urlopen
+    response = self._make_request(
+               ^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/urllib3/connectionpool.py", line 534, in _make_request
+    response = conn.getresponse()
+               ^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/urllib3/connection.py", line 571, in getresponse
+    httplib_response = super().getresponse()
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/http/client.py", line 1395, in getresponse
+    response.begin()
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/http/client.py", line 325, in begin
+    version, status, reason = self._read_status()
+                              ^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/http/client.py", line 286, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/socket.py", line 718, in readinto
+    return self._sock.recv_into(b)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/ssl.py", line 1314, in recv_into
+    return self.read(nbytes, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/ssl.py", line 1166, in read
+    return self._sslobj.read(len, buffer)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

@@ -1,0 +1,90 @@
+Train samples: 6980
+Val samples: 372
+Test samples: 2947
+Performance mode: True
+DataLoader settings: workers=6, pin_memory=True, persistent_workers=True, prefetch_factor=2
+Class counts: [1167.0, 1022.0, 932.0, 1218.0, 1306.0, 1335.0]
+Class weights: [0.9800000190734863, 1.1200000047683716, 1.2280000448226929, 0.9390000104904175, 0.8759999871253967, 0.8569999933242798]
+
+============================================================
+STAGE 1: Train SeparableConvCNN model
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Use pretrained model:
+Test Loss: 0.2061 | Test Acc: 93.35% | Test F1 Macro: 0.9340
+
+============================================================
+STAGE 2: Training GumbelChannelPruningCNN (learn hard channel masks)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [5/60]: Train Loss: 0.6096; Train Acc: 82.16; Val Loss: 0.2126; Val Acc: 93.82; Mask: 50.87%
+Epoch [10/60]: Train Loss: 0.3924; Train Acc: 89.66; Val Loss: 0.1532; Val Acc: 94.89; Mask: 51.57%
+Epoch [15/60]: Train Loss: 0.3207; Train Acc: 91.89; Val Loss: 0.1621; Val Acc: 92.47; Mask: 52.07%
+Epoch [20/60]: Train Loss: 0.2936; Train Acc: 93.04; Val Loss: 0.1606; Val Acc: 90.59; Mask: 52.45%
+Early Stopping at Epoch [21/60] (patience=10).
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 0.1112 at Epoch 11
+Test Loss: 0.4856 | Test Acc: 89.99% | Test F1 Macro: 0.8985
+Hard channel keeps: block2=61/64, block3=114/128, block4=125/128
+
+============================================================
+STAGE 3: Building compact pruned model and fine-tuning
+============================================================
+Stage 3 model size: 33,117 params vs dense 36,868 params (10.17% reduction)
+Stage 3 widths: block2=61, block3=114, block4=125
+Epoch [5/60]: Train Loss: 0.0887; Train Acc: 95.74; Val Loss: 0.1427; Val Acc: 90.59
+Epoch [10/60]: Train Loss: 0.0801; Train Acc: 95.99; Val Loss: 0.1372; Val Acc: 91.40
+Epoch [15/60]: Train Loss: 0.0746; Train Acc: 96.13; Val Loss: 0.1533; Val Acc: 91.40
+Epoch [20/60]: Train Loss: 0.0702; Train Acc: 96.19; Val Loss: 0.1504; Val Acc: 91.13
+Epoch [25/60]: Train Loss: 0.0654; Train Acc: 96.75; Val Loss: 0.1601; Val Acc: 89.78
+Epoch [30/60]: Train Loss: 0.0665; Train Acc: 96.55; Val Loss: 0.1287; Val Acc: 91.67
+Early Stopping at Epoch [32/60] (patience=10).
+--------------------------------------------------
+Stage 3 Summary:
+Best Val Loss: 0.1096 at Epoch 22
+Test Loss: 0.2056 | Test Acc: 92.33% | Test F1 Macro: 0.9250
+Model size reduction: 10.17% (33,117/36,868 params)
+
+============================================================
+THREE-STAGE CHANNEL PRUNING TRAINING COMPLETE
+============================================================
+Stage 1 (SeparableConvCNN): Test Acc: 93.35% | F1: 0.9340
+Stage 2 (GumbelChannelPruningCNN): Test Acc: 89.99% | F1: 0.8985
+Stage 3 (Pruned SeparableConvCNN): Test Acc: 92.33% | F1: 0.9250
+Stage 3 size reduction: 10.17%

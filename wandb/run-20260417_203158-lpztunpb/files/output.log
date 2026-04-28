@@ -1,0 +1,88 @@
+Train samples: 50977
+Val samples: 2502
+Test samples: 9705
+Performance mode: True
+DataLoader settings: workers=6, pin_memory=True, persistent_workers=True, prefetch_factor=2
+Class counts: [8404.0, 8053.0, 3337.0, 3503.0, 3223.0, 1591.0, 1452.0, 21414.0]
+Class weights: [0.3799999952316284, 0.3970000147819519, 0.9580000042915344, 0.9129999876022339, 0.9919999837875366, 2.009000062942505, 2.2019999027252197, 0.14900000393390656]
+
+============================================================
+STAGE 1: Loading pretrained SeparableConvCNN
+Checkpoint: /home/qphan/master-thesis/models/wear/stage1/ihw/wear_best_model_subject6_val.pth
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Best Val Loss: not available (loaded pretrained stage1 checkpoint)
+Test Loss: 0.5304 | Test Acc: 83.24% | Test F1 Macro: 0.7323
+
+============================================================
+STAGE 2: Training GumbelMaskSeparableConvCNN (input-bin pruning)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [5/60]: Train Loss: 0.8025; Train Acc: 69.04; Val Loss: 0.6574; Val Acc: 69.02; Mask: 50.00%
+Epoch [10/60]: Train Loss: 0.7536; Train Acc: 68.02; Val Loss: 0.5217; Val Acc: 71.78; Mask: 47.00%
+Epoch [15/60]: Train Loss: 0.7202; Train Acc: 67.84; Val Loss: 0.5243; Val Acc: 71.58; Mask: 42.00%
+Epoch [20/60]: Train Loss: 0.6971; Train Acc: 68.43; Val Loss: 0.5387; Val Acc: 72.18; Mask: 40.00%
+Early Stopping at Epoch [21/60] (patience=10).
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 0.4880 at Epoch 11
+Test Loss: 0.5816 | Test Acc: 81.90% | Test F1 Macro: 0.7166
+Hard input bins kept: 46/100 (46.0%)
+
+============================================================
+STAGE 3: Retraining SeparableConvCNN on pruned input
+============================================================
+Stage 3 input check: original batch shape=(64, 6, 100), pruned batch shape=(64, 6, 46), kept bins=46/100
+  Partially loaded weights: loaded=32, skipped=1
+Epoch [5/60]: Train Loss: 0.5358; Train Acc: 68.46; Val Loss: 0.5462; Val Acc: 72.90
+Epoch [10/60]: Train Loss: 0.4801; Train Acc: 70.92; Val Loss: 0.6370; Val Acc: 72.18
+Epoch [15/60]: Train Loss: 0.4438; Train Acc: 72.24; Val Loss: 0.5707; Val Acc: 74.14
+Epoch [20/60]: Train Loss: 0.4328; Train Acc: 72.86; Val Loss: 0.5699; Val Acc: 75.58
+Epoch [25/60]: Train Loss: 0.4085; Train Acc: 73.74; Val Loss: 0.5985; Val Acc: 74.70
+Early Stopping at Epoch [26/60] (patience=10).
+--------------------------------------------------
+Stage 3 Summary:
+Best Val Loss: 0.4873 at Epoch 16
+Test Loss: 0.6068 | Test Acc: 81.27% | Test F1 Macro: 0.7208
+
+============================================================
+THREE-STAGE TRAINING COMPLETE
+============================================================
+Stage 1 (SeparableConvCNN): Test Acc: 83.24% | F1: 0.7323
+Stage 2 (Input Bin Pruning): Test Acc: 81.90% | F1: 0.7166
+Stage 3 (Pruned Input Retrain): Test Acc: 81.27% | F1: 0.7208

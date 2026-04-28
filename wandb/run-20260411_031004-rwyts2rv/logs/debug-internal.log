@@ -1,0 +1,12 @@
+{"time":"2026-04-11T03:10:04.791784773+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-11T03:10:05.049281441+02:00","level":"INFO","msg":"stream: created new stream","id":"rwyts2rv"}
+{"time":"2026-04-11T03:10:05.049382394+02:00","level":"INFO","msg":"handler: started","stream_id":"rwyts2rv"}
+{"time":"2026-04-11T03:10:05.049597222+02:00","level":"INFO","msg":"stream: started","id":"rwyts2rv"}
+{"time":"2026-04-11T03:10:05.049680791+02:00","level":"INFO","msg":"writer: started","stream_id":"rwyts2rv"}
+{"time":"2026-04-11T03:10:05.049742497+02:00","level":"INFO","msg":"sender: started","stream_id":"rwyts2rv"}
+{"time":"2026-04-11T03:10:30.942375392+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-11T03:10:31.229470232+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-11T03:10:31.240851987+02:00","level":"INFO","msg":"stream: closing","id":"rwyts2rv"}
+{"time":"2026-04-11T03:10:31.240892007+02:00","level":"INFO","msg":"handler: closed","stream_id":"rwyts2rv"}
+{"time":"2026-04-11T03:10:31.241022153+02:00","level":"INFO","msg":"sender: closed","stream_id":"rwyts2rv"}
+{"time":"2026-04-11T03:10:31.241046015+02:00","level":"INFO","msg":"stream: closed","id":"rwyts2rv"}

@@ -1,0 +1,28 @@
+2026-04-20 18:05:17,589 INFO    MainThread:974149 [wandb_setup.py:_flush():81] Current SDK version is 0.25.0
+2026-04-20 18:05:17,589 INFO    MainThread:974149 [wandb_setup.py:_flush():81] Configure stats pid to 974149
+2026-04-20 18:05:17,589 INFO    MainThread:974149 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-04-20 18:05:17,589 INFO    MainThread:974149 [wandb_init.py:setup_run_log_directory():717] Logging user logs to /home/qphan/master-thesis/wandb/run-20260420_180517-9rid15cx/logs/debug.log
+2026-04-20 18:05:17,589 INFO    MainThread:974149 [wandb_init.py:setup_run_log_directory():718] Logging internal logs to /home/qphan/master-thesis/wandb/run-20260420_180517-9rid15cx/logs/debug-internal.log
+2026-04-20 18:05:17,589 INFO    MainThread:974149 [wandb_init.py:init():844] calling init triggers
+2026-04-20 18:05:17,590 INFO    MainThread:974149 [wandb_init.py:init():849] wandb.init called with sweep_config: {}
+config: {'dataset': 'UCI-HAR', 'train_subjects': [np.int64(3), np.int64(5), np.int64(6), np.int64(7), np.int64(8), np.int64(11), np.int64(14), np.int64(15), np.int64(16), np.int64(17), np.int64(19), np.int64(21), np.int64(22), np.int64(23), np.int64(25), np.int64(26), np.int64(27), np.int64(28), np.int64(29), np.int64(30)], 'val_subjects': [1], 'test_subjects': [np.int64(2), np.int64(4), np.int64(9), np.int64(10), np.int64(12), np.int64(13), np.int64(18), np.int64(20), np.int64(24)], 'epochs_stage1': 60, 'epochs_stage2': 60, 'epochs_stage3': 60, 'epochs_stage4': 60, 'epochs_stage5': 60, 'lr': 0.001, 'stage2_backbone_lr_factor': 0.1, 'stage4_backbone_lr_factor': 0.1, 'stage5_loaded_lr_factor': 0.1, 'batch_size': 64, 'performance': True, 'preprocessing': 'fft', 'sparsity_weight_bin': 0.1, 'sparsity_weight_channel': 0.2, 'training_type': 'five_stage', 'selected_subjects': [1], 'stage1_model_path': '/home/qphan/master-thesis/models/uci/stage1/fft/uci_best_model_subject1_val.pth', 'stage2_model_path': None, 'stage3_model_path': None, 'stage4_model_path': None, 'stage5_model_path': None, '_wandb': {}}
+2026-04-20 18:05:17,590 INFO    MainThread:974149 [wandb_init.py:init():892] starting backend
+2026-04-20 18:05:17,837 INFO    MainThread:974149 [wandb_init.py:init():895] sending inform_init request
+2026-04-20 18:05:17,840 INFO    MainThread:974149 [wandb_init.py:init():903] backend started and connected
+2026-04-20 18:05:17,851 INFO    MainThread:974149 [wandb_init.py:init():973] updated telemetry
+2026-04-20 18:05:17,854 INFO    MainThread:974149 [wandb_init.py:init():997] communicating run to backend with 90.0 second timeout
+2026-04-20 18:05:18,819 INFO    MainThread:974149 [wandb_init.py:init():1042] starting run threads in backend
+2026-04-20 18:05:18,862 WARNING MainThread:974149 [wandb_init.py:init():1587] [no run ID] interrupted
+Traceback (most recent call last):
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/wandb_init.py", line 1578, in init
+    run = wi.init(run_settings, run_config, run_printer)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/wandb_init.py", line 1081, in init
+    run._on_start()
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/wandb_run.py", line 2551, in _on_start
+    self._backend.interface.publish_python_packages(working_set())
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/wandb/sdk/interface/interface.py", line 348, in publish_python_packages
+    python_packages.package.add(name=pkg.key, version=pkg.version)
+KeyboardInterrupt
+2026-04-20 18:05:18,865 INFO    wandb-AsyncioManager-main:974149 [service_client.py:_forward_responses():134] Reached EOF.
+2026-04-20 18:05:18,865 INFO    wandb-AsyncioManager-main:974149 [mailbox.py:close():155] Closing mailbox, abandoning 0 handles.

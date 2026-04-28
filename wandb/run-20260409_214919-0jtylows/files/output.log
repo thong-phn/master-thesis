@@ -1,0 +1,44 @@
+Train samples: 7005
+Val samples: 347
+Test samples: 2947
+Performance mode: False
+DataLoader settings: workers=0, pin_memory=False, persistent_workers=False, prefetch_factor=n/a
+Class counts: [1131.0, 1020.0, 937.0, 1239.0, 1321.0, 1357.0]
+Class weights: [1.0140000581741333, 1.1239999532699585, 1.2239999771118164, 0.925000011920929, 0.8679999709129333, 0.8450000286102295]
+
+============================================================
+STAGE 1: Training SeparableConvCNN
+============================================================
+Epoch [5/60]: Train Loss: 0.2786; Train Acc: 88.25; Val Loss: 0.3291; Val Acc: 83.86
+Epoch [10/60]: Train Loss: 0.1849; Train Acc: 92.51; Val Loss: 0.3542; Val Acc: 83.86
+Epoch [15/60]: Train Loss: 0.1540; Train Acc: 93.63; Val Loss: 0.3751; Val Acc: 83.86
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/uci_main_loso_input_pruning.py", line 326, in <module>
+    main()
+  File "/home/qphan/master-thesis/uci_main_loso_input_pruning.py", line 235, in main
+    metrics = train_loso_uci_three_stage_input_pruning(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/uci_train.py", line 708, in train_loso_uci_three_stage_input_pruning
+    stage1_result = stage1_pipeline(
+                    ^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/ml_lib.py", line 152, in stage1_pipeline
+    train_loss, train_acc = _train_one_epoch(model, optimizer, train_loader, criterion, device)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/ml_lib.py", line 80, in _train_one_epoch
+    for x, y in dataloader:
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/utils/data/dataloader.py", line 732, in __next__
+    data = self._next_data()
+           ^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/utils/data/dataloader.py", line 788, in _next_data
+    data = self._dataset_fetcher.fetch(index)  # may raise StopIteration
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/utils/data/_utils/fetch.py", line 52, in fetch
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/utils/data/_utils/fetch.py", line 52, in <listcomp>
+    data = [self.dataset[idx] for idx in possibly_batched_index]
+            ~~~~~~~~~~~~^^^^^
+  File "/home/qphan/master-thesis/lib/uci_train.py", line 151, in __getitem__
+    return torch.FloatTensor(mag), torch.LongTensor([self.labels[idx]])[0]
+           ^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

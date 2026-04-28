@@ -1,0 +1,12 @@
+{"time":"2026-04-10T00:37:54.915025569+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-10T00:37:55.176193406+02:00","level":"INFO","msg":"stream: created new stream","id":"ils15hts"}
+{"time":"2026-04-10T00:37:55.176300499+02:00","level":"INFO","msg":"handler: started","stream_id":"ils15hts"}
+{"time":"2026-04-10T00:37:55.176508624+02:00","level":"INFO","msg":"stream: started","id":"ils15hts"}
+{"time":"2026-04-10T00:37:55.176591479+02:00","level":"INFO","msg":"writer: started","stream_id":"ils15hts"}
+{"time":"2026-04-10T00:37:55.176594307+02:00","level":"INFO","msg":"sender: started","stream_id":"ils15hts"}
+{"time":"2026-04-10T00:38:15.329896364+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-10T00:38:15.558603882+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-10T00:38:15.570570869+02:00","level":"INFO","msg":"stream: closing","id":"ils15hts"}
+{"time":"2026-04-10T00:38:15.570604075+02:00","level":"INFO","msg":"handler: closed","stream_id":"ils15hts"}
+{"time":"2026-04-10T00:38:15.57077841+02:00","level":"INFO","msg":"sender: closed","stream_id":"ils15hts"}
+{"time":"2026-04-10T00:38:15.570797296+02:00","level":"INFO","msg":"stream: closed","id":"ils15hts"}

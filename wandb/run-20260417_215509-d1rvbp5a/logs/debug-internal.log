@@ -1,0 +1,13 @@
+{"time":"2026-04-17T21:55:09.257455012+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-17T21:55:09.523676023+02:00","level":"INFO","msg":"stream: created new stream","id":"d1rvbp5a"}
+{"time":"2026-04-17T21:55:09.523785061+02:00","level":"INFO","msg":"handler: started","stream_id":"d1rvbp5a"}
+{"time":"2026-04-17T21:55:09.523949968+02:00","level":"INFO","msg":"stream: started","id":"d1rvbp5a"}
+{"time":"2026-04-17T21:55:09.524035+02:00","level":"INFO","msg":"writer: started","stream_id":"d1rvbp5a"}
+{"time":"2026-04-17T21:55:09.524128717+02:00","level":"INFO","msg":"sender: started","stream_id":"d1rvbp5a"}
+{"time":"2026-04-17T21:58:55.692708591+02:00","level":"INFO","msg":"api: retrying HTTP error","status":500,"url":"https://api.wandb.ai/files/thongp-ubicomp/thesis-analysis/d1rvbp5a/file_stream","body":"{\"error\":\"context deadline exceeded\"}"}
+{"time":"2026-04-17T21:59:22.427016097+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-17T21:59:44.196470249+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-17T21:59:44.208683808+02:00","level":"INFO","msg":"stream: closing","id":"d1rvbp5a"}
+{"time":"2026-04-17T21:59:44.208724653+02:00","level":"INFO","msg":"handler: closed","stream_id":"d1rvbp5a"}
+{"time":"2026-04-17T21:59:44.208852918+02:00","level":"INFO","msg":"sender: closed","stream_id":"d1rvbp5a"}
+{"time":"2026-04-17T21:59:44.208876662+02:00","level":"INFO","msg":"stream: closed","id":"d1rvbp5a"}

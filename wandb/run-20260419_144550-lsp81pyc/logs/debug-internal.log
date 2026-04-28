@@ -1,0 +1,12 @@
+{"time":"2026-04-19T14:45:50.31128853+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-19T14:45:50.56865512+02:00","level":"INFO","msg":"stream: created new stream","id":"lsp81pyc"}
+{"time":"2026-04-19T14:45:50.568687664+02:00","level":"INFO","msg":"handler: started","stream_id":"lsp81pyc"}
+{"time":"2026-04-19T14:45:50.568846839+02:00","level":"INFO","msg":"stream: started","id":"lsp81pyc"}
+{"time":"2026-04-19T14:45:50.568882402+02:00","level":"INFO","msg":"writer: started","stream_id":"lsp81pyc"}
+{"time":"2026-04-19T14:45:50.568892441+02:00","level":"INFO","msg":"sender: started","stream_id":"lsp81pyc"}
+{"time":"2026-04-19T14:46:11.335752348+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-19T14:46:11.56513186+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-19T14:46:11.567782887+02:00","level":"INFO","msg":"stream: closing","id":"lsp81pyc"}
+{"time":"2026-04-19T14:46:11.56778982+02:00","level":"INFO","msg":"handler: closed","stream_id":"lsp81pyc"}
+{"time":"2026-04-19T14:46:11.567849569+02:00","level":"INFO","msg":"sender: closed","stream_id":"lsp81pyc"}
+{"time":"2026-04-19T14:46:11.567853183+02:00","level":"INFO","msg":"stream: closed","id":"lsp81pyc"}

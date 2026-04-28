@@ -1,0 +1,85 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        e:
+            c0hyq7slfcrwcu1x19iyupo356nyxfyc:
+                args:
+                    - --stage
+                    - "1"
+                    - --subjects
+                    - "4"
+                    - --preprocessing
+                    - fft
+                    - --mask-log-file
+                    - /home/qphan/master-thesis/log/wear_loso_five_stage_results_fft.txt
+                codePath: wear_quantize_loso_tflite_ptq.py
+                codePathLocal: wear_quantize_loso_tflite_ptq.py
+                cpu_count: 8
+                cpu_count_logical: 8
+                cudaVersion: "12.4"
+                disk:
+                    /:
+                        total: "132445769728"
+                        used: "52505640960"
+                email: mrthonglion@gmail.com
+                executable: /home/qphan/anaconda3/envs/py311-litert-torch/bin/python
+                git:
+                    commit: 2b2326b47514440696189aabb0df8b0a56f33bbe
+                    remote: git@github.com:thong-phn/master-thesis.git
+                gpu: NVIDIA GeForce RTX 2080 Ti
+                gpu_count: 2
+                gpu_nvidia:
+                    - architecture: Turing
+                      cudaCores: 4352
+                      memoryTotal: "11811160064"
+                      name: NVIDIA GeForce RTX 2080 Ti
+                      uuid: GPU-f6085285-18c3-339e-ebc0-f4b07899e0b8
+                    - architecture: Pascal
+                      cudaCores: 384
+                      memoryTotal: "2147483648"
+                      name: NVIDIA GeForce GT 1030
+                      uuid: GPU-7c331ecd-03fc-d368-3e36-b625e6cf52ba
+                host: student-pc
+                memory:
+                    total: "67337535488"
+                os: Linux-6.8.0-55-generic-x86_64-with-glibc2.39
+                program: /home/qphan/master-thesis/wear_quantize_loso_tflite_ptq.py
+                python: CPython 3.11.14
+                root: /home/qphan/master-thesis
+                startedAt: "2026-04-09T05:33:33.803410Z"
+                writerId: c0hyq7slfcrwcu1x19iyupo356nyxfyc
+        m: []
+        python_version: 3.11.14
+        t:
+            "1":
+                - 1
+                - 2
+                - 3
+                - 5
+                - 12
+                - 49
+                - 53
+            "2":
+                - 1
+                - 2
+                - 3
+                - 5
+                - 12
+                - 49
+                - 53
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.11.14
+            "5": 0.25.0
+            "12": 0.25.0
+            "13": linux-x86_64
+mask_log_file:
+    value: /home/qphan/master-thesis/log/wear_loso_five_stage_results_fft.txt
+preprocessing:
+    value: fft
+stage:
+    value: 1
+subjects:
+    value: "4"

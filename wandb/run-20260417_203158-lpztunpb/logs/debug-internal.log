@@ -1,0 +1,12 @@
+{"time":"2026-04-17T20:31:58.469876523+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-17T20:31:58.730999699+02:00","level":"INFO","msg":"stream: created new stream","id":"lpztunpb"}
+{"time":"2026-04-17T20:31:58.731129786+02:00","level":"INFO","msg":"handler: started","stream_id":"lpztunpb"}
+{"time":"2026-04-17T20:31:58.731338082+02:00","level":"INFO","msg":"stream: started","id":"lpztunpb"}
+{"time":"2026-04-17T20:31:58.731442348+02:00","level":"INFO","msg":"writer: started","stream_id":"lpztunpb"}
+{"time":"2026-04-17T20:31:58.731502434+02:00","level":"INFO","msg":"sender: started","stream_id":"lpztunpb"}
+{"time":"2026-04-17T20:35:41.225721812+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-17T20:35:41.736897144+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-17T20:35:41.749016255+02:00","level":"INFO","msg":"stream: closing","id":"lpztunpb"}
+{"time":"2026-04-17T20:35:41.749051871+02:00","level":"INFO","msg":"handler: closed","stream_id":"lpztunpb"}
+{"time":"2026-04-17T20:35:41.74920888+02:00","level":"INFO","msg":"sender: closed","stream_id":"lpztunpb"}
+{"time":"2026-04-17T20:35:41.749260769+02:00","level":"INFO","msg":"stream: closed","id":"lpztunpb"}

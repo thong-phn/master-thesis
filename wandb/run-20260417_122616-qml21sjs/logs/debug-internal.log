@@ -1,0 +1,12 @@
+{"time":"2026-04-17T12:26:16.165997094+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-17T12:26:16.426900371+02:00","level":"INFO","msg":"stream: created new stream","id":"qml21sjs"}
+{"time":"2026-04-17T12:26:16.427003982+02:00","level":"INFO","msg":"handler: started","stream_id":"qml21sjs"}
+{"time":"2026-04-17T12:26:16.427239441+02:00","level":"INFO","msg":"stream: started","id":"qml21sjs"}
+{"time":"2026-04-17T12:26:16.427341433+02:00","level":"INFO","msg":"writer: started","stream_id":"qml21sjs"}
+{"time":"2026-04-17T12:26:16.427402651+02:00","level":"INFO","msg":"sender: started","stream_id":"qml21sjs"}
+{"time":"2026-04-17T12:26:34.689794773+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-17T12:26:35.771698684+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-17T12:26:35.783448491+02:00","level":"INFO","msg":"stream: closing","id":"qml21sjs"}
+{"time":"2026-04-17T12:26:35.783485313+02:00","level":"INFO","msg":"handler: closed","stream_id":"qml21sjs"}
+{"time":"2026-04-17T12:26:35.783635432+02:00","level":"INFO","msg":"sender: closed","stream_id":"qml21sjs"}
+{"time":"2026-04-17T12:26:35.783684971+02:00","level":"INFO","msg":"stream: closed","id":"qml21sjs"}

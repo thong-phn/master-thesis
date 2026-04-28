@@ -21,11 +21,24 @@ set -e
 # python wear_main_loso_input_pruning.py --sparsity_weight_bin 1.0  --run_name 'InputPruningFineTuned' --preprocessing 'ihw' --stage1_model_path '/home/qphan/master-thesis/models/wear/stage1/ihw/wear_best_model_subject{subject}_val.pth' --performance --wandb False
 # python wear_quantize_loso_tflite_ptq.py --stage 3 --preprocessing 'ihw' --tflite-output-path 'models/tflite' --log_name "IHW-1.0-quant" --wandb False --mask-log-file 'log/wear_loso_three_stage_results_ihw.txt'
 
-# Channel pruning + Quant
-for sparsity in 2.0; do
-	python wear_main_loso_channel_pruning.py --preprocessing 'fft' --run_name "Channel-pruning-wCEL-ForQuant" --sparsity_weight "$sparsity" --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth" --wandb False
-	python wear_quantize_loso_tflite_ptq.py --stage 5 --preprocessing 'fft' --tflite-output-path "models/tflite/fft/${sparsity}" --log_name "CP-FFT-${sparsity}-quant" --wandb False
+# # Baseline + Quant
+# for preprocessing in "fft" "dct" "ihw" "no"; do
+# 	python wear_quantize_loso_tflite_ptq.py --stage 1 --preprocessing ${preprocessing} --tflite-output-path "models/tflite/wear/bl-${preprocessing}/" --log_name "BL-${preprocessing}-quant" --wandb False
+# done
+
+# # Channel pruning + Quant
+# for preprocessing in "no"; do 
+# 	for sparsity in 0.8 4.0; do
+# 		python wear_main_loso_channel_pruning.py --preprocessing ${preprocessing} --run_name "Channel-pruning-wCEL-ForQuant" --sparsity_weight "$sparsity" --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/${preprocessing}/wear_best_model_subject{subject}_val.pth" 
+# 		# python wear_quantize_loso_tflite_ptq.py --stage 5 --preprocessing ${preprocessing} --tflite-output-path "models/tflite/cp-${preprocessing}/${sparsity}" --log_name "CP-${preprocessing}-${sparsity}-quant" --wandb False
+# 	done
+# done
+
+for sparsity in 0.2; do
+	python wear_main_loso_channel_pruning.py --preprocessing   --run_name "Channel-pruning-wCEL-ForQuant-${sparsity}" --sparsity_weight "$sparsity" --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject{subject}_val.pth"
+	python wear_quantize_loso_tflite_ptq.py --stage 7 --preprocessing fft --tflite-output-path "models/tflite/cp-fft/${sparsity}" --log_name "CP-FFT-${sparsity}-quant" --wandb False
 done
+# python wear_quantize_loso_tflite_ptq.py --stage 7 --preprocessing no --tflite-output-path "models/tflite/cp-no/2.0" --log_name "CP-NO-2.0-quant" --wandb False
 
 # for sparsity in 0.2 2.0; do
 # 	python wear_main_loso_channel_pruning.py --preprocessing 'dct' --run_name "Channel-pruning-wCEL-ForQuant" --sparsity_weight "$sparsity" --performance --stage1_model_path "/home/qphan/master-thesis/models/wear/stage1/dct/wear_best_model_subject{subject}_val.pth" --wandb False

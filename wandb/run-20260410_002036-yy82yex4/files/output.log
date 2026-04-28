@@ -1,0 +1,83 @@
+Train samples: 6944
+Val samples: 408
+Test samples: 2947
+Performance mode: True
+DataLoader settings: workers=6, pin_memory=True, persistent_workers=True, prefetch_factor=2
+Class counts: [1174.0, 1026.0, 941.0, 1201.0, 1285.0, 1317.0]
+Class weights: [0.972000002861023, 1.1119999885559082, 1.2120000123977661, 0.949999988079071, 0.8880000114440918, 0.8659999966621399]
+
+============================================================
+STAGE 1: Loading pretrained SeparableConvCNN
+Checkpoint: /home/qphan/master-thesis/models/uci/stage1/ihw/uci_best_model_subject21_val.pth
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Use pretrained model:
+Test Loss: 0.3520 | Test Acc: 91.11% | Test F1 Macro: 0.9123
+
+============================================================
+STAGE 2: Training GumbelMaskSeparableConvCNN (input-bin pruning)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [5/60]: Train Loss: 0.2103; Train Acc: 92.55; Val Loss: 0.1725; Val Acc: 94.12; Mask: 92.97%
+Epoch [10/60]: Train Loss: 0.1871; Train Acc: 93.42; Val Loss: 0.1781; Val Acc: 94.36; Mask: 93.75%
+Early Stopping at Epoch [13/60] (patience=10).
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 0.1518 at Epoch 3
+Test Loss: 0.3958 | Test Acc: 91.38% | Test F1 Macro: 0.9149
+Hard input bins kept: 119/128 (93.0%)
+
+============================================================
+STAGE 3: Retraining SeparableConvCNN on pruned input
+============================================================
+  Partially loaded weights: loaded=32, skipped=1
+Epoch [5/60]: Train Loss: 0.0924; Train Acc: 96.14; Val Loss: 0.1802; Val Acc: 93.14
+Epoch [10/60]: Train Loss: 0.0743; Train Acc: 97.12; Val Loss: 1.9745; Val Acc: 73.53
+Epoch [15/60]: Train Loss: 0.0619; Train Acc: 97.44; Val Loss: 0.7205; Val Acc: 82.35
+Early Stopping at Epoch [19/60] (patience=10).
+--------------------------------------------------
+Stage 3 Summary:
+Best Val Loss: 0.1748 at Epoch 9
+Test Loss: 0.2827 | Test Acc: 92.33% | Test F1 Macro: 0.9256
+
+============================================================
+THREE-STAGE TRAINING COMPLETE
+============================================================
+Stage 1 (SeparableConvCNN): Test Acc: 91.11% | F1: 0.9123
+Stage 2 (Input Bin Pruning): Test Acc: 91.38% | F1: 0.9149
+Stage 3 (Pruned Input Retrain): Test Acc: 92.33% | F1: 0.9256

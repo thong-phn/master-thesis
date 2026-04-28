@@ -1,0 +1,66 @@
+
+============================================================
+  Fold – validation subject 0
+============================================================
+  Input shape for export: (1, 6, 51)
+  PyTorch model parameters: 36,998
+[torch.onnx] Obtain model graph for `SeparableConvCNN([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SeparableConvCNN([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decomposition...
+/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/cuda/__init__.py:283: UserWarning:
+    Found GPU1 NVIDIA GeForce GT 1030 which is of cuda capability 6.1.
+    Minimum and Maximum cuda capability supported by this version of PyTorch is
+    (7.0) - (12.0)
+
+  warnings.warn(
+/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/cuda/__init__.py:304: UserWarning:
+    Please install PyTorch with a following CUDA
+    configurations:  12.6 following instructions at
+    https://pytorch.org/get-started/locally/
+
+  warnings.warn(matched_cuda_warn.format(matched_arches))
+/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/cuda/__init__.py:326: UserWarning:
+NVIDIA GeForce GT 1030 with CUDA capability sm_61 is not compatible with the current PyTorch installation.
+The current PyTorch install supports CUDA capabilities sm_70 sm_75 sm_80 sm_86 sm_90 sm_100 sm_120.
+If you want to use the NVIDIA GeForce GT 1030 GPU with PyTorch, please check the instructions at https://pytorch.org/get-started/locally/
+
+  warnings.warn(
+[torch.onnx] Run decomposition... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+Applied 8 of general pattern rewrite rules.
+  ONNX exported → /tmp/tmpy2mqz82f/model.onnx
+  onnx2tf: onnx2tf -i /tmp/tmpy2mqz82f/model.onnx -o /tmp/tmpy2mqz82f/saved_model -osd
+  TF SavedModel → /tmp/tmpy2mqz82f/saved_model
+
+  ── W8A16_FLOAT_IO ──
+  TFLite size: 66.0 KB  |  OPs: N/A  |  MACs: N/A
+/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/tensorflow/lite/python/interpreter.py:457: UserWarning:     Warning: tf.lite.Interpreter is deprecated and is scheduled for deletion in
+    TF 2.20. Please use the LiteRT interpreter from the ai_edge_litert package.
+    See the [migration guide](https://ai.google.dev/edge/litert/migration)
+    for details.
+
+  warnings.warn(_INTERPRETER_DELETION_WARNING)
+  Result: Acc 79.08%  F1 0.6833
+
+  ── W8A16_INT_IO ──
+  TFLite size: 65.8 KB  |  OPs: N/A  |  MACs: N/A
+/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/tensorflow/lite/python/interpreter.py:457: UserWarning:     Warning: tf.lite.Interpreter is deprecated and is scheduled for deletion in
+    TF 2.20. Please use the LiteRT interpreter from the ai_edge_litert package.
+    See the [migration guide](https://ai.google.dev/edge/litert/migration)
+    for details.
+
+  warnings.warn(_INTERPRETER_DELETION_WARNING)
+  Result: Acc 79.08%  F1 0.6833
+
+  ── W8A8_INT_IO ──
+  TFLite size: 62.4 KB  |  OPs: N/A  |  MACs: N/A
+/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/tensorflow/lite/python/interpreter.py:457: UserWarning:     Warning: tf.lite.Interpreter is deprecated and is scheduled for deletion in
+    TF 2.20. Please use the LiteRT interpreter from the ai_edge_litert package.
+    See the [migration guide](https://ai.google.dev/edge/litert/migration)
+    for details.
+
+  warnings.warn(_INTERPRETER_DELETION_WARNING)
+  Result: Acc 29.71%  F1 0.2384
+
+Results saved → /home/qphan/master-thesis/log/wear_ptq_results_stage1_tflite.txt  (uploaded to W&B)

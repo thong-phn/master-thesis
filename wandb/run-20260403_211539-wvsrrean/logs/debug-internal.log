@@ -1,0 +1,12 @@
+{"time":"2026-04-03T21:15:39.395930295+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-03T21:15:39.657416798+02:00","level":"INFO","msg":"stream: created new stream","id":"wvsrrean"}
+{"time":"2026-04-03T21:15:39.65752519+02:00","level":"INFO","msg":"handler: started","stream_id":"wvsrrean"}
+{"time":"2026-04-03T21:15:39.65771153+02:00","level":"INFO","msg":"stream: started","id":"wvsrrean"}
+{"time":"2026-04-03T21:15:39.657805946+02:00","level":"INFO","msg":"writer: started","stream_id":"wvsrrean"}
+{"time":"2026-04-03T21:15:39.657870842+02:00","level":"INFO","msg":"sender: started","stream_id":"wvsrrean"}
+{"time":"2026-04-03T21:27:23.338159842+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-03T21:27:23.781557683+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-03T21:27:23.793467656+02:00","level":"INFO","msg":"stream: closing","id":"wvsrrean"}
+{"time":"2026-04-03T21:27:23.793501282+02:00","level":"INFO","msg":"handler: closed","stream_id":"wvsrrean"}
+{"time":"2026-04-03T21:27:23.793651492+02:00","level":"INFO","msg":"sender: closed","stream_id":"wvsrrean"}
+{"time":"2026-04-03T21:27:23.793676342+02:00","level":"INFO","msg":"stream: closed","id":"wvsrrean"}

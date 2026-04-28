@@ -1,0 +1,12 @@
+{"time":"2026-04-03T09:34:53.47713925+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-03T09:34:53.750196324+02:00","level":"INFO","msg":"stream: created new stream","id":"bcifixc2"}
+{"time":"2026-04-03T09:34:53.750323335+02:00","level":"INFO","msg":"handler: started","stream_id":"bcifixc2"}
+{"time":"2026-04-03T09:34:53.750869106+02:00","level":"INFO","msg":"stream: started","id":"bcifixc2"}
+{"time":"2026-04-03T09:34:53.751344277+02:00","level":"INFO","msg":"sender: started","stream_id":"bcifixc2"}
+{"time":"2026-04-03T09:34:53.75136008+02:00","level":"INFO","msg":"writer: started","stream_id":"bcifixc2"}
+{"time":"2026-04-03T09:44:26.692896734+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-03T09:44:26.937901996+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-03T09:44:26.940770066+02:00","level":"INFO","msg":"stream: closing","id":"bcifixc2"}
+{"time":"2026-04-03T09:44:26.940778906+02:00","level":"INFO","msg":"handler: closed","stream_id":"bcifixc2"}
+{"time":"2026-04-03T09:44:26.940828143+02:00","level":"INFO","msg":"sender: closed","stream_id":"bcifixc2"}
+{"time":"2026-04-03T09:44:26.940842994+02:00","level":"INFO","msg":"stream: closed","id":"bcifixc2"}

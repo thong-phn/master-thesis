@@ -1,0 +1,12 @@
+{"time":"2026-04-17T22:40:42.62433672+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-17T22:40:42.889495373+02:00","level":"INFO","msg":"stream: created new stream","id":"alblutmf"}
+{"time":"2026-04-17T22:40:42.889596716+02:00","level":"INFO","msg":"handler: started","stream_id":"alblutmf"}
+{"time":"2026-04-17T22:40:42.889769036+02:00","level":"INFO","msg":"stream: started","id":"alblutmf"}
+{"time":"2026-04-17T22:40:42.889859055+02:00","level":"INFO","msg":"writer: started","stream_id":"alblutmf"}
+{"time":"2026-04-17T22:40:42.889932907+02:00","level":"INFO","msg":"sender: started","stream_id":"alblutmf"}
+{"time":"2026-04-17T22:45:34.119524021+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-17T22:45:34.415338776+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-17T22:45:34.427115696+02:00","level":"INFO","msg":"stream: closing","id":"alblutmf"}
+{"time":"2026-04-17T22:45:34.427152379+02:00","level":"INFO","msg":"handler: closed","stream_id":"alblutmf"}
+{"time":"2026-04-17T22:45:34.427271852+02:00","level":"INFO","msg":"sender: closed","stream_id":"alblutmf"}
+{"time":"2026-04-17T22:45:34.427294128+02:00","level":"INFO","msg":"stream: closed","id":"alblutmf"}

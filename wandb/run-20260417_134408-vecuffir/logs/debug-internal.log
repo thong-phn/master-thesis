@@ -1,0 +1,12 @@
+{"time":"2026-04-17T13:44:08.908833086+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-17T13:44:09.161668614+02:00","level":"INFO","msg":"stream: created new stream","id":"vecuffir"}
+{"time":"2026-04-17T13:44:09.161768286+02:00","level":"INFO","msg":"handler: started","stream_id":"vecuffir"}
+{"time":"2026-04-17T13:44:09.161974358+02:00","level":"INFO","msg":"stream: started","id":"vecuffir"}
+{"time":"2026-04-17T13:44:09.162064463+02:00","level":"INFO","msg":"writer: started","stream_id":"vecuffir"}
+{"time":"2026-04-17T13:44:09.162138176+02:00","level":"INFO","msg":"sender: started","stream_id":"vecuffir"}
+{"time":"2026-04-17T13:44:27.424701169+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-17T13:44:30.087287084+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-17T13:44:30.098987324+02:00","level":"INFO","msg":"stream: closing","id":"vecuffir"}
+{"time":"2026-04-17T13:44:30.099026397+02:00","level":"INFO","msg":"handler: closed","stream_id":"vecuffir"}
+{"time":"2026-04-17T13:44:30.099186944+02:00","level":"INFO","msg":"sender: closed","stream_id":"vecuffir"}
+{"time":"2026-04-17T13:44:30.099241666+02:00","level":"INFO","msg":"stream: closed","id":"vecuffir"}

@@ -1,0 +1,12 @@
+{"time":"2026-04-10T00:06:49.36900353+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-10T00:06:49.639485047+02:00","level":"INFO","msg":"stream: created new stream","id":"hr41umcu"}
+{"time":"2026-04-10T00:06:49.639645709+02:00","level":"INFO","msg":"handler: started","stream_id":"hr41umcu"}
+{"time":"2026-04-10T00:06:49.639942741+02:00","level":"INFO","msg":"stream: started","id":"hr41umcu"}
+{"time":"2026-04-10T00:06:49.640055807+02:00","level":"INFO","msg":"writer: started","stream_id":"hr41umcu"}
+{"time":"2026-04-10T00:06:49.64011275+02:00","level":"INFO","msg":"sender: started","stream_id":"hr41umcu"}
+{"time":"2026-04-10T00:07:10.024137666+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-10T00:07:10.277292967+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-10T00:07:10.28969313+02:00","level":"INFO","msg":"stream: closing","id":"hr41umcu"}
+{"time":"2026-04-10T00:07:10.289727552+02:00","level":"INFO","msg":"handler: closed","stream_id":"hr41umcu"}
+{"time":"2026-04-10T00:07:10.28988835+02:00","level":"INFO","msg":"sender: closed","stream_id":"hr41umcu"}
+{"time":"2026-04-10T00:07:10.289910682+02:00","level":"INFO","msg":"stream: closed","id":"hr41umcu"}

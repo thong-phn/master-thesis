@@ -1,0 +1,124 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        e:
+            4m1x6ara84ap361730s0w4vciyw01bvx:
+                args:
+                    - --preprocessing
+                    - fft
+                    - --pruning_ratio
+                    - "0.05"
+                    - --performance
+                    - --stage1_model_path
+                    - /home/qphan/master-thesis/models/stage1/fft/wear_best_model_subject{subject}_val.pth
+                codePath: wear_main_loso_channel_pruning_random.py
+                codePathLocal: wear_main_loso_channel_pruning_random.py
+                cpu_count: 8
+                cpu_count_logical: 8
+                cudaVersion: "12.4"
+                disk:
+                    /:
+                        total: "132445769728"
+                        used: "52826464256"
+                email: mrthonglion@gmail.com
+                executable: /home/qphan/master-thesis/.venv/bin/python
+                git:
+                    commit: 81f6dee90ae40f3f389ea3a6b160d615fddc9edc
+                    remote: git@github.com:thong-phn/master-thesis.git
+                gpu: NVIDIA GeForce RTX 2080 Ti
+                gpu_count: 2
+                gpu_nvidia:
+                    - architecture: Turing
+                      cudaCores: 4352
+                      memoryTotal: "11811160064"
+                      name: NVIDIA GeForce RTX 2080 Ti
+                      uuid: GPU-f6085285-18c3-339e-ebc0-f4b07899e0b8
+                    - architecture: Pascal
+                      cudaCores: 384
+                      memoryTotal: "2147483648"
+                      name: NVIDIA GeForce GT 1030
+                      uuid: GPU-7c331ecd-03fc-d368-3e36-b625e6cf52ba
+                host: student-pc
+                memory:
+                    total: "67337535488"
+                os: Linux-6.8.0-55-generic-x86_64-with-glibc2.39
+                program: /home/qphan/master-thesis/wear_main_loso_channel_pruning_random.py
+                python: CPython 3.11.14
+                root: /home/qphan/master-thesis
+                startedAt: "2026-04-05T15:03:12.575228Z"
+                writerId: 4m1x6ara84ap361730s0w4vciyw01bvx
+        m: []
+        python_version: 3.11.14
+        t:
+            "1":
+                - 1
+                - 5
+                - 53
+            "2":
+                - 1
+                - 5
+                - 53
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.11.14
+            "5": 0.25.0
+            "10":
+                - 20
+            "12": 0.25.0
+            "13": linux-x86_64
+batch_size:
+    value: 64
+dataset:
+    value: WEAR
+epochs_stage1:
+    value: 60
+epochs_stage2:
+    value: 60
+log_every_n_epochs:
+    value: 5
+lr:
+    value: 0.001
+preprocessing:
+    value: fft
+pruning_ratio:
+    value: 0.05
+stage1_model_path:
+    value: /home/qphan/master-thesis/models/stage1/fft/wear_best_model_subject11_val.pth
+stage2_backbone_lr_factor:
+    value: 0.1
+stage2_model_path:
+    value: null
+test_subjects:
+    value:
+        - 18
+        - 19
+        - 20
+        - 21
+        - 22
+        - 23
+train_subjects:
+    value:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+        - 7
+        - 8
+        - 9
+        - 10
+        - 12
+        - 13
+        - 14
+        - 15
+        - 16
+        - 17
+training_type:
+    value: two_stage_channel_random_pruning
+val_subjects:
+    value:
+        - 11

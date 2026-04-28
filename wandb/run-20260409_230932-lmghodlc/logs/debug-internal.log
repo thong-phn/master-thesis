@@ -1,0 +1,12 @@
+{"time":"2026-04-09T23:09:32.36505775+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-09T23:09:32.621710678+02:00","level":"INFO","msg":"stream: created new stream","id":"lmghodlc"}
+{"time":"2026-04-09T23:09:32.621794615+02:00","level":"INFO","msg":"handler: started","stream_id":"lmghodlc"}
+{"time":"2026-04-09T23:09:32.622010254+02:00","level":"INFO","msg":"stream: started","id":"lmghodlc"}
+{"time":"2026-04-09T23:09:32.622108749+02:00","level":"INFO","msg":"writer: started","stream_id":"lmghodlc"}
+{"time":"2026-04-09T23:09:32.622161927+02:00","level":"INFO","msg":"sender: started","stream_id":"lmghodlc"}
+{"time":"2026-04-09T23:09:59.010109548+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-09T23:09:59.267226897+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-09T23:09:59.279018611+02:00","level":"INFO","msg":"stream: closing","id":"lmghodlc"}
+{"time":"2026-04-09T23:09:59.27905212+02:00","level":"INFO","msg":"handler: closed","stream_id":"lmghodlc"}
+{"time":"2026-04-09T23:09:59.279191792+02:00","level":"INFO","msg":"sender: closed","stream_id":"lmghodlc"}
+{"time":"2026-04-09T23:09:59.279219463+02:00","level":"INFO","msg":"stream: closed","id":"lmghodlc"}

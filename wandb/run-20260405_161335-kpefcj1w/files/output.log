@@ -1,0 +1,99 @@
+Train samples: 50702
+Val samples: 2777
+Test samples: 9705
+Performance mode: True
+DataLoader settings: workers=6, pin_memory=True, persistent_workers=True, prefetch_factor=2
+Class counts: [8476.0, 8095.0, 3322.0, 3454.0, 3167.0, 1620.0, 1461.0, 21107.0]
+Class weights: [0.3779999911785126, 0.3959999978542328, 0.9639999866485596, 0.9279999732971191, 1.0119999647140503, 1.9780000448226929, 2.193000078201294, 0.15199999511241913]
+
+============================================================
+STAGE 1: Train SeparableConvCNN model
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Use pretrained model:
+Test Loss: 0.6366 | Test Acc: 78.70% | Test F1 Macro: 0.6782
+
+============================================================
+STAGE 2: Training GumbelChannelPruningCNN (learn hard channel masks)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [5/60]: Train Loss: 3.3675; Train Acc: 27.74; Val Loss: 2.2032; Val Acc: 17.50; Mask: 35.22%
+Epoch [10/60]: Train Loss: 2.9720; Train Acc: 19.23; Val Loss: 2.0824; Val Acc: 17.50; Mask: 22.35%
+Epoch [15/60]: Train Loss: 2.6629; Train Acc: 17.34; Val Loss: 2.0761; Val Acc: 17.50; Mask: 14.47%
+Epoch [20/60]: Train Loss: 2.4679; Train Acc: 17.06; Val Loss: 2.0735; Val Acc: 17.50; Mask: 9.75%
+Epoch [25/60]: Train Loss: 2.3496; Train Acc: 19.46; Val Loss: 2.0740; Val Acc: 17.50; Mask: 6.92%
+Epoch [30/60]: Train Loss: 2.2791; Train Acc: 17.70; Val Loss: 2.0758; Val Acc: 35.04; Mask: 5.18%
+Early Stopping at Epoch [34/60] (patience=10).
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 2.0722 at Epoch 24
+Test Loss: 2.0748 | Test Acc: 28.41% | Test F1 Macro: 0.0632
+Hard channel keeps: block2=0/64, block3=0/128, block4=0/128
+
+============================================================
+STAGE 3: Building compact pruned model and fine-tuning
+============================================================
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_main_loso_channel_pruning.py", line 291, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_main_loso_channel_pruning.py", line 169, in main
+    metrics = train_loso_wear_three_stage_pruning_channel(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 2069, in train_loso_wear_three_stage_pruning_channel
+    stage3_model, keep_indices = _build_pruned_channel_model_from_stage2(
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 706, in _build_pruned_channel_model_from_stage2
+    raise ValueError(f"Stage 2 mask for {block_name} pruned all channels; Stage 3 cannot proceed.")
+ValueError: Stage 2 mask for block2 pruned all channels; Stage 3 cannot proceed.
+Exception ignored in atexit callback: <function _MultiProcessingDataLoaderIter._clean_up_worker at 0x702e13396160>
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/.venv/lib/python3.11/site-packages/torch/utils/data/dataloader.py", line 1648, in _clean_up_worker
+    w.join(timeout=_utils.MP_STATUS_CHECK_INTERVAL)
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/multiprocessing/process.py", line 149, in join
+    res = self._popen.wait(timeout)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/multiprocessing/popen_fork.py", line 40, in wait
+    if not wait([self.sentinel], timeout):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/multiprocessing/connection.py", line 948, in wait
+    ready = selector.select(timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/selectors.py", line 415, in select
+    fd_event_list = self._selector.poll(timeout)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt:

@@ -1,0 +1,36 @@
+Train samples: 50279
+Val samples: 3200
+Test samples: 9705
+Class counts: [8478.0, 8093.0, 3359.0, 3514.0, 3219.0, 1598.0, 1448.0, 20570.0]
+Class weights: [0.3779999911785126, 0.39500001072883606, 0.953000009059906, 0.9110000133514404, 0.9940000176429749, 2.003000020980835, 2.2100000381469727, 0.15600000321865082]
+Epoch [1/60]: Train Loss: 1.0649; Train Acc: 50.96; Val Loss: 1.0311; Val Acc: 49.75
+Epoch [2/60]: Train Loss: 0.8078; Train Acc: 61.94; Val Loss: 0.9554; Val Acc: 55.44
+Epoch [3/60]: Train Loss: 0.7328; Train Acc: 65.03; Val Loss: 0.9556; Val Acc: 54.09
+Epoch [4/60]: Train Loss: 0.6905; Train Acc: 66.88; Val Loss: 0.9583; Val Acc: 55.19
+Epoch [5/60]: Train Loss: 0.6602; Train Acc: 67.87; Val Loss: 0.8696; Val Acc: 66.81
+Epoch [6/60]: Train Loss: 0.6393; Train Acc: 68.42; Val Loss: 0.8678; Val Acc: 64.19
+Epoch [7/60]: Train Loss: 0.6211; Train Acc: 69.13; Val Loss: 0.8854; Val Acc: 64.44
+Epoch [8/60]: Train Loss: 0.5988; Train Acc: 69.67; Val Loss: 0.8959; Val Acc: 60.22
+Epoch [9/60]: Train Loss: 0.5847; Train Acc: 70.12; Val Loss: 0.9116; Val Acc: 60.69
+Epoch [10/60]: Train Loss: 0.5691; Train Acc: 70.79; Val Loss: 0.8720; Val Acc: 62.84
+Epoch [11/60]: Train Loss: 0.5601; Train Acc: 70.95; Val Loss: 0.9634; Val Acc: 63.88
+Epoch [12/60]: Train Loss: 0.5499; Train Acc: 71.26; Val Loss: 0.8655; Val Acc: 65.00
+Epoch [13/60]: Train Loss: 0.5375; Train Acc: 71.50; Val Loss: 0.9957; Val Acc: 57.94
+Epoch [14/60]: Train Loss: 0.5273; Train Acc: 71.52; Val Loss: 0.8957; Val Acc: 68.31
+Epoch [15/60]: Train Loss: 0.5184; Train Acc: 71.88; Val Loss: 0.8616; Val Acc: 64.09
+Epoch [16/60]: Train Loss: 0.5153; Train Acc: 72.20; Val Loss: 0.7864; Val Acc: 68.19
+Epoch [17/60]: Train Loss: 0.5023; Train Acc: 72.80; Val Loss: 0.8935; Val Acc: 64.69
+Epoch [18/60]: Train Loss: 0.4973; Train Acc: 72.45; Val Loss: 0.9508; Val Acc: 66.53
+Epoch [19/60]: Train Loss: 0.4873; Train Acc: 72.75; Val Loss: 0.8674; Val Acc: 68.41
+Epoch [20/60]: Train Loss: 0.4826; Train Acc: 72.91; Val Loss: 0.9126; Val Acc: 61.91
+Epoch [21/60]: Train Loss: 0.4836; Train Acc: 72.93; Val Loss: 0.9197; Val Acc: 67.91
+Epoch [22/60]: Train Loss: 0.4784; Train Acc: 73.23; Val Loss: 0.9206; Val Acc: 66.88
+Epoch [23/60]: Train Loss: 0.4628; Train Acc: 73.60; Val Loss: 0.9096; Val Acc: 64.06
+Epoch [24/60]: Train Loss: 0.4649; Train Acc: 73.24; Val Loss: 0.9192; Val Acc: 64.34
+Epoch [25/60]: Train Loss: 0.4641; Train Acc: 73.11; Val Loss: 1.0488; Val Acc: 58.12
+Epoch [26/60]: Train Loss: 0.4597; Train Acc: 73.47; Val Loss: 1.0046; Val Acc: 61.28
+Early Stopping at Epoch [26/60] (patience=10).
+--------------------------------------------------
+Stage 1 Summary:
+Best Val Loss: 0.7864 at Epoch 16
+Test Loss: 0.6139 | Test Acc: 79.29% | Test F1 Macro: 0.6991

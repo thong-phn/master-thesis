@@ -1,0 +1,12 @@
+{"time":"2026-04-05T18:40:37.313145983+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-05T18:40:37.571576249+02:00","level":"INFO","msg":"stream: created new stream","id":"ocap06ca"}
+{"time":"2026-04-05T18:40:37.571687141+02:00","level":"INFO","msg":"handler: started","stream_id":"ocap06ca"}
+{"time":"2026-04-05T18:40:37.5718741+02:00","level":"INFO","msg":"stream: started","id":"ocap06ca"}
+{"time":"2026-04-05T18:40:37.57197193+02:00","level":"INFO","msg":"writer: started","stream_id":"ocap06ca"}
+{"time":"2026-04-05T18:40:37.572022136+02:00","level":"INFO","msg":"sender: started","stream_id":"ocap06ca"}
+{"time":"2026-04-05T18:42:42.969975637+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-05T18:42:43.396740301+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-05T18:42:43.408659971+02:00","level":"INFO","msg":"stream: closing","id":"ocap06ca"}
+{"time":"2026-04-05T18:42:43.408696052+02:00","level":"INFO","msg":"handler: closed","stream_id":"ocap06ca"}
+{"time":"2026-04-05T18:42:43.408797788+02:00","level":"INFO","msg":"sender: closed","stream_id":"ocap06ca"}
+{"time":"2026-04-05T18:42:43.408820083+02:00","level":"INFO","msg":"stream: closed","id":"ocap06ca"}

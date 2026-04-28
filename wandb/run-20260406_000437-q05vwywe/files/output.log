@@ -1,0 +1,28 @@
+
+============================================================
+STAGE 1: Loading pretrained SeparableConvCNN
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Test Loss: 0.6285 | Test Acc: 78.70% | Test F1 Macro: 0.6782
+
+============================================================
+STAGE 2: Pruning weights based on L1 norm
+============================================================
+Kept channels per block: Block2: 58/64, Block3: 115/128, Block4: 115/128
+
+============================================================
+STAGE 3: Fine tuning physically shrunk PrunedSeparableConvCNN
+============================================================
+
+Copying unpruned weights into Stage 3 physical model...
+--------------------------------------------------
+Epoch [5/60]: Train Loss: 0.5874; Train Acc: 78.37; Val Loss: 0.9022; Val Acc: 67.19
+Epoch [10/60]: Train Loss: 0.5531; Train Acc: 79.69; Val Loss: 0.8500; Val Acc: 68.71
+Epoch [15/60]: Train Loss: 0.5302; Train Acc: 80.55; Val Loss: 0.8870; Val Acc: 68.49
+Epoch [17/60]: Train Loss: 0.5219; Train Acc: 80.74; Val Loss: 0.8759; Val Acc: 68.46
+Early Stopping at Epoch [17/60] (patience=10).
+--------------------------------------------------
+Stage 3 Summary:
+Best Val Loss: 0.8372 at Epoch 7
+Test Loss: 0.7414 | Test Acc: 73.90% | Test F1 Macro: 0.6663

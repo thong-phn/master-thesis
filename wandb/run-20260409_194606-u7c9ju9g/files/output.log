@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/uci_main_loso_baseline.py", line 182, in <module>
+    main()
+  File "/home/qphan/master-thesis/uci_main_loso_baseline.py", line 98, in main
+    metrics = train_loso_wear(
+              ^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 891, in train_loso_wear
+    train_dataset = dataset_class(
+                    ^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/uci_train.py", line 39, in __init__
+    if self.preprocessing == 'no':
+       ^^^^^^^^^^^^^^^^^^
+AttributeError: 'UCIHAR_Dataset' object has no attribute 'preprocessing'

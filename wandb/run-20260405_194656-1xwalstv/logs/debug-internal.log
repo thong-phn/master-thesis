@@ -1,0 +1,12 @@
+{"time":"2026-04-05T19:46:56.120185438+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-05T19:46:56.374978385+02:00","level":"INFO","msg":"stream: created new stream","id":"1xwalstv"}
+{"time":"2026-04-05T19:46:56.375132038+02:00","level":"INFO","msg":"handler: started","stream_id":"1xwalstv"}
+{"time":"2026-04-05T19:46:56.37529941+02:00","level":"INFO","msg":"stream: started","id":"1xwalstv"}
+{"time":"2026-04-05T19:46:56.3753952+02:00","level":"INFO","msg":"writer: started","stream_id":"1xwalstv"}
+{"time":"2026-04-05T19:46:56.375416252+02:00","level":"INFO","msg":"sender: started","stream_id":"1xwalstv"}
+{"time":"2026-04-05T19:48:00.379027323+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-05T19:48:00.730666287+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-05T19:48:00.742476372+02:00","level":"INFO","msg":"stream: closing","id":"1xwalstv"}
+{"time":"2026-04-05T19:48:00.742509334+02:00","level":"INFO","msg":"handler: closed","stream_id":"1xwalstv"}
+{"time":"2026-04-05T19:48:00.742660184+02:00","level":"INFO","msg":"sender: closed","stream_id":"1xwalstv"}
+{"time":"2026-04-05T19:48:00.742708997+02:00","level":"INFO","msg":"stream: closed","id":"1xwalstv"}

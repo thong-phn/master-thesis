@@ -1,0 +1,1 @@
+{"stage1/train_loss":0.15396573538762343,"_runtime":13,"stage1/val_acc":83.86167146974063,"stage1/best_val_loss":0.23085783343622596,"stage1/train_acc":93.63311920057102,"stage1/epoch":15,"stage1/lr":0.001,"stage1/val_loss":0.3751257966334263,"stage1/stage_number":1,"_wandb":{"runtime":13},"_timestamp":1.7757641718304327e+09,"_step":2,"stage1/purpose":"train baseline model"}

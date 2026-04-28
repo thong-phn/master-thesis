@@ -311,7 +311,7 @@ def _evaluate_tflite(tflite_model: bytes, dataloader: DataLoader):
 
 def main():
     parser = argparse.ArgumentParser(description="TFLite PTQ evaluation for WEAR models")
-    parser.add_argument("--stage", type=int, required=True, choices=[1, 3, 5])
+    parser.add_argument("--stage", type=int, required=True, choices=[1, 3, 5, 7])
     parser.add_argument("--subjects", type=str, default=None,
                         help="Comma-separated validation subjects, e.g. '0' or '0,1,2'. "
                              "If omitted, runs all subjects.")
@@ -380,6 +380,7 @@ def main():
             if not ckpt.exists():
                 ckpt = project_root / "models" / f"wear_best_model_five_stage_subject{val_subject}_val_stage3_pruned_input.pth"
         elif args.stage == 7: # Channel pruning
+            # /home/qphan/master-thesis/models/wear_best_model_three_stage_channel_subject13_val_stage3_pruned_channel.pth
             ckpt = project_root / "models" / f"wear_best_model_three_stage_channel_subject{val_subject}_val_stage3_pruned_channel.pth"
         else: # Dual pruning
             ckpt = project_root / "models" / f"wear_best_model_five_stage_subject{val_subject}_val_stage5_compact.pth"

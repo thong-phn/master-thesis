@@ -1,0 +1,12 @@
+{"time":"2026-04-10T01:13:26.145464771+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-10T01:13:26.404959689+02:00","level":"INFO","msg":"stream: created new stream","id":"upvd950n"}
+{"time":"2026-04-10T01:13:26.405056529+02:00","level":"INFO","msg":"handler: started","stream_id":"upvd950n"}
+{"time":"2026-04-10T01:13:26.405289108+02:00","level":"INFO","msg":"stream: started","id":"upvd950n"}
+{"time":"2026-04-10T01:13:26.405387273+02:00","level":"INFO","msg":"writer: started","stream_id":"upvd950n"}
+{"time":"2026-04-10T01:13:26.405460735+02:00","level":"INFO","msg":"sender: started","stream_id":"upvd950n"}
+{"time":"2026-04-10T01:13:46.960073152+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-10T01:13:47.257831193+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-10T01:13:47.269258899+02:00","level":"INFO","msg":"stream: closing","id":"upvd950n"}
+{"time":"2026-04-10T01:13:47.269291547+02:00","level":"INFO","msg":"handler: closed","stream_id":"upvd950n"}
+{"time":"2026-04-10T01:13:47.269441735+02:00","level":"INFO","msg":"sender: closed","stream_id":"upvd950n"}
+{"time":"2026-04-10T01:13:47.269466525+02:00","level":"INFO","msg":"stream: closed","id":"upvd950n"}

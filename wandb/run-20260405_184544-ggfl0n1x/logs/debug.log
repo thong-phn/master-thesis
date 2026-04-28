@@ -1,0 +1,21 @@
+2026-04-05 18:45:44,780 INFO    MainThread:3815022 [wandb_init.py:setup_run_log_directory():717] Logging user logs to /home/qphan/master-thesis/wandb/run-20260405_184544-ggfl0n1x/logs/debug.log
+2026-04-05 18:45:44,780 INFO    MainThread:3815022 [wandb_init.py:setup_run_log_directory():718] Logging internal logs to /home/qphan/master-thesis/wandb/run-20260405_184544-ggfl0n1x/logs/debug-internal.log
+2026-04-05 18:45:44,780 INFO    MainThread:3815022 [wandb_init.py:init():844] calling init triggers
+2026-04-05 18:45:44,780 INFO    MainThread:3815022 [wandb_init.py:init():849] wandb.init called with sweep_config: {}
+config: {'dataset': 'WEAR', 'train_subjects': [0, 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17], 'val_subjects': [8], 'test_subjects': [18, 19, 20, 21, 22, 23], 'epochs_stage1': 60, 'epochs_stage2': 60, 'lr': 0.001, 'stage2_backbone_lr_factor': 0.1, 'batch_size': 64, 'preprocessing': 'fft', 'pruning_ratio': 0.4, 'log_every_n_epochs': 5, 'training_type': 'two_stage_channel_random_pruning', 'stage1_model_path': '/home/qphan/master-thesis/models/stage1/fft/wear_best_model_subject8_val.pth', 'stage2_model_path': None, '_wandb': {}}
+2026-04-05 18:45:44,780 INFO    MainThread:3815022 [wandb_init.py:init():892] starting backend
+2026-04-05 18:45:44,780 INFO    MainThread:3815022 [wandb_init.py:init():895] sending inform_init request
+2026-04-05 18:45:44,781 INFO    MainThread:3815022 [wandb_init.py:init():903] backend started and connected
+2026-04-05 18:45:44,782 INFO    MainThread:3815022 [wandb_init.py:init():973] updated telemetry
+2026-04-05 18:45:44,786 INFO    MainThread:3815022 [wandb_init.py:init():997] communicating run to backend with 90.0 second timeout
+2026-04-05 18:45:45,470 INFO    MainThread:3815022 [wandb_init.py:init():1042] starting run threads in backend
+2026-04-05 18:45:45,527 INFO    MainThread:3815022 [wandb_run.py:_console_start():2524] atexit reg
+2026-04-05 18:45:45,527 INFO    MainThread:3815022 [wandb_run.py:_redirect():2373] redirect: wrap_raw
+2026-04-05 18:45:45,527 INFO    MainThread:3815022 [wandb_run.py:_redirect():2442] Wrapping output streams.
+2026-04-05 18:45:45,527 INFO    MainThread:3815022 [wandb_run.py:_redirect():2465] Redirects installed.
+2026-04-05 18:45:45,528 INFO    MainThread:3815022 [wandb_init.py:init():1082] run started, returning control to user process
+2026-04-05 18:48:28,167 INFO    MainThread:3815022 [wandb_run.py:_finish():2291] finishing run thongp-ubicomp/thesis/ggfl0n1x
+2026-04-05 18:48:28,167 INFO    MainThread:3815022 [wandb_run.py:_atexit_cleanup():2490] got exitcode: 0
+2026-04-05 18:48:28,167 INFO    MainThread:3815022 [wandb_run.py:_restore():2472] restore
+2026-04-05 18:48:28,167 INFO    MainThread:3815022 [wandb_run.py:_restore():2478] restore done
+2026-04-05 18:48:29,040 INFO    MainThread:3815022 [wandb_run.py:_footer_sync_info():3868] logging synced files

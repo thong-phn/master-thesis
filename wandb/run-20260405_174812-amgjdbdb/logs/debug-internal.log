@@ -1,0 +1,12 @@
+{"time":"2026-04-05T17:48:12.445194656+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-05T17:48:12.700057741+02:00","level":"INFO","msg":"stream: created new stream","id":"amgjdbdb"}
+{"time":"2026-04-05T17:48:12.700190879+02:00","level":"INFO","msg":"handler: started","stream_id":"amgjdbdb"}
+{"time":"2026-04-05T17:48:12.700405165+02:00","level":"INFO","msg":"stream: started","id":"amgjdbdb"}
+{"time":"2026-04-05T17:48:12.700432005+02:00","level":"INFO","msg":"writer: started","stream_id":"amgjdbdb"}
+{"time":"2026-04-05T17:48:12.700492048+02:00","level":"INFO","msg":"sender: started","stream_id":"amgjdbdb"}
+{"time":"2026-04-05T17:49:40.503630159+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-05T17:49:40.759113363+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-05T17:49:40.770869535+02:00","level":"INFO","msg":"stream: closing","id":"amgjdbdb"}
+{"time":"2026-04-05T17:49:40.770904283+02:00","level":"INFO","msg":"handler: closed","stream_id":"amgjdbdb"}
+{"time":"2026-04-05T17:49:40.771055626+02:00","level":"INFO","msg":"sender: closed","stream_id":"amgjdbdb"}
+{"time":"2026-04-05T17:49:40.771099457+02:00","level":"INFO","msg":"stream: closed","id":"amgjdbdb"}

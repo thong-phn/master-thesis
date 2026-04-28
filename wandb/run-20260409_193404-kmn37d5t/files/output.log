@@ -1,0 +1,17 @@
+Train samples: 7044
+Val samples: 308
+Test samples: 2947
+Performance mode: True
+DataLoader settings: workers=6, pin_memory=True, persistent_workers=True, prefetch_factor=2
+Class counts: [1169.0, 1022.0, 939.0, 1238.0, 1321.0, 1355.0]
+Class weights: [0.9869999885559082, 1.128999948501587, 1.2280000448226929, 0.9319999814033508, 0.8730000257492065, 0.8510000109672546]
+Epoch [5/60]: Train Loss: 0.3861; Train Acc: 80.65; Val Loss: 0.4708; Val Acc: 85.39
+Epoch [10/60]: Train Loss: 0.2866; Train Acc: 86.34; Val Loss: 0.2637; Val Acc: 90.58
+Epoch [15/60]: Train Loss: 0.1993; Train Acc: 90.84; Val Loss: 0.2311; Val Acc: 90.26
+Epoch [20/60]: Train Loss: 0.1662; Train Acc: 92.92; Val Loss: 0.5080; Val Acc: 82.79
+Epoch [25/60]: Train Loss: 0.1418; Train Acc: 93.90; Val Loss: 0.2214; Val Acc: 93.51
+Early Stopping at Epoch [28/60] (patience=10).
+--------------------------------------------------
+Stage 1 Summary:
+Best Val Loss: 0.1572 at Epoch 18
+Test Loss: 0.3672 | Test Acc: 88.94% | Test F1 Macro: 0.8915

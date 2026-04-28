@@ -1,0 +1,12 @@
+{"time":"2026-04-05T23:43:37.03359781+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-05T23:43:37.288415926+02:00","level":"INFO","msg":"stream: created new stream","id":"rk5vivix"}
+{"time":"2026-04-05T23:43:37.288528657+02:00","level":"INFO","msg":"handler: started","stream_id":"rk5vivix"}
+{"time":"2026-04-05T23:43:37.288737791+02:00","level":"INFO","msg":"stream: started","id":"rk5vivix"}
+{"time":"2026-04-05T23:43:37.288836673+02:00","level":"INFO","msg":"writer: started","stream_id":"rk5vivix"}
+{"time":"2026-04-05T23:43:37.288907705+02:00","level":"INFO","msg":"sender: started","stream_id":"rk5vivix"}
+{"time":"2026-04-05T23:44:45.275585764+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-05T23:44:45.61411294+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-05T23:44:45.625955306+02:00","level":"INFO","msg":"stream: closing","id":"rk5vivix"}
+{"time":"2026-04-05T23:44:45.625989649+02:00","level":"INFO","msg":"handler: closed","stream_id":"rk5vivix"}
+{"time":"2026-04-05T23:44:45.62618995+02:00","level":"INFO","msg":"sender: closed","stream_id":"rk5vivix"}
+{"time":"2026-04-05T23:44:45.626217865+02:00","level":"INFO","msg":"stream: closed","id":"rk5vivix"}

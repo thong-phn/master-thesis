@@ -1,0 +1,32 @@
+{
+  "os":  "Linux-6.8.0-55-generic-x86_64-with-glibc2.39",
+  "python":  "CPython 3.11.14",
+  "startedAt":  "2026-04-20T16:05:17.588772Z",
+  "args":  [
+    "--preprocessing",
+    "fft",
+    "--sparsity_weight_bin",
+    "0.1",
+    "--sparsity_weight_channel",
+    "0.2",
+    "--performance",
+    "--run_name",
+    "FiveStageFinal",
+    "--stage1_model_path",
+    "/home/qphan/master-thesis/models/uci/stage1/fft/uci_best_model_subject{subject}_val.pth",
+    "--subject",
+    "1"
+  ],
+  "program":  "/home/qphan/master-thesis/uci_main_loso_five_stage.py",
+  "codePath":  "uci_main_loso_five_stage.py",
+  "codePathLocal":  "uci_main_loso_five_stage.py",
+  "git":  {
+    "remote":  "git@github.com:thong-phn/master-thesis.git",
+    "commit":  "aa8f8208f4a73d4f116ce8334814a43c4afebe32"
+  },
+  "email":  "mrthonglion@gmail.com",
+  "root":  "/home/qphan/master-thesis",
+  "host":  "student-pc",
+  "executable":  "/home/qphan/anaconda3/envs/py311-litert-torch/bin/python",
+  "writerId":  "9ca417b6a7fd481lbdvqvx2pcajwpk8i"
+}

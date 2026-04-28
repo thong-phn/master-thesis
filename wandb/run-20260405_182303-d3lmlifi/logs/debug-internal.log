@@ -1,0 +1,12 @@
+{"time":"2026-04-05T18:23:03.978568022+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-05T18:23:04.23832002+02:00","level":"INFO","msg":"stream: created new stream","id":"d3lmlifi"}
+{"time":"2026-04-05T18:23:04.238425144+02:00","level":"INFO","msg":"handler: started","stream_id":"d3lmlifi"}
+{"time":"2026-04-05T18:23:04.238627752+02:00","level":"INFO","msg":"stream: started","id":"d3lmlifi"}
+{"time":"2026-04-05T18:23:04.238731438+02:00","level":"INFO","msg":"writer: started","stream_id":"d3lmlifi"}
+{"time":"2026-04-05T18:23:04.238792517+02:00","level":"INFO","msg":"sender: started","stream_id":"d3lmlifi"}
+{"time":"2026-04-05T18:24:09.77642615+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-05T18:24:10.103970192+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-05T18:24:10.108631856+02:00","level":"INFO","msg":"stream: closing","id":"d3lmlifi"}
+{"time":"2026-04-05T18:24:10.108645215+02:00","level":"INFO","msg":"handler: closed","stream_id":"d3lmlifi"}
+{"time":"2026-04-05T18:24:10.108718635+02:00","level":"INFO","msg":"sender: closed","stream_id":"d3lmlifi"}
+{"time":"2026-04-05T18:24:10.10872963+02:00","level":"INFO","msg":"stream: closed","id":"d3lmlifi"}

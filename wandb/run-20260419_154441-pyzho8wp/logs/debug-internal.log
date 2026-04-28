@@ -1,0 +1,12 @@
+{"time":"2026-04-19T15:44:41.559031387+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-19T15:44:41.821850358+02:00","level":"INFO","msg":"stream: created new stream","id":"pyzho8wp"}
+{"time":"2026-04-19T15:44:41.821941964+02:00","level":"INFO","msg":"handler: started","stream_id":"pyzho8wp"}
+{"time":"2026-04-19T15:44:41.822182357+02:00","level":"INFO","msg":"stream: started","id":"pyzho8wp"}
+{"time":"2026-04-19T15:44:41.822268079+02:00","level":"INFO","msg":"writer: started","stream_id":"pyzho8wp"}
+{"time":"2026-04-19T15:44:41.822332632+02:00","level":"INFO","msg":"sender: started","stream_id":"pyzho8wp"}
+{"time":"2026-04-19T15:45:08.139587498+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-19T15:45:08.530676373+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-19T15:45:08.54228036+02:00","level":"INFO","msg":"stream: closing","id":"pyzho8wp"}
+{"time":"2026-04-19T15:45:08.542316244+02:00","level":"INFO","msg":"handler: closed","stream_id":"pyzho8wp"}
+{"time":"2026-04-19T15:45:08.542416577+02:00","level":"INFO","msg":"sender: closed","stream_id":"pyzho8wp"}
+{"time":"2026-04-19T15:45:08.542434921+02:00","level":"INFO","msg":"stream: closed","id":"pyzho8wp"}

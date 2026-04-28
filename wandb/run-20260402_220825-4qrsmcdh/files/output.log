@@ -1,0 +1,86 @@
+Train samples: 50627
+Val samples: 2852
+Test samples: 9705
+
+============================================================
+STAGE 1: Training SeparableConvCNN
+============================================================
+Epoch [1/60]: Train Loss: 0.9173; Train Acc: 66.24; Val Loss: 1.0272; Val Acc: 60.17
+Epoch [2/60]: Train Loss: 0.7032; Train Acc: 74.09; Val Loss: 0.9966; Val Acc: 60.13
+Epoch [3/60]: Train Loss: 0.6427; Train Acc: 76.74; Val Loss: 0.8510; Val Acc: 71.28
+Epoch [4/60]: Train Loss: 0.6037; Train Acc: 78.10; Val Loss: 0.8286; Val Acc: 72.23
+Epoch [5/60]: Train Loss: 0.5669; Train Acc: 79.44; Val Loss: 1.0313; Val Acc: 63.88
+Epoch [6/60]: Train Loss: 0.5491; Train Acc: 80.06; Val Loss: 0.8690; Val Acc: 68.93
+Epoch [7/60]: Train Loss: 0.5308; Train Acc: 80.78; Val Loss: 1.0036; Val Acc: 63.15
+Epoch [8/60]: Train Loss: 0.5129; Train Acc: 81.31; Val Loss: 0.8934; Val Acc: 68.76
+Epoch [9/60]: Train Loss: 0.5062; Train Acc: 81.63; Val Loss: 0.9746; Val Acc: 64.31
+Epoch [10/60]: Train Loss: 0.4870; Train Acc: 82.28; Val Loss: 1.0543; Val Acc: 62.24
+Epoch [11/60]: Train Loss: 0.4814; Train Acc: 82.53; Val Loss: 0.8294; Val Acc: 74.65
+Epoch [12/60]: Train Loss: 0.4696; Train Acc: 82.93; Val Loss: 0.9372; Val Acc: 67.88
+Epoch [13/60]: Train Loss: 0.4608; Train Acc: 83.18; Val Loss: 0.9028; Val Acc: 68.41
+Epoch [14/60]: Train Loss: 0.4508; Train Acc: 83.56; Val Loss: 1.1149; Val Acc: 61.89
+Early Stopping at Epoch [14/60] (patience=10).
+--------------------------------------------------
+Stage 1 Summary:
+Best Val Loss: 0.8286 at Epoch 4
+Test Loss: 0.7441 | Test Acc: 71.97% | Test F1 Macro: 0.6721
+
+============================================================
+STAGE 2: Training GumbelMaskSeparableConvCNN (input-bin pruning)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization: bin_logits (Gumbel-specific parameter)
+Epoch [1/60]: Train Loss: 0.7188; Train Acc: 74.76; Val Loss: 1.2547; Val Acc: 59.57; Mask: 98.00%
+Epoch [2/60]: Train Loss: 0.6681; Train Acc: 76.83; Val Loss: 1.0787; Val Acc: 62.66; Mask: 99.00%
+Epoch [3/60]: Train Loss: 0.6483; Train Acc: 77.63; Val Loss: 0.9606; Val Acc: 65.60; Mask: 99.00%
+Epoch [4/60]: Train Loss: 0.6296; Train Acc: 78.19; Val Loss: 0.9262; Val Acc: 66.34; Mask: 99.00%
+Epoch [5/60]: Train Loss: 0.6154; Train Acc: 78.81; Val Loss: 1.0704; Val Acc: 62.76; Mask: 99.00%
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_main_loso_five_stage.py", line 372, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_main_loso_five_stage.py", line 259, in main
+    metrics = train_loso_wear_multi_stage(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 2980, in train_loso_wear_multi_stage
+    loss.backward()
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/_tensor.py", line 625, in backward
+    torch.autograd.backward(
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/autograd/__init__.py", line 354, in backward
+    _engine_run_backward(
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/autograd/graph.py", line 841, in _engine_run_backward
+    return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

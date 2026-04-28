@@ -1,0 +1,191 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        e:
+            xo4c3jwhyasxihjba8t0v37s01wl28dv:
+                args:
+                    - --sparsity_weight_bin
+                    - "0.4"
+                    - --run_name
+                    - InputPruningFineTuned
+                    - --preprocessing
+                    - ihw
+                    - --stage1_model_path
+                    - /home/qphan/master-thesis/models/wear/stage1/ihw/wear_best_model_subject{subject}_val.pth
+                    - --performance
+                codePath: wear_main_loso_input_pruning.py
+                codePathLocal: wear_main_loso_input_pruning.py
+                cpu_count: 8
+                cpu_count_logical: 8
+                cudaVersion: "12.4"
+                disk:
+                    /:
+                        total: "132445769728"
+                        used: "52875980800"
+                email: mrthonglion@gmail.com
+                executable: /home/qphan/master-thesis/.venv/bin/python
+                git:
+                    commit: 303e9cdb4395679d8f090fa40b4acffd2ccad652
+                    remote: git@github.com:thong-phn/master-thesis.git
+                gpu: NVIDIA GeForce RTX 2080 Ti
+                gpu_count: 2
+                gpu_nvidia:
+                    - architecture: Turing
+                      cudaCores: 4352
+                      memoryTotal: "11811160064"
+                      name: NVIDIA GeForce RTX 2080 Ti
+                      uuid: GPU-f6085285-18c3-339e-ebc0-f4b07899e0b8
+                    - architecture: Pascal
+                      cudaCores: 384
+                      memoryTotal: "2147483648"
+                      name: NVIDIA GeForce GT 1030
+                      uuid: GPU-7c331ecd-03fc-d368-3e36-b625e6cf52ba
+                host: student-pc
+                memory:
+                    total: "67337535488"
+                os: Linux-6.8.0-55-generic-x86_64-with-glibc2.39
+                program: /home/qphan/master-thesis/wear_main_loso_input_pruning.py
+                python: CPython 3.11.14
+                root: /home/qphan/master-thesis
+                startedAt: "2026-04-17T13:29:28.708331Z"
+                writerId: xo4c3jwhyasxihjba8t0v37s01wl28dv
+        m: []
+        python_version: 3.11.14
+        t:
+            "1":
+                - 1
+                - 5
+                - 53
+            "2":
+                - 1
+                - 5
+                - 53
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.11.14
+            "5": 0.25.0
+            "10":
+                - 20
+            "12": 0.25.0
+            "13": linux-x86_64
+        visualize:
+            stage_1_separableconvcnn/confusion_matrix:
+                panel_config:
+                    fieldSettings:
+                        Actual: Actual
+                        Predicted: Predicted
+                        nPredictions: nPredictions
+                    panelDefId: wandb/confusion_matrix/v1
+                    stringSettings:
+                        title: Confusion Matrix Curve
+                    transform:
+                        name: tableWithLeafColNames
+                    userQuery:
+                        queryFields:
+                            - args:
+                                - name: runSets
+                                  value: ${runSets}
+                              fields:
+                                - fields: []
+                                  name: id
+                                - fields: []
+                                  name: name
+                                - fields: []
+                                  name: _defaultColorIndex
+                                - args:
+                                    - name: tableKey
+                                      value: stage_1_separableconvcnn/confusion_matrix_table
+                                  fields: []
+                                  name: summaryTable
+                              name: runSets
+                panel_type: Vega2
+            stage_3_separableconvcnn/confusion_matrix:
+                panel_config:
+                    fieldSettings:
+                        Actual: Actual
+                        Predicted: Predicted
+                        nPredictions: nPredictions
+                    panelDefId: wandb/confusion_matrix/v1
+                    stringSettings:
+                        title: Confusion Matrix Curve
+                    transform:
+                        name: tableWithLeafColNames
+                    userQuery:
+                        queryFields:
+                            - args:
+                                - name: runSets
+                                  value: ${runSets}
+                              fields:
+                                - fields: []
+                                  name: id
+                                - fields: []
+                                  name: name
+                                - fields: []
+                                  name: _defaultColorIndex
+                                - args:
+                                    - name: tableKey
+                                      value: stage_3_separableconvcnn/confusion_matrix_table
+                                  fields: []
+                                  name: summaryTable
+                              name: runSets
+                panel_type: Vega2
+batch_size:
+    value: 64
+dataset:
+    value: WEAR
+epochs_stage1:
+    value: 60
+epochs_stage2:
+    value: 60
+epochs_stage3:
+    value: 60
+lr:
+    value: 0.001
+performance:
+    value: true
+preprocessing:
+    value: ihw
+sparsity_weight_bin:
+    value: 0.4
+stage1_model_path:
+    value: /home/qphan/master-thesis/models/wear/stage1/ihw/wear_best_model_subject4_val.pth
+stage2_backbone_lr_factor:
+    value: 0.1
+stage2_model_path:
+    value: null
+stage3_model_path:
+    value: null
+test_subjects:
+    value:
+        - 18
+        - 19
+        - 20
+        - 21
+        - 22
+        - 23
+train_subjects:
+    value:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 5
+        - 6
+        - 7
+        - 8
+        - 9
+        - 10
+        - 11
+        - 12
+        - 13
+        - 14
+        - 15
+        - 16
+        - 17
+training_type:
+    value: three_stage
+val_subjects:
+    value:
+        - 4

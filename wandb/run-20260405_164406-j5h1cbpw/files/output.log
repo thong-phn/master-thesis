@@ -1,0 +1,82 @@
+Train samples: 50686
+Val samples: 2793
+Test samples: 9705
+
+============================================================
+STAGE 1: Loading pretrained SeparableConvCNN
+Checkpoint: /home/qphan/master-thesis/models/stage1/fft/wear_best_model_subject0_val.pth
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Best Val Loss: not available (loaded pretrained stage1 checkpoint)
+Test Loss: 0.6504 | Test Acc: 77.49% | Test F1 Macro: 0.6742
+
+============================================================
+STAGE 2: Training RandomChannelPruningCNN (channel masks after blocks)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Stage 2 LR setup -> backbone: 1.00e-04
+--------------------------------------------------
+Epoch [1/60]: Train Loss: 0.9489; Train Acc: 63.38; Val Loss: 0.9203; Val Acc: 64.59
+Epoch [2/60]: Train Loss: 0.7842; Train Acc: 69.05; Val Loss: 0.8859; Val Acc: 65.91
+Epoch [3/60]: Train Loss: 0.7499; Train Acc: 70.89; Val Loss: 0.8542; Val Acc: 71.75
+Epoch [4/60]: Train Loss: 0.7315; Train Acc: 71.70; Val Loss: 0.8522; Val Acc: 68.42
+Epoch [5/60]: Train Loss: 0.7184; Train Acc: 72.57; Val Loss: 0.8671; Val Acc: 70.61
+Epoch [6/60]: Train Loss: 0.7073; Train Acc: 73.00; Val Loss: 0.8802; Val Acc: 71.18
+Epoch [7/60]: Train Loss: 0.6994; Train Acc: 73.38; Val Loss: 0.8492; Val Acc: 70.53
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_main_loso_channel_pruning_random.py", line 247, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_main_loso_channel_pruning_random.py", line 150, in main
+    metrics = train_loso_wear_two_stage_random_pruning(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train_other_method.py", line 302, in train_loso_wear_two_stage_random_pruning
+    outputs = model_stage2(fft_mag)
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/model.py", line 512, in forward
+    x = F.relu(self.bn4(self.sep_conv4(x)))
+                        ^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1951, in __getattr__
+    def __getattr__(self, name: str) -> Union[Tensor, "Module"]:
+
+KeyboardInterrupt

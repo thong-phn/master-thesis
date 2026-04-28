@@ -1,0 +1,184 @@
+Train samples: 50210
+Val samples: 3269
+Test samples: 9705
+Performance mode: True
+DataLoader settings: workers=6, pin_memory=True, persistent_workers=True, prefetch_factor=2
+Class counts: [8457.0, 8092.0, 3344.0, 3514.0, 3216.0, 1588.0, 1447.0, 20552.0]
+Class weights: [0.3779999911785126, 0.39500001072883606, 0.9549999833106995, 0.9089999794960022, 0.9929999709129333, 2.009999990463257, 2.2060000896453857, 0.1550000011920929]
+
+============================================================
+STAGE 1: Loading pretrained SeparableConvCNN
+Checkpoint: /home/qphan/master-thesis/models/wear/stage1/fft/wear_best_model_subject12_val.pth
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Best Val Loss: not available (loaded pretrained stage1 checkpoint)
+Test Loss: 0.6157 | Test Acc: 79.66% | Test F1 Macro: 0.6971
+
+============================================================
+STAGE 2: Training GumbelMaskSeparableConvCNN (input-bin pruning)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [1/60]: Train Loss: 1.3123; Train Acc: 53.47; Val Loss: 1.1148; Val Acc: 50.44; Mask: 68.63%
+Epoch [2/60]: Train Loss: 1.0294; Train Acc: 57.51; Val Loss: 0.9363; Val Acc: 59.22; Mask: 62.75%
+Epoch [3/60]: Train Loss: 0.9293; Train Acc: 60.51; Val Loss: 0.8769; Val Acc: 62.01; Mask: 60.78%
+Epoch [4/60]: Train Loss: 0.8923; Train Acc: 62.40; Val Loss: 0.8016; Val Acc: 64.76; Mask: 60.78%
+Epoch [5/60]: Train Loss: 0.8478; Train Acc: 64.07; Val Loss: 0.7767; Val Acc: 65.28; Mask: 60.78%
+Epoch [6/60]: Train Loss: 0.8119; Train Acc: 65.06; Val Loss: 0.7595; Val Acc: 66.08; Mask: 58.82%
+Epoch [7/60]: Train Loss: 0.7872; Train Acc: 65.86; Val Loss: 0.7546; Val Acc: 66.69; Mask: 58.82%
+Epoch [8/60]: Train Loss: 0.7661; Train Acc: 66.53; Val Loss: 0.7480; Val Acc: 66.63; Mask: 58.82%
+Epoch [9/60]: Train Loss: 0.7466; Train Acc: 66.94; Val Loss: 0.7253; Val Acc: 67.57; Mask: 58.82%
+Epoch [10/60]: Train Loss: 0.7375; Train Acc: 67.42; Val Loss: 0.7282; Val Acc: 67.12; Mask: 54.90%
+Epoch [11/60]: Train Loss: 0.7325; Train Acc: 67.29; Val Loss: 0.7115; Val Acc: 68.00; Mask: 52.94%
+Epoch [12/60]: Train Loss: 0.7220; Train Acc: 67.86; Val Loss: 0.7345; Val Acc: 65.49; Mask: 52.94%
+Epoch [13/60]: Train Loss: 0.7217; Train Acc: 67.71; Val Loss: 0.7321; Val Acc: 67.79; Mask: 50.98%
+Epoch [14/60]: Train Loss: 0.7157; Train Acc: 67.96; Val Loss: 0.7229; Val Acc: 68.98; Mask: 50.98%
+Epoch [15/60]: Train Loss: 0.7169; Train Acc: 67.98; Val Loss: 0.7107; Val Acc: 68.95; Mask: 50.98%
+Epoch [16/60]: Train Loss: 0.6974; Train Acc: 68.33; Val Loss: 0.7158; Val Acc: 67.48; Mask: 50.98%
+Epoch [17/60]: Train Loss: 0.6991; Train Acc: 68.47; Val Loss: 0.7285; Val Acc: 67.54; Mask: 50.98%
+Epoch [18/60]: Train Loss: 0.7025; Train Acc: 68.14; Val Loss: 0.7130; Val Acc: 68.12; Mask: 49.02%
+Epoch [19/60]: Train Loss: 0.7055; Train Acc: 68.08; Val Loss: 0.7235; Val Acc: 67.48; Mask: 50.98%
+Epoch [20/60]: Train Loss: 0.7156; Train Acc: 67.81; Val Loss: 0.7293; Val Acc: 68.95; Mask: 47.06%
+Epoch [21/60]: Train Loss: 0.7173; Train Acc: 67.81; Val Loss: 0.7373; Val Acc: 68.06; Mask: 47.06%
+Early Stopping at Epoch [21/60] (patience=10).
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 0.7115 at Epoch 11
+Test Loss: 0.6031 | Test Acc: 79.19% | Test F1 Macro: 0.6924
+Hard input bins kept: 27/51 (52.9%)
+
+============================================================
+STAGE 3: Retraining SeparableConvCNN on pruned input
+============================================================
+  Partially loaded weights: loaded=32, skipped=1
+Epoch [1/60]: Train Loss: 0.6378; Train Acc: 67.55; Val Loss: 0.8686; Val Acc: 62.65
+Epoch [2/60]: Train Loss: 0.5715; Train Acc: 69.45; Val Loss: 0.8173; Val Acc: 58.67
+Epoch [3/60]: Train Loss: 0.5555; Train Acc: 70.29; Val Loss: 0.7759; Val Acc: 66.56
+Epoch [4/60]: Train Loss: 0.5445; Train Acc: 70.84; Val Loss: 0.7808; Val Acc: 64.91
+Epoch [5/60]: Train Loss: 0.5462; Train Acc: 70.80; Val Loss: 0.8194; Val Acc: 62.25
+Epoch [6/60]: Train Loss: 0.5316; Train Acc: 71.35; Val Loss: 0.7871; Val Acc: 60.23
+Epoch [7/60]: Train Loss: 0.5214; Train Acc: 71.23; Val Loss: 0.7856; Val Acc: 60.87
+Epoch [8/60]: Train Loss: 0.5086; Train Acc: 71.73; Val Loss: 0.7533; Val Acc: 68.06
+Epoch [9/60]: Train Loss: 0.5094; Train Acc: 72.30; Val Loss: 0.8073; Val Acc: 62.04
+Epoch [10/60]: Train Loss: 0.4983; Train Acc: 72.67; Val Loss: 0.7791; Val Acc: 59.71
+Epoch [11/60]: Train Loss: 0.5001; Train Acc: 72.19; Val Loss: 0.7666; Val Acc: 64.91
+Epoch [12/60]: Train Loss: 0.4907; Train Acc: 72.57; Val Loss: 0.7654; Val Acc: 63.75
+Epoch [13/60]: Train Loss: 0.4913; Train Acc: 72.51; Val Loss: 0.7971; Val Acc: 64.09
+Epoch [14/60]: Train Loss: 0.4845; Train Acc: 72.70; Val Loss: 0.7346; Val Acc: 61.15
+Epoch [15/60]: Train Loss: 0.4783; Train Acc: 73.22; Val Loss: 0.8364; Val Acc: 64.88
+Epoch [16/60]: Train Loss: 0.4746; Train Acc: 73.11; Val Loss: 0.8310; Val Acc: 64.88
+Epoch [17/60]: Train Loss: 0.4681; Train Acc: 73.32; Val Loss: 0.8050; Val Acc: 63.63
+Epoch [18/60]: Train Loss: 0.4713; Train Acc: 73.37; Val Loss: 0.7929; Val Acc: 63.14
+Epoch [19/60]: Train Loss: 0.4685; Train Acc: 73.16; Val Loss: 0.7684; Val Acc: 61.73
+Epoch [20/60]: Train Loss: 0.4608; Train Acc: 73.38; Val Loss: 0.8155; Val Acc: 64.09
+Epoch [21/60]: Train Loss: 0.4605; Train Acc: 73.51; Val Loss: 0.7548; Val Acc: 64.88
+Epoch [22/60]: Train Loss: 0.4523; Train Acc: 73.76; Val Loss: 0.8129; Val Acc: 67.33
+Epoch [23/60]: Train Loss: 0.4505; Train Acc: 73.74; Val Loss: 0.8126; Val Acc: 61.79
+Epoch [24/60]: Train Loss: 0.4494; Train Acc: 73.98; Val Loss: 0.7489; Val Acc: 67.27
+Early Stopping at Epoch [24/60] (patience=10).
+--------------------------------------------------
+Stage 3 Summary:
+Best Val Loss: 0.7346 at Epoch 14
+Test Loss: 0.6670 | Test Acc: 80.02% | Test F1 Macro: 0.6903
+
+============================================================
+STAGE 4: Training GumbelChannelPruningCNN on pruned input
+============================================================
+
+Loading Stage 3 weights into Stage 4 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [1/60]: Train Loss: 1.8780; Train Acc: 33.59; Val Loss: 1.4504; Val Acc: 29.12; Soft On-Prob: 50.13%
+Epoch [2/60]: Train Loss: 1.5963; Train Acc: 34.64; Val Loss: 1.2384; Val Acc: 34.23; Soft On-Prob: 50.40%
+Epoch [3/60]: Train Loss: 1.4079; Train Acc: 41.11; Val Loss: 1.0701; Val Acc: 45.37; Soft On-Prob: 50.60%
+Epoch [4/60]: Train Loss: 1.3031; Train Acc: 44.98; Val Loss: 0.9704; Val Acc: 47.90; Soft On-Prob: 50.68%
+Epoch [5/60]: Train Loss: 1.2395; Train Acc: 47.63; Val Loss: 0.9448; Val Acc: 47.57; Soft On-Prob: 50.70%
+Epoch [6/60]: Train Loss: 1.1928; Train Acc: 49.03; Val Loss: 0.9032; Val Acc: 48.24; Soft On-Prob: 50.68%
+Epoch [7/60]: Train Loss: 1.1607; Train Acc: 49.79; Val Loss: 0.8868; Val Acc: 48.61; Soft On-Prob: 50.64%
+Epoch [8/60]: Train Loss: 1.1255; Train Acc: 51.08; Val Loss: 0.8850; Val Acc: 48.73; Soft On-Prob: 50.57%
+Epoch [9/60]: Train Loss: 1.1086; Train Acc: 51.98; Val Loss: 0.8752; Val Acc: 49.43; Soft On-Prob: 50.49%
+Epoch [10/60]: Train Loss: 1.0877; Train Acc: 52.20; Val Loss: 0.8779; Val Acc: 49.95; Soft On-Prob: 50.37%
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_main_loso_five_stage.py", line 388, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_main_loso_five_stage.py", line 272, in main
+    metrics = train_loso_wear_multi_stage(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 3330, in train_loso_wear_multi_stage
+    out = model_stage4(x)
+          ^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/.venv/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/.venv/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/model.py", line 365, in forward
+    self.last_mask_2 = mask2.mean(dim=0).detach()
+                       ^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

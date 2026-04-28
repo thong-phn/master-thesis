@@ -1,0 +1,92 @@
+Train samples: 6943
+Val samples: 409
+Test samples: 2947
+Performance mode: True
+DataLoader settings: workers=6, pin_memory=True, persistent_workers=True, prefetch_factor=2
+Class counts: [1152.0, 1008.0, 928.0, 1221.0, 1300.0, 1334.0]
+Class weights: [0.9869999885559082, 1.128000020980835, 1.2259999513626099, 0.9309999942779541, 0.875, 0.8529999852180481]
+
+============================================================
+STAGE 1: Train SeparableConvCNN model
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Use pretrained model:
+Test Loss: 0.2930 | Test Acc: 89.07% | Test F1 Macro: 0.8925
+
+============================================================
+STAGE 2: Training GumbelChannelPruningCNN (learn hard channel masks)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [5/60]: Train Loss: 1.0656; Train Acc: 53.23; Val Loss: 0.9497; Val Acc: 59.17; Mask: 50.38%
+Epoch [10/60]: Train Loss: 0.9116; Train Acc: 57.31; Val Loss: 0.6339; Val Acc: 71.64; Mask: 50.57%
+Epoch [15/60]: Train Loss: 0.8514; Train Acc: 58.99; Val Loss: 0.6179; Val Acc: 63.33; Mask: 50.53%
+Epoch [20/60]: Train Loss: 0.8092; Train Acc: 60.59; Val Loss: 0.6243; Val Acc: 63.33; Mask: 50.29%
+Epoch [25/60]: Train Loss: 0.7881; Train Acc: 61.85; Val Loss: 0.6474; Val Acc: 61.86; Mask: 49.85%
+Early Stopping at Epoch [27/60] (patience=10).
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 0.6116 at Epoch 17
+Test Loss: 0.6434 | Test Acc: 62.50% | Test F1 Macro: 0.5549
+Hard channel keeps: block2=40/64, block3=74/128, block4=84/128
+
+============================================================
+STAGE 3: Building compact pruned model and fine-tuning
+============================================================
+Stage 3 model size: 17,406 params vs dense 36,868 params (52.79% reduction)
+Stage 3 widths: block2=40, block3=74, block4=84
+Epoch [5/60]: Train Loss: 0.3962; Train Acc: 82.69; Val Loss: 0.7662; Val Acc: 74.33
+Epoch [10/60]: Train Loss: 0.3174; Train Acc: 86.72; Val Loss: 0.7592; Val Acc: 77.02
+Epoch [15/60]: Train Loss: 0.2681; Train Acc: 89.14; Val Loss: 0.7282; Val Acc: 77.51
+Epoch [20/60]: Train Loss: 0.2437; Train Acc: 90.08; Val Loss: 0.7275; Val Acc: 79.46
+Epoch [25/60]: Train Loss: 0.2293; Train Acc: 90.57; Val Loss: 0.6386; Val Acc: 80.93
+Epoch [30/60]: Train Loss: 0.2107; Train Acc: 91.42; Val Loss: 0.7112; Val Acc: 79.71
+Epoch [35/60]: Train Loss: 0.2035; Train Acc: 91.49; Val Loss: 0.7215; Val Acc: 80.44
+Early Stopping at Epoch [35/60] (patience=10).
+--------------------------------------------------
+Stage 3 Summary:
+Best Val Loss: 0.6386 at Epoch 25
+Test Loss: 0.2309 | Test Acc: 91.35% | Test F1 Macro: 0.9149
+Model size reduction: 52.79% (17,406/36,868 params)
+
+============================================================
+THREE-STAGE CHANNEL PRUNING TRAINING COMPLETE
+============================================================
+Stage 1 (SeparableConvCNN): Test Acc: 89.07% | F1: 0.8925
+Stage 2 (GumbelChannelPruningCNN): Test Acc: 62.50% | F1: 0.5549
+Stage 3 (Pruned SeparableConvCNN): Test Acc: 91.35% | F1: 0.9149
+Stage 3 size reduction: 52.79%

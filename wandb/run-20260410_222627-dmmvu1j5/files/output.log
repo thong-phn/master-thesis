@@ -1,0 +1,101 @@
+Train samples: 7024
+Val samples: 328
+Test samples: 2947
+Performance mode: True
+DataLoader settings: workers=6, pin_memory=True, persistent_workers=True, prefetch_factor=2
+Class counts: [1172.0, 1025.0, 944.0, 1227.0, 1321.0, 1335.0]
+Class weights: [0.9829999804496765, 1.1239999532699585, 1.2200000286102295, 0.9390000104904175, 0.871999979019165, 0.8629999756813049]
+
+============================================================
+STAGE 1: Train SeparableConvCNN model
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Use pretrained model:
+Test Loss: 0.2554 | Test Acc: 90.53% | Test F1 Macro: 0.9071
+
+============================================================
+STAGE 2: Training GumbelChannelPruningCNN (learn hard channel masks)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [5/60]: Train Loss: 1.0892; Train Acc: 55.07; Val Loss: 0.7082; Val Acc: 62.20; Mask: 50.20%
+Epoch [10/60]: Train Loss: 0.9539; Train Acc: 58.26; Val Loss: 0.6275; Val Acc: 61.59; Mask: 50.27%
+Epoch [15/60]: Train Loss: 0.8980; Train Acc: 59.84; Val Loss: 0.6239; Val Acc: 60.37; Mask: 50.10%
+Epoch [20/60]: Train Loss: 0.8774; Train Acc: 60.85; Val Loss: 0.6089; Val Acc: 61.28; Mask: 49.70%
+Epoch [25/60]: Train Loss: 0.8471; Train Acc: 61.55; Val Loss: 0.6184; Val Acc: 60.67; Mask: 49.04%
+Epoch [30/60]: Train Loss: 0.8332; Train Acc: 61.65; Val Loss: 0.6040; Val Acc: 61.28; Mask: 48.09%
+Epoch [35/60]: Train Loss: 0.8183; Train Acc: 63.21; Val Loss: 0.6018; Val Acc: 61.28; Mask: 46.78%
+Epoch [40/60]: Train Loss: 0.8007; Train Acc: 63.87; Val Loss: 0.6016; Val Acc: 61.59; Mask: 45.07%
+Epoch [45/60]: Train Loss: 0.7838; Train Acc: 63.53; Val Loss: 0.5980; Val Acc: 62.20; Mask: 42.86%
+Epoch [50/60]: Train Loss: 0.7637; Train Acc: 65.72; Val Loss: 0.5964; Val Acc: 62.50; Mask: 39.98%
+Epoch [55/60]: Train Loss: 0.7391; Train Acc: 67.18; Val Loss: 0.5903; Val Acc: 62.20; Mask: 36.47%
+Epoch [60/60]: Train Loss: 0.7118; Train Acc: 68.86; Val Loss: 0.5841; Val Acc: 64.02; Mask: 32.54%
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 0.5808 at Epoch 59
+Test Loss: 0.6179 | Test Acc: 69.63% | Test F1 Macro: 0.6777
+Hard channel keeps: block2=18/64, block3=32/128, block4=41/128
+
+============================================================
+STAGE 3: Building compact pruned model and fine-tuning
+============================================================
+Stage 3 model size: 6,256 params vs dense 36,868 params (83.03% reduction)
+Stage 3 widths: block2=18, block3=32, block4=41
+Epoch [5/60]: Train Loss: 0.5188; Train Acc: 72.11; Val Loss: 0.5796; Val Acc: 66.77
+Epoch [10/60]: Train Loss: 0.4623; Train Acc: 76.00; Val Loss: 0.5411; Val Acc: 71.34
+Epoch [15/60]: Train Loss: 0.4241; Train Acc: 78.87; Val Loss: 0.4959; Val Acc: 75.30
+Epoch [20/60]: Train Loss: 0.3934; Train Acc: 80.71; Val Loss: 0.4645; Val Acc: 81.71
+Epoch [25/60]: Train Loss: 0.3697; Train Acc: 82.80; Val Loss: 0.4561; Val Acc: 81.71
+Epoch [30/60]: Train Loss: 0.3464; Train Acc: 84.14; Val Loss: 0.4340; Val Acc: 81.40
+Epoch [35/60]: Train Loss: 0.3271; Train Acc: 84.85; Val Loss: 0.4145; Val Acc: 84.15
+Epoch [40/60]: Train Loss: 0.3169; Train Acc: 86.19; Val Loss: 0.4021; Val Acc: 85.06
+Epoch [45/60]: Train Loss: 0.2942; Train Acc: 86.79; Val Loss: 0.3763; Val Acc: 86.28
+Epoch [50/60]: Train Loss: 0.2912; Train Acc: 87.00; Val Loss: 0.3732; Val Acc: 86.28
+Early Stopping at Epoch [51/60] (patience=10).
+--------------------------------------------------
+Stage 3 Summary:
+Best Val Loss: 0.3682 at Epoch 41
+Test Loss: 0.3784 | Test Acc: 85.99% | Test F1 Macro: 0.8631
+Model size reduction: 83.03% (6,256/36,868 params)
+
+============================================================
+THREE-STAGE CHANNEL PRUNING TRAINING COMPLETE
+============================================================
+Stage 1 (SeparableConvCNN): Test Acc: 90.53% | F1: 0.9071
+Stage 2 (GumbelChannelPruningCNN): Test Acc: 69.63% | F1: 0.6777
+Stage 3 (Pruned SeparableConvCNN): Test Acc: 85.99% | F1: 0.8631
+Stage 3 size reduction: 83.03%

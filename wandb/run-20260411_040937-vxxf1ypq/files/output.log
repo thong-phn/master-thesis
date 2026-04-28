@@ -1,0 +1,90 @@
+Train samples: 6944
+Val samples: 408
+Test samples: 2947
+Performance mode: True
+DataLoader settings: workers=6, pin_memory=True, persistent_workers=True, prefetch_factor=2
+Class counts: [1174.0, 1026.0, 941.0, 1201.0, 1285.0, 1317.0]
+Class weights: [0.972000002861023, 1.1119999885559082, 1.2120000123977661, 0.949999988079071, 0.8880000114440918, 0.8659999966621399]
+
+============================================================
+STAGE 1: Train SeparableConvCNN model
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Use pretrained model:
+Test Loss: 0.3520 | Test Acc: 91.11% | Test F1 Macro: 0.9123
+
+============================================================
+STAGE 2: Training GumbelChannelPruningCNN (learn hard channel masks)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [5/60]: Train Loss: 1.3949; Train Acc: 50.30; Val Loss: 1.1184; Val Acc: 51.23; Mask: 49.94%
+Epoch [10/60]: Train Loss: 1.1792; Train Acc: 55.83; Val Loss: 0.8393; Val Acc: 56.62; Mask: 49.76%
+Epoch [15/60]: Train Loss: 1.0751; Train Acc: 58.63; Val Loss: 0.7599; Val Acc: 56.37; Mask: 49.27%
+Epoch [20/60]: Train Loss: 1.0177; Train Acc: 60.37; Val Loss: 0.7658; Val Acc: 56.13; Mask: 48.39%
+Epoch [25/60]: Train Loss: 0.9931; Train Acc: 61.06; Val Loss: 0.7885; Val Acc: 54.41; Mask: 47.03%
+Early Stopping at Epoch [28/60] (patience=10).
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 0.7249 at Epoch 18
+Test Loss: 0.6686 | Test Acc: 62.47% | Test F1 Macro: 0.5524
+Hard channel keeps: block2=34/64, block3=48/128, block4=46/128
+
+============================================================
+STAGE 3: Building compact pruned model and fine-tuning
+============================================================
+Stage 3 model size: 9,210 params vs dense 36,868 params (75.02% reduction)
+Stage 3 widths: block2=34, block3=48, block4=46
+Epoch [5/60]: Train Loss: 0.3997; Train Acc: 83.47; Val Loss: 0.4352; Val Acc: 89.95
+Epoch [10/60]: Train Loss: 0.2972; Train Acc: 87.41; Val Loss: 0.3660; Val Acc: 89.95
+Epoch [15/60]: Train Loss: 0.2448; Train Acc: 89.89; Val Loss: 0.4323; Val Acc: 83.33
+Epoch [20/60]: Train Loss: 0.2209; Train Acc: 90.96; Val Loss: 0.5045; Val Acc: 79.90
+Epoch [25/60]: Train Loss: 0.2149; Train Acc: 90.90; Val Loss: 0.3151; Val Acc: 91.67
+Early Stopping at Epoch [28/60] (patience=10).
+--------------------------------------------------
+Stage 3 Summary:
+Best Val Loss: 0.2949 at Epoch 18
+Test Loss: 0.2823 | Test Acc: 88.80% | Test F1 Macro: 0.8916
+Model size reduction: 75.02% (9,210/36,868 params)
+
+============================================================
+THREE-STAGE CHANNEL PRUNING TRAINING COMPLETE
+============================================================
+Stage 1 (SeparableConvCNN): Test Acc: 91.11% | F1: 0.9123
+Stage 2 (GumbelChannelPruningCNN): Test Acc: 62.47% | F1: 0.5524
+Stage 3 (Pruned SeparableConvCNN): Test Acc: 88.80% | F1: 0.8916
+Stage 3 size reduction: 75.02%

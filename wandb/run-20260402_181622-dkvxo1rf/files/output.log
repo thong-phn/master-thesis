@@ -1,0 +1,160 @@
+Train samples: 50627
+Val samples: 2852
+Test samples: 9705
+
+============================================================
+STAGE 1: Training SeparableConvCNN
+============================================================
+Epoch [1/60]: Train Loss: 0.9321; Train Acc: 65.35; Val Loss: 0.9216; Val Acc: 66.44
+Epoch [2/60]: Train Loss: 0.7632; Train Acc: 71.54; Val Loss: 0.9263; Val Acc: 65.85
+Epoch [3/60]: Train Loss: 0.7157; Train Acc: 73.18; Val Loss: 0.9192; Val Acc: 67.29
+Epoch [4/60]: Train Loss: 0.6831; Train Acc: 74.52; Val Loss: 1.0611; Val Acc: 62.69
+Epoch [5/60]: Train Loss: 0.6596; Train Acc: 75.43; Val Loss: 0.9895; Val Acc: 63.32
+Epoch [6/60]: Train Loss: 0.6448; Train Acc: 75.82; Val Loss: 0.8992; Val Acc: 69.92
+Epoch [7/60]: Train Loss: 0.6327; Train Acc: 76.57; Val Loss: 0.8555; Val Acc: 72.44
+Epoch [8/60]: Train Loss: 0.6189; Train Acc: 77.05; Val Loss: 0.8652; Val Acc: 73.18
+Epoch [9/60]: Train Loss: 0.6117; Train Acc: 77.26; Val Loss: 0.9259; Val Acc: 68.86
+Epoch [10/60]: Train Loss: 0.5979; Train Acc: 77.95; Val Loss: 0.9024; Val Acc: 71.56
+Epoch [11/60]: Train Loss: 0.5888; Train Acc: 78.35; Val Loss: 0.9031; Val Acc: 70.06
+Epoch [12/60]: Train Loss: 0.5825; Train Acc: 78.42; Val Loss: 0.9079; Val Acc: 71.35
+Epoch [13/60]: Train Loss: 0.5732; Train Acc: 78.73; Val Loss: 1.0532; Val Acc: 65.46
+Epoch [14/60]: Train Loss: 0.5737; Train Acc: 78.85; Val Loss: 1.0077; Val Acc: 66.51
+Epoch [15/60]: Train Loss: 0.5565; Train Acc: 79.36; Val Loss: 0.9962; Val Acc: 65.85
+Epoch [16/60]: Train Loss: 0.5534; Train Acc: 79.42; Val Loss: 1.0072; Val Acc: 68.97
+Epoch [17/60]: Train Loss: 0.5524; Train Acc: 79.51; Val Loss: 0.9609; Val Acc: 71.56
+Early Stopping at Epoch [17/60] (patience=10).
+--------------------------------------------------
+Stage 1 Summary:
+Best Val Loss: 0.8555 at Epoch 7
+Test Loss: 0.7822 | Test Acc: 69.43% | Test F1 Macro: 0.6517
+
+============================================================
+STAGE 2: Training GumbelMaskSeparableConvCNN (input-bin pruning)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization: bin_logits (Gumbel-specific parameter)
+Epoch [1/60]: Train Loss: 1.0299; Train Acc: 64.77; Val Loss: 1.0888; Val Acc: 61.68; Mask: 54.90%
+Epoch [2/60]: Train Loss: 0.9157; Train Acc: 68.12; Val Loss: 1.0962; Val Acc: 60.41; Mask: 52.94%
+Epoch [3/60]: Train Loss: 0.8739; Train Acc: 69.74; Val Loss: 1.1030; Val Acc: 60.17; Mask: 50.98%
+Epoch [4/60]: Train Loss: 0.8516; Train Acc: 70.01; Val Loss: 1.0448; Val Acc: 61.22; Mask: 49.02%
+Epoch [5/60]: Train Loss: 0.8408; Train Acc: 70.30; Val Loss: 1.0436; Val Acc: 61.47; Mask: 43.14%
+Epoch [6/60]: Train Loss: 0.8386; Train Acc: 70.27; Val Loss: 1.0926; Val Acc: 59.05; Mask: 41.18%
+Epoch [7/60]: Train Loss: 0.8431; Train Acc: 70.03; Val Loss: 1.1397; Val Acc: 56.35; Mask: 39.22%
+Epoch [8/60]: Train Loss: 0.8423; Train Acc: 69.91; Val Loss: 1.1051; Val Acc: 58.77; Mask: 37.25%
+Epoch [9/60]: Train Loss: 0.8405; Train Acc: 69.94; Val Loss: 1.0310; Val Acc: 61.50; Mask: 37.25%
+Epoch [10/60]: Train Loss: 0.8388; Train Acc: 69.78; Val Loss: 1.0791; Val Acc: 59.64; Mask: 37.25%
+Epoch [11/60]: Train Loss: 0.8290; Train Acc: 70.16; Val Loss: 1.0578; Val Acc: 61.82; Mask: 35.29%
+Epoch [12/60]: Train Loss: 0.8277; Train Acc: 70.25; Val Loss: 1.0278; Val Acc: 61.78; Mask: 35.29%
+Epoch [13/60]: Train Loss: 0.8202; Train Acc: 70.25; Val Loss: 1.0686; Val Acc: 60.48; Mask: 35.29%
+Epoch [14/60]: Train Loss: 0.8140; Train Acc: 70.68; Val Loss: 1.0201; Val Acc: 63.01; Mask: 35.29%
+Epoch [15/60]: Train Loss: 0.8111; Train Acc: 70.87; Val Loss: 1.0012; Val Acc: 63.25; Mask: 35.29%
+Epoch [16/60]: Train Loss: 0.8069; Train Acc: 70.83; Val Loss: 1.0241; Val Acc: 62.03; Mask: 33.33%
+Epoch [17/60]: Train Loss: 0.8060; Train Acc: 70.74; Val Loss: 1.0130; Val Acc: 63.04; Mask: 33.33%
+Epoch [18/60]: Train Loss: 0.8006; Train Acc: 70.88; Val Loss: 0.9900; Val Acc: 64.34; Mask: 31.37%
+Epoch [19/60]: Train Loss: 0.7956; Train Acc: 71.28; Val Loss: 1.0148; Val Acc: 63.11; Mask: 31.37%
+Epoch [20/60]: Train Loss: 0.7931; Train Acc: 71.29; Val Loss: 1.0316; Val Acc: 62.80; Mask: 33.33%
+Epoch [21/60]: Train Loss: 0.7867; Train Acc: 71.67; Val Loss: 1.0072; Val Acc: 63.92; Mask: 31.37%
+Epoch [22/60]: Train Loss: 0.7896; Train Acc: 71.22; Val Loss: 1.0504; Val Acc: 62.31; Mask: 27.45%
+Epoch [23/60]: Train Loss: 0.7852; Train Acc: 71.63; Val Loss: 0.9826; Val Acc: 65.50; Mask: 25.49%
+Epoch [24/60]: Train Loss: 0.7842; Train Acc: 71.52; Val Loss: 0.9795; Val Acc: 65.43; Mask: 25.49%
+Epoch [25/60]: Train Loss: 0.7834; Train Acc: 71.87; Val Loss: 1.0163; Val Acc: 63.53; Mask: 21.57%
+Epoch [26/60]: Train Loss: 0.7838; Train Acc: 71.53; Val Loss: 1.0142; Val Acc: 64.27; Mask: 21.57%
+Epoch [27/60]: Train Loss: 0.7820; Train Acc: 71.64; Val Loss: 1.0241; Val Acc: 64.06; Mask: 25.49%
+Epoch [28/60]: Train Loss: 0.7827; Train Acc: 71.41; Val Loss: 0.9907; Val Acc: 63.50; Mask: 23.53%
+Epoch [29/60]: Train Loss: 0.7764; Train Acc: 71.89; Val Loss: 1.0375; Val Acc: 62.31; Mask: 23.53%
+Epoch [30/60]: Train Loss: 0.7740; Train Acc: 72.08; Val Loss: 0.9773; Val Acc: 64.76; Mask: 25.49%
+Epoch [31/60]: Train Loss: 0.7768; Train Acc: 71.82; Val Loss: 0.9997; Val Acc: 64.13; Mask: 25.49%
+Epoch [32/60]: Train Loss: 0.7722; Train Acc: 72.01; Val Loss: 1.0528; Val Acc: 62.20; Mask: 23.53%
+Epoch [33/60]: Train Loss: 0.7719; Train Acc: 71.90; Val Loss: 1.0179; Val Acc: 63.57; Mask: 23.53%
+Epoch [34/60]: Train Loss: 0.7662; Train Acc: 72.12; Val Loss: 0.9723; Val Acc: 65.50; Mask: 23.53%
+Epoch [35/60]: Train Loss: 0.7720; Train Acc: 72.03; Val Loss: 0.9928; Val Acc: 63.96; Mask: 25.49%
+Epoch [36/60]: Train Loss: 0.7736; Train Acc: 72.01; Val Loss: 0.9868; Val Acc: 64.48; Mask: 25.49%
+Epoch [37/60]: Train Loss: 0.7679; Train Acc: 72.25; Val Loss: 0.9422; Val Acc: 66.48; Mask: 23.53%
+Epoch [38/60]: Train Loss: 0.7620; Train Acc: 72.30; Val Loss: 0.9553; Val Acc: 66.09; Mask: 23.53%
+Epoch [39/60]: Train Loss: 0.7620; Train Acc: 72.37; Val Loss: 0.9496; Val Acc: 65.67; Mask: 23.53%
+Epoch [40/60]: Train Loss: 0.7592; Train Acc: 72.37; Val Loss: 0.9705; Val Acc: 65.53; Mask: 23.53%
+Epoch [41/60]: Train Loss: 0.7606; Train Acc: 72.47; Val Loss: 1.0090; Val Acc: 64.62; Mask: 23.53%
+Epoch [42/60]: Train Loss: 0.7564; Train Acc: 72.46; Val Loss: 0.9999; Val Acc: 64.31; Mask: 23.53%
+Epoch [43/60]: Train Loss: 0.7575; Train Acc: 72.57; Val Loss: 0.9979; Val Acc: 64.17; Mask: 23.53%
+Epoch [44/60]: Train Loss: 0.7575; Train Acc: 72.39; Val Loss: 0.9653; Val Acc: 65.81; Mask: 23.53%
+Epoch [45/60]: Train Loss: 0.7533; Train Acc: 72.70; Val Loss: 0.9549; Val Acc: 66.51; Mask: 23.53%
+Epoch [46/60]: Train Loss: 0.7517; Train Acc: 72.66; Val Loss: 0.9907; Val Acc: 64.59; Mask: 23.53%
+Epoch [47/60]: Train Loss: 0.7543; Train Acc: 72.50; Val Loss: 1.0390; Val Acc: 62.66; Mask: 23.53%
+Early Stopping at Epoch [47/60] (patience=10).
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 0.9422 at Epoch 37
+Test Loss: 0.9531 | Test Acc: 64.19% | Test F1 Macro: 0.5955
+Hard input bins kept: 12/51 (23.5%)
+
+============================================================
+STAGE 3: Retraining SeparableConvCNN on pruned input
+============================================================
+  Partially loaded weights: loaded=32, skipped=1
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_main_loso_five_stage.py", line 330, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_main_loso_five_stage.py", line 218, in main
+    metrics = train_loso_wear_multi_stage(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 3074, in train_loso_wear_multi_stage
+    out = model_stage3(x)
+          ^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/.venv/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/.venv/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/model.py", line 188, in forward
+    x = self.pool4(x)
+        ^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/.venv/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/.venv/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/.venv/lib/python3.11/site-packages/torch/nn/modules/pooling.py", line 146, in forward
+    return F.max_pool1d(
+           ^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/.venv/lib/python3.11/site-packages/torch/_jit_internal.py", line 627, in fn
+    return if_false(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/.venv/lib/python3.11/site-packages/torch/nn/functional.py", line 733, in _max_pool1d
+    return torch.max_pool1d(input, kernel_size, stride, padding, dilation, ceil_mode)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: max_pool1d() Invalid computed output size: 0

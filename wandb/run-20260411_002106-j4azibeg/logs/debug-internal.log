@@ -1,0 +1,12 @@
+{"time":"2026-04-11T00:21:06.847253417+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-11T00:21:07.106298832+02:00","level":"INFO","msg":"stream: created new stream","id":"j4azibeg"}
+{"time":"2026-04-11T00:21:07.106401222+02:00","level":"INFO","msg":"handler: started","stream_id":"j4azibeg"}
+{"time":"2026-04-11T00:21:07.106603379+02:00","level":"INFO","msg":"stream: started","id":"j4azibeg"}
+{"time":"2026-04-11T00:21:07.106694283+02:00","level":"INFO","msg":"writer: started","stream_id":"j4azibeg"}
+{"time":"2026-04-11T00:21:07.106727235+02:00","level":"INFO","msg":"sender: started","stream_id":"j4azibeg"}
+{"time":"2026-04-11T00:21:34.255337987+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-11T00:21:34.526487255+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-11T00:21:34.53862491+02:00","level":"INFO","msg":"stream: closing","id":"j4azibeg"}
+{"time":"2026-04-11T00:21:34.538657762+02:00","level":"INFO","msg":"handler: closed","stream_id":"j4azibeg"}
+{"time":"2026-04-11T00:21:34.538764971+02:00","level":"INFO","msg":"sender: closed","stream_id":"j4azibeg"}
+{"time":"2026-04-11T00:21:34.53878761+02:00","level":"INFO","msg":"stream: closed","id":"j4azibeg"}

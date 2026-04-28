@@ -1,0 +1,28 @@
+{
+  "os":  "Linux-6.8.0-55-generic-x86_64-with-glibc2.39",
+  "python":  "CPython 3.11.14",
+  "startedAt":  "2026-04-17T13:16:04.869153Z",
+  "args":  [
+    "--sparsity_weight_bin",
+    "0.4",
+    "--run_name",
+    "InputPruningFineTuned",
+    "--preprocessing",
+    "ihw",
+    "--stage1_model_path",
+    "/home/qphan/master-thesis/models/wear/stage1/ihw/uci_best_model_subject{subject}_val.pth",
+    "--performance"
+  ],
+  "program":  "/home/qphan/master-thesis/wear_main_loso_input_pruning.py",
+  "codePath":  "wear_main_loso_input_pruning.py",
+  "codePathLocal":  "wear_main_loso_input_pruning.py",
+  "git":  {
+    "remote":  "git@github.com:thong-phn/master-thesis.git",
+    "commit":  "303e9cdb4395679d8f090fa40b4acffd2ccad652"
+  },
+  "email":  "mrthonglion@gmail.com",
+  "root":  "/home/qphan/master-thesis",
+  "host":  "student-pc",
+  "executable":  "/home/qphan/master-thesis/.venv/bin/python",
+  "writerId":  "0718ra3au3iymogak9820op7rkvi3se6"
+}

@@ -1,0 +1,12 @@
+{"time":"2026-04-09T20:06:04.338956867+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-09T20:06:04.59775554+02:00","level":"INFO","msg":"stream: created new stream","id":"jshddrym"}
+{"time":"2026-04-09T20:06:04.597844619+02:00","level":"INFO","msg":"handler: started","stream_id":"jshddrym"}
+{"time":"2026-04-09T20:06:04.598069823+02:00","level":"INFO","msg":"stream: started","id":"jshddrym"}
+{"time":"2026-04-09T20:06:04.598121179+02:00","level":"INFO","msg":"writer: started","stream_id":"jshddrym"}
+{"time":"2026-04-09T20:06:04.598162289+02:00","level":"INFO","msg":"sender: started","stream_id":"jshddrym"}
+{"time":"2026-04-09T20:06:16.125419666+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-09T20:06:16.470067924+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-09T20:06:16.481811106+02:00","level":"INFO","msg":"stream: closing","id":"jshddrym"}
+{"time":"2026-04-09T20:06:16.481844348+02:00","level":"INFO","msg":"handler: closed","stream_id":"jshddrym"}
+{"time":"2026-04-09T20:06:16.481965563+02:00","level":"INFO","msg":"sender: closed","stream_id":"jshddrym"}
+{"time":"2026-04-09T20:06:16.481983795+02:00","level":"INFO","msg":"stream: closed","id":"jshddrym"}

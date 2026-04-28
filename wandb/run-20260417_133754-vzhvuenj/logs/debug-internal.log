@@ -1,0 +1,13 @@
+{"time":"2026-04-17T13:37:54.826772809+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-17T13:37:55.449813616+02:00","level":"INFO","msg":"stream: created new stream","id":"vzhvuenj"}
+{"time":"2026-04-17T13:37:55.44992218+02:00","level":"INFO","msg":"handler: started","stream_id":"vzhvuenj"}
+{"time":"2026-04-17T13:37:55.450169514+02:00","level":"INFO","msg":"stream: started","id":"vzhvuenj"}
+{"time":"2026-04-17T13:37:55.450258397+02:00","level":"INFO","msg":"writer: started","stream_id":"vzhvuenj"}
+{"time":"2026-04-17T13:37:55.450317779+02:00","level":"INFO","msg":"sender: started","stream_id":"vzhvuenj"}
+{"time":"2026-04-17T13:38:43.008115396+02:00","level":"INFO","msg":"api: retrying HTTP error","status":500,"url":"https://api.wandb.ai/graphql","body":"{\"errors\":[{\"message\":\"context canceled\",\"path\":[\"createArtifact\"]}],\"data\":{\"createArtifact\":null}}"}
+{"time":"2026-04-17T13:38:52.651020311+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-17T13:38:53.547766996+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-17T13:38:53.559513098+02:00","level":"INFO","msg":"stream: closing","id":"vzhvuenj"}
+{"time":"2026-04-17T13:38:53.559548924+02:00","level":"INFO","msg":"handler: closed","stream_id":"vzhvuenj"}
+{"time":"2026-04-17T13:38:53.559698267+02:00","level":"INFO","msg":"sender: closed","stream_id":"vzhvuenj"}
+{"time":"2026-04-17T13:38:53.559745773+02:00","level":"INFO","msg":"stream: closed","id":"vzhvuenj"}

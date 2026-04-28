@@ -1,0 +1,60 @@
+{
+  "os":  "Linux-6.8.0-55-generic-x86_64-with-glibc2.39",
+  "python":  "CPython 3.11.14",
+  "startedAt":  "2026-04-10T21:13:08.739134Z",
+  "args":  [
+    "--preprocessing",
+    "fft",
+    "--sparsity_weight",
+    "0.7",
+    "--wandb",
+    "1",
+    "--performance",
+    "--run_name",
+    "ChannelPruningFineTuned",
+    "--stage1_model_path",
+    "/home/qphan/master-thesis/models/uci/stage1/fft/uci_best_model_subject{subject}_val.pth"
+  ],
+  "program":  "/home/qphan/master-thesis/uci_main_loso_channel_pruning.py",
+  "codePath":  "uci_main_loso_channel_pruning.py",
+  "codePathLocal":  "uci_main_loso_channel_pruning.py",
+  "git":  {
+    "remote":  "git@github.com:thong-phn/master-thesis.git",
+    "commit":  "b12ff4019cb9e67f08a7af5134477b48e71f85e2"
+  },
+  "email":  "mrthonglion@gmail.com",
+  "root":  "/home/qphan/master-thesis",
+  "host":  "student-pc",
+  "executable":  "/home/qphan/master-thesis/.venv/bin/python",
+  "cpu_count":  8,
+  "cpu_count_logical":  8,
+  "gpu":  "NVIDIA GeForce RTX 2080 Ti",
+  "gpu_count":  2,
+  "disk":  {
+    "/":  {
+      "total":  "132445769728",
+      "used":  "53171994624"
+    }
+  },
+  "memory":  {
+    "total":  "67337535488"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA GeForce RTX 2080 Ti",
+      "memoryTotal":  "11811160064",
+      "cudaCores":  4352,
+      "architecture":  "Turing",
+      "uuid":  "GPU-f6085285-18c3-339e-ebc0-f4b07899e0b8"
+    },
+    {
+      "name":  "NVIDIA GeForce GT 1030",
+      "memoryTotal":  "2147483648",
+      "cudaCores":  384,
+      "architecture":  "Pascal",
+      "uuid":  "GPU-7c331ecd-03fc-d368-3e36-b625e6cf52ba"
+    }
+  ],
+  "cudaVersion":  "12.4",
+  "writerId":  "a8opjizv28z9inss19n79swtuqmnllng"
+}

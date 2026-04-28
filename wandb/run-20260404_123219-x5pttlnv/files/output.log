@@ -1,0 +1,136 @@
+Train samples: 50686
+Val samples: 2793
+Test samples: 9705
+Class counts: [8161.0, 8100.0, 3188.0, 3483.0, 3225.0, 1577.0, 1433.0, 21519.0]
+Class weights: [0.3869999945163727, 0.38999998569488525, 0.9900000095367432, 0.906000018119812, 0.9779999852180481, 2.000999927520752, 2.2019999027252197, 0.1469999998807907]
+
+============================================================
+STAGE 1: Training SeparableConvCNN
+============================================================
+Epoch [1/60]: Train Loss: 1.0014; Train Acc: 51.08; Val Loss: 0.7754; Val Acc: 65.27
+Epoch [2/60]: Train Loss: 0.7795; Train Acc: 61.01; Val Loss: 0.7805; Val Acc: 65.99
+Epoch [3/60]: Train Loss: 0.7224; Train Acc: 63.93; Val Loss: 0.7334; Val Acc: 70.39
+Epoch [4/60]: Train Loss: 0.6819; Train Acc: 65.98; Val Loss: 0.7654; Val Acc: 70.14
+Epoch [5/60]: Train Loss: 0.6471; Train Acc: 67.46; Val Loss: 0.7796; Val Acc: 69.89
+Epoch [6/60]: Train Loss: 0.6328; Train Acc: 68.27; Val Loss: 0.7732; Val Acc: 69.85
+Epoch [7/60]: Train Loss: 0.6134; Train Acc: 68.94; Val Loss: 0.8446; Val Acc: 67.60
+Epoch [8/60]: Train Loss: 0.6006; Train Acc: 69.20; Val Loss: 0.8558; Val Acc: 69.39
+Epoch [9/60]: Train Loss: 0.5823; Train Acc: 69.89; Val Loss: 0.7730; Val Acc: 70.96
+Epoch [10/60]: Train Loss: 0.5701; Train Acc: 70.20; Val Loss: 0.8694; Val Acc: 69.67
+Epoch [11/60]: Train Loss: 0.5595; Train Acc: 70.69; Val Loss: 0.8678; Val Acc: 70.75
+Epoch [12/60]: Train Loss: 0.5556; Train Acc: 70.55; Val Loss: 0.9400; Val Acc: 66.70
+Epoch [13/60]: Train Loss: 0.5353; Train Acc: 71.23; Val Loss: 0.7898; Val Acc: 71.07
+Early Stopping at Epoch [13/60] (patience=10).
+--------------------------------------------------
+Stage 1 Summary:
+Best Val Loss: 0.7334 at Epoch 3
+Test Loss: 0.6163 | Test Acc: 79.20% | Test F1 Macro: 0.6841
+
+============================================================
+STAGE 2: Training GumbelMaskSeparableConvCNN (input-bin pruning)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [1/60]: Train Loss: 1.2380; Train Acc: 53.07; Val Loss: 0.9822; Val Acc: 64.55; Mask: 31.37%
+Epoch [2/60]: Train Loss: 1.0724; Train Acc: 55.55; Val Loss: 0.9202; Val Acc: 66.45; Mask: 31.37%
+Epoch [3/60]: Train Loss: 1.0020; Train Acc: 57.69; Val Loss: 0.9117; Val Acc: 68.10; Mask: 31.37%
+Epoch [4/60]: Train Loss: 0.9609; Train Acc: 59.31; Val Loss: 0.8420; Val Acc: 69.71; Mask: 31.37%
+Epoch [5/60]: Train Loss: 0.9294; Train Acc: 59.97; Val Loss: 0.8404; Val Acc: 69.71; Mask: 29.41%
+Epoch [6/60]: Train Loss: 0.8991; Train Acc: 60.99; Val Loss: 0.8571; Val Acc: 67.35; Mask: 29.41%
+Epoch [7/60]: Train Loss: 0.8924; Train Acc: 60.96; Val Loss: 0.8311; Val Acc: 69.14; Mask: 23.53%
+Epoch [8/60]: Train Loss: 0.8862; Train Acc: 60.90; Val Loss: 0.8396; Val Acc: 68.74; Mask: 21.57%
+Epoch [9/60]: Train Loss: 0.8798; Train Acc: 60.46; Val Loss: 0.8140; Val Acc: 68.42; Mask: 21.57%
+Epoch [10/60]: Train Loss: 0.8763; Train Acc: 60.74; Val Loss: 0.8033; Val Acc: 68.31; Mask: 19.61%
+Epoch [11/60]: Train Loss: 0.8609; Train Acc: 60.98; Val Loss: 0.7958; Val Acc: 66.67; Mask: 19.61%
+Epoch [12/60]: Train Loss: 0.8568; Train Acc: 60.76; Val Loss: 0.8065; Val Acc: 66.13; Mask: 19.61%
+Epoch [13/60]: Train Loss: 0.8498; Train Acc: 60.91; Val Loss: 0.8132; Val Acc: 66.34; Mask: 17.65%
+Epoch [14/60]: Train Loss: 0.8425; Train Acc: 61.27; Val Loss: 0.7717; Val Acc: 65.77; Mask: 19.61%
+Epoch [15/60]: Train Loss: 0.8388; Train Acc: 60.84; Val Loss: 0.7805; Val Acc: 66.02; Mask: 19.61%
+Epoch [16/60]: Train Loss: 0.8437; Train Acc: 61.07; Val Loss: 0.8112; Val Acc: 65.02; Mask: 17.65%
+Epoch [17/60]: Train Loss: 0.8373; Train Acc: 61.05; Val Loss: 0.7897; Val Acc: 64.95; Mask: 15.69%
+Epoch [18/60]: Train Loss: 0.8377; Train Acc: 61.00; Val Loss: 0.7850; Val Acc: 64.20; Mask: 15.69%
+Epoch [19/60]: Train Loss: 0.8322; Train Acc: 61.27; Val Loss: 0.8204; Val Acc: 64.95; Mask: 13.73%
+Epoch [20/60]: Train Loss: 0.8268; Train Acc: 60.98; Val Loss: 0.8359; Val Acc: 64.95; Mask: 13.73%
+Epoch [21/60]: Train Loss: 0.8235; Train Acc: 60.83; Val Loss: 0.8239; Val Acc: 64.12; Mask: 13.73%
+Epoch [22/60]: Train Loss: 0.8183; Train Acc: 61.26; Val Loss: 0.8254; Val Acc: 64.16; Mask: 13.73%
+Epoch [23/60]: Train Loss: 0.8120; Train Acc: 61.39; Val Loss: 0.8340; Val Acc: 63.52; Mask: 13.73%
+Epoch [24/60]: Train Loss: 0.8153; Train Acc: 61.26; Val Loss: 0.9166; Val Acc: 63.05; Mask: 9.80%
+Early Stopping at Epoch [24/60] (patience=10).
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 0.7717 at Epoch 14
+Test Loss: 0.6779 | Test Acc: 76.56% | Test F1 Macro: 0.6530
+Hard input bins kept: 10/51 (19.6%)
+
+============================================================
+STAGE 3: Retraining SeparableConvCNN on pruned input
+============================================================
+Stage 3 input check: original batch shape=(64, 6, 51), pruned batch shape=(64, 6, 10), kept bins=10/51
+  Partially loaded weights: loaded=32, skipped=1
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_main_loso_input_pruning.py", line 307, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_main_loso_input_pruning.py", line 155, in main
+    metrics = train_loso_wear_three_stage_input_pruning(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 2342, in train_loso_wear_three_stage_input_pruning
+    out = model_stage3(x)
+          ^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/model.py", line 188, in forward
+    x = self.pool4(x)
+        ^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/nn/modules/pooling.py", line 146, in forward
+    return F.max_pool1d(
+           ^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/_jit_internal.py", line 627, in fn
+    return if_false(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/nn/functional.py", line 733, in _max_pool1d
+    return torch.max_pool1d(input, kernel_size, stride, padding, dilation, ceil_mode)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: max_pool1d() Invalid computed output size: 0

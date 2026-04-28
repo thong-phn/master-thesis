@@ -1,0 +1,12 @@
+{"time":"2026-04-17T13:28:35.29934011+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-17T13:28:35.568673197+02:00","level":"INFO","msg":"stream: created new stream","id":"scrioerg"}
+{"time":"2026-04-17T13:28:35.569037715+02:00","level":"INFO","msg":"stream: started","id":"scrioerg"}
+{"time":"2026-04-17T13:28:35.57037903+02:00","level":"INFO","msg":"writer: started","stream_id":"scrioerg"}
+{"time":"2026-04-17T13:28:35.570389548+02:00","level":"INFO","msg":"sender: started","stream_id":"scrioerg"}
+{"time":"2026-04-17T13:28:35.570404083+02:00","level":"INFO","msg":"handler: started","stream_id":"scrioerg"}
+{"time":"2026-04-17T13:28:56.015749508+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-17T13:28:56.591293803+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-17T13:28:56.603196321+02:00","level":"INFO","msg":"stream: closing","id":"scrioerg"}
+{"time":"2026-04-17T13:28:56.603231717+02:00","level":"INFO","msg":"handler: closed","stream_id":"scrioerg"}
+{"time":"2026-04-17T13:28:56.603387339+02:00","level":"INFO","msg":"sender: closed","stream_id":"scrioerg"}
+{"time":"2026-04-17T13:28:56.603439703+02:00","level":"INFO","msg":"stream: closed","id":"scrioerg"}

@@ -1,0 +1,16 @@
+{"time":"2026-04-22T16:49:38.085393775+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-22T16:49:38.333011321+02:00","level":"INFO","msg":"stream: created new stream","id":"wqlq64mm"}
+{"time":"2026-04-22T16:49:38.333062501+02:00","level":"INFO","msg":"handler: started","stream_id":"wqlq64mm"}
+{"time":"2026-04-22T16:49:38.333110107+02:00","level":"INFO","msg":"stream: started","id":"wqlq64mm"}
+{"time":"2026-04-22T16:49:38.333115542+02:00","level":"INFO","msg":"writer: started","stream_id":"wqlq64mm"}
+{"time":"2026-04-22T16:49:38.333125166+02:00","level":"INFO","msg":"sender: started","stream_id":"wqlq64mm"}
+{"time":"2026-04-22T16:50:21.886780708+02:00","level":"INFO","msg":"api: retrying HTTP error","status":500,"url":"https://api.wandb.ai/graphql","body":"{\"errors\":[{\"message\":\"context canceled\",\"path\":[\"createArtifactManifest\"]}],\"data\":{\"createArtifactManifest\":null}}"}
+{"time":"2026-04-22T16:51:07.281188672+02:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": context deadline exceeded"}
+{"time":"2026-04-22T16:51:52.612752251+02:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2026-04-22T16:57:34.090679387+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-22T16:57:34.4763536+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-22T16:57:34.478350322+02:00","level":"INFO","msg":"stream: closing","id":"wqlq64mm"}
+{"time":"2026-04-22T16:57:34.478359083+02:00","level":"INFO","msg":"handler: closed","stream_id":"wqlq64mm"}
+{"time":"2026-04-22T16:57:34.478397631+02:00","level":"INFO","msg":"sender: closed","stream_id":"wqlq64mm"}
+{"time":"2026-04-22T16:57:34.478403304+02:00","level":"INFO","msg":"stream: closed","id":"wqlq64mm"}
+{"time":"2026-04-22T16:57:34.478417955+02:00","level":"ERROR","msg":"runfiles: CreateRunFiles returned error: POST https://api.wandb.ai/graphql giving up after 1 attempt(s): context canceled"}

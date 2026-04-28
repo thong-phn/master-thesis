@@ -1,0 +1,12 @@
+{"time":"2026-04-05T19:20:27.038893693+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-05T19:20:27.295148447+02:00","level":"INFO","msg":"stream: created new stream","id":"ledruzut"}
+{"time":"2026-04-05T19:20:27.295261118+02:00","level":"INFO","msg":"handler: started","stream_id":"ledruzut"}
+{"time":"2026-04-05T19:20:27.295474691+02:00","level":"INFO","msg":"stream: started","id":"ledruzut"}
+{"time":"2026-04-05T19:20:27.295562951+02:00","level":"INFO","msg":"writer: started","stream_id":"ledruzut"}
+{"time":"2026-04-05T19:20:27.295577389+02:00","level":"INFO","msg":"sender: started","stream_id":"ledruzut"}
+{"time":"2026-04-05T19:22:25.219955253+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-05T19:22:25.609857367+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-05T19:22:25.621177768+02:00","level":"INFO","msg":"stream: closing","id":"ledruzut"}
+{"time":"2026-04-05T19:22:25.621210265+02:00","level":"INFO","msg":"handler: closed","stream_id":"ledruzut"}
+{"time":"2026-04-05T19:22:25.621318849+02:00","level":"INFO","msg":"sender: closed","stream_id":"ledruzut"}
+{"time":"2026-04-05T19:22:25.62134389+02:00","level":"INFO","msg":"stream: closed","id":"ledruzut"}

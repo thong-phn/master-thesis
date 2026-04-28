@@ -1,0 +1,1 @@
+{"_step":0,"stage1/test_f1":0.684081882695557,"_wandb":{"runtime":22},"stage1_test_acc":79.19629057187016,"stage1_test_f1":0.684081882695557,"_runtime":22,"stage1/test_acc":79.19629057187016,"stage1/test_loss":0.6162942504741554,"stage1_test_loss":0.6162942504741554,"_timestamp":1.775313636069721e+09,"stage1/use_pretrain_model":false}

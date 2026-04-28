@@ -1,0 +1,15 @@
+{"time":"2026-04-22T08:55:02.80116087+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-22T08:55:03.059756799+02:00","level":"INFO","msg":"stream: created new stream","id":"de98jbnk"}
+{"time":"2026-04-22T08:55:03.059845596+02:00","level":"INFO","msg":"handler: started","stream_id":"de98jbnk"}
+{"time":"2026-04-22T08:55:03.060076562+02:00","level":"INFO","msg":"stream: started","id":"de98jbnk"}
+{"time":"2026-04-22T08:55:03.060157742+02:00","level":"INFO","msg":"writer: started","stream_id":"de98jbnk"}
+{"time":"2026-04-22T08:55:03.060194056+02:00","level":"INFO","msg":"sender: started","stream_id":"de98jbnk"}
+{"time":"2026-04-22T08:56:08.861795308+02:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": context deadline exceeded"}
+{"time":"2026-04-22T08:56:18.560826214+02:00","level":"INFO","msg":"api: retrying HTTP error","status":500,"url":"https://api.wandb.ai/files/thongp-ubicomp/thesis-uci/de98jbnk/file_stream","body":"{\"error\":\"context deadline exceeded\"}"}
+{"time":"2026-04-22T08:56:29.290567901+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-22T08:57:15.856831197+02:00","level":"INFO","msg":"api: retrying HTTP error","status":500,"url":"https://api.wandb.ai/files/thongp-ubicomp/thesis-uci/de98jbnk/file_stream","body":"{\"error\":\"context deadline exceeded\"}"}
+{"time":"2026-04-22T08:58:57.886253453+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-22T08:58:57.898116424+02:00","level":"INFO","msg":"stream: closing","id":"de98jbnk"}
+{"time":"2026-04-22T08:58:57.898153544+02:00","level":"INFO","msg":"handler: closed","stream_id":"de98jbnk"}
+{"time":"2026-04-22T08:58:57.898277235+02:00","level":"INFO","msg":"sender: closed","stream_id":"de98jbnk"}
+{"time":"2026-04-22T08:58:57.898327751+02:00","level":"INFO","msg":"stream: closed","id":"de98jbnk"}

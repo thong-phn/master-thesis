@@ -1,0 +1,12 @@
+{"time":"2026-04-11T02:36:17.228817074+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-11T02:36:17.491177339+02:00","level":"INFO","msg":"stream: created new stream","id":"coko3aup"}
+{"time":"2026-04-11T02:36:17.491306612+02:00","level":"INFO","msg":"handler: started","stream_id":"coko3aup"}
+{"time":"2026-04-11T02:36:17.491512864+02:00","level":"INFO","msg":"stream: started","id":"coko3aup"}
+{"time":"2026-04-11T02:36:17.491593063+02:00","level":"INFO","msg":"writer: started","stream_id":"coko3aup"}
+{"time":"2026-04-11T02:36:17.491656245+02:00","level":"INFO","msg":"sender: started","stream_id":"coko3aup"}
+{"time":"2026-04-11T02:36:52.453882968+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-11T02:36:52.701843867+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-11T02:36:52.714167208+02:00","level":"INFO","msg":"stream: closing","id":"coko3aup"}
+{"time":"2026-04-11T02:36:52.714204917+02:00","level":"INFO","msg":"handler: closed","stream_id":"coko3aup"}
+{"time":"2026-04-11T02:36:52.714333957+02:00","level":"INFO","msg":"sender: closed","stream_id":"coko3aup"}
+{"time":"2026-04-11T02:36:52.714359519+02:00","level":"INFO","msg":"stream: closed","id":"coko3aup"}

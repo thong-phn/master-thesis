@@ -1,0 +1,75 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        e:
+            98m9o836n9da632cmkfxo60j5cbo4as2:
+                args:
+                    - --stage
+                    - "3"
+                    - --ptq_mode
+                    - "2"
+                    - --subjects
+                    - "0"
+                codePath: wear_quantize_loso_ptq.py
+                codePathLocal: wear_quantize_loso_ptq.py
+                cpu_count: 8
+                cpu_count_logical: 8
+                cudaVersion: "12.4"
+                disk:
+                    /:
+                        total: "132445769728"
+                        used: "53189734400"
+                email: mrthonglion@gmail.com
+                executable: /home/qphan/anaconda3/envs/py311-litert-torch/bin/python
+                git:
+                    commit: 7e1ef488ebdac2be1b392677158a0849f9a228ad
+                    remote: git@github.com:thong-phn/master-thesis.git
+                gpu: NVIDIA GeForce RTX 2080 Ti
+                gpu_count: 2
+                gpu_nvidia:
+                    - architecture: Turing
+                      cudaCores: 4352
+                      memoryTotal: "11811160064"
+                      name: NVIDIA GeForce RTX 2080 Ti
+                      uuid: GPU-f6085285-18c3-339e-ebc0-f4b07899e0b8
+                    - architecture: Pascal
+                      cudaCores: 384
+                      memoryTotal: "2147483648"
+                      name: NVIDIA GeForce GT 1030
+                      uuid: GPU-7c331ecd-03fc-d368-3e36-b625e6cf52ba
+                host: student-pc
+                memory:
+                    total: "67337535488"
+                os: Linux-6.8.0-55-generic-x86_64-with-glibc2.39
+                program: /home/qphan/master-thesis/wear_quantize_loso_ptq.py
+                python: CPython 3.11.14
+                root: /home/qphan/master-thesis
+                startedAt: "2026-04-04T13:38:50.846728Z"
+                writerId: 98m9o836n9da632cmkfxo60j5cbo4as2
+        m: []
+        python_version: 3.11.14
+        t:
+            "1":
+                - 1
+                - 5
+                - 53
+            "2":
+                - 1
+                - 5
+                - 53
+            "3":
+                - 2
+                - 13
+                - 16
+            "4": 3.11.14
+            "5": 0.25.0
+            "10":
+                - 20
+            "12": 0.25.0
+            "13": linux-x86_64
+ptq_mode:
+    value: 2
+stage:
+    value: 3
+training_type:
+    value: ptq

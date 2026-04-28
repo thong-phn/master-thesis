@@ -1,0 +1,12 @@
+{"time":"2026-04-09T22:27:03.18352497+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-09T22:27:03.438811573+02:00","level":"INFO","msg":"stream: created new stream","id":"qterjpsn"}
+{"time":"2026-04-09T22:27:03.438906419+02:00","level":"INFO","msg":"handler: started","stream_id":"qterjpsn"}
+{"time":"2026-04-09T22:27:03.439142257+02:00","level":"INFO","msg":"stream: started","id":"qterjpsn"}
+{"time":"2026-04-09T22:27:03.439221837+02:00","level":"INFO","msg":"writer: started","stream_id":"qterjpsn"}
+{"time":"2026-04-09T22:27:03.439287632+02:00","level":"INFO","msg":"sender: started","stream_id":"qterjpsn"}
+{"time":"2026-04-09T22:27:23.972723589+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-09T22:27:24.271544715+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-09T22:27:24.28314733+02:00","level":"INFO","msg":"stream: closing","id":"qterjpsn"}
+{"time":"2026-04-09T22:27:24.283182348+02:00","level":"INFO","msg":"handler: closed","stream_id":"qterjpsn"}
+{"time":"2026-04-09T22:27:24.283333586+02:00","level":"INFO","msg":"sender: closed","stream_id":"qterjpsn"}
+{"time":"2026-04-09T22:27:24.283385038+02:00","level":"INFO","msg":"stream: closed","id":"qterjpsn"}

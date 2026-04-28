@@ -1,0 +1,12 @@
+{"time":"2026-04-05T18:35:58.832611643+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-05T18:35:59.090132301+02:00","level":"INFO","msg":"stream: created new stream","id":"zakllfs6"}
+{"time":"2026-04-05T18:35:59.090245569+02:00","level":"INFO","msg":"handler: started","stream_id":"zakllfs6"}
+{"time":"2026-04-05T18:35:59.090423997+02:00","level":"INFO","msg":"stream: started","id":"zakllfs6"}
+{"time":"2026-04-05T18:35:59.090449222+02:00","level":"INFO","msg":"writer: started","stream_id":"zakllfs6"}
+{"time":"2026-04-05T18:35:59.090522824+02:00","level":"INFO","msg":"sender: started","stream_id":"zakllfs6"}
+{"time":"2026-04-05T18:38:09.25372094+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-05T18:38:09.481598782+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-05T18:38:09.493398529+02:00","level":"INFO","msg":"stream: closing","id":"zakllfs6"}
+{"time":"2026-04-05T18:38:09.493431149+02:00","level":"INFO","msg":"handler: closed","stream_id":"zakllfs6"}
+{"time":"2026-04-05T18:38:09.493545101+02:00","level":"INFO","msg":"sender: closed","stream_id":"zakllfs6"}
+{"time":"2026-04-05T18:38:09.493567567+02:00","level":"INFO","msg":"stream: closed","id":"zakllfs6"}

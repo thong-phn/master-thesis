@@ -1,0 +1,12 @@
+{"time":"2026-04-17T11:47:45.33035836+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-17T11:47:45.589131597+02:00","level":"INFO","msg":"stream: created new stream","id":"hmudi4su"}
+{"time":"2026-04-17T11:47:45.589254825+02:00","level":"INFO","msg":"handler: started","stream_id":"hmudi4su"}
+{"time":"2026-04-17T11:47:45.589460374+02:00","level":"INFO","msg":"stream: started","id":"hmudi4su"}
+{"time":"2026-04-17T11:47:45.589546239+02:00","level":"INFO","msg":"writer: started","stream_id":"hmudi4su"}
+{"time":"2026-04-17T11:47:45.589607688+02:00","level":"INFO","msg":"sender: started","stream_id":"hmudi4su"}
+{"time":"2026-04-17T11:48:11.611170853+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-17T11:48:11.950001293+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-17T11:48:11.962134968+02:00","level":"INFO","msg":"stream: closing","id":"hmudi4su"}
+{"time":"2026-04-17T11:48:11.962169263+02:00","level":"INFO","msg":"handler: closed","stream_id":"hmudi4su"}
+{"time":"2026-04-17T11:48:11.962324518+02:00","level":"INFO","msg":"sender: closed","stream_id":"hmudi4su"}
+{"time":"2026-04-17T11:48:11.96237304+02:00","level":"INFO","msg":"stream: closed","id":"hmudi4su"}

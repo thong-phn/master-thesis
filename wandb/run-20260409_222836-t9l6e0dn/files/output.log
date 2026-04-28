@@ -1,0 +1,20 @@
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/uci_main_loso_input_pruning.py", line 326, in <module>
+    main()
+  File "/home/qphan/master-thesis/uci_main_loso_input_pruning.py", line 235, in main
+    metrics = train_loso_uci_three_stage_input_pruning(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/uci_train.py", line 644, in train_loso_uci_three_stage_input_pruning
+    train_dataset = UCIHAR_Dataset(root_path, split='train', subject_ids=train_subjects, preprocessing=preprocessing)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/uci_train.py", line 56, in __init__
+    data = np.loadtxt(self.inertial_path/accel_files[axis])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/.venv/lib/python3.11/site-packages/numpy/lib/_npyio_impl.py", line 1384, in loadtxt
+    arr = _read(fname, dtype=dtype, comment=comment, delimiter=delimiter,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/.venv/lib/python3.11/site-packages/numpy/lib/_npyio_impl.py", line 1035, in _read
+    arr = _load_from_filelike(
+          ^^^^^^^^^^^^^^^^^^^^
+  File "<frozen codecs>", line 331, in getstate
+KeyboardInterrupt

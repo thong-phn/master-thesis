@@ -1,0 +1,12 @@
+{"time":"2026-04-20T20:00:56.74554215+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-20T20:00:57.017146456+02:00","level":"INFO","msg":"stream: created new stream","id":"tifknlp3"}
+{"time":"2026-04-20T20:00:57.01723495+02:00","level":"INFO","msg":"handler: started","stream_id":"tifknlp3"}
+{"time":"2026-04-20T20:00:57.017412617+02:00","level":"INFO","msg":"stream: started","id":"tifknlp3"}
+{"time":"2026-04-20T20:00:57.01750323+02:00","level":"INFO","msg":"writer: started","stream_id":"tifknlp3"}
+{"time":"2026-04-20T20:00:57.017566418+02:00","level":"INFO","msg":"sender: started","stream_id":"tifknlp3"}
+{"time":"2026-04-20T20:01:44.382840872+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-20T20:01:44.635397913+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-20T20:01:44.648005363+02:00","level":"INFO","msg":"stream: closing","id":"tifknlp3"}
+{"time":"2026-04-20T20:01:44.648038061+02:00","level":"INFO","msg":"handler: closed","stream_id":"tifknlp3"}
+{"time":"2026-04-20T20:01:44.648186105+02:00","level":"INFO","msg":"sender: closed","stream_id":"tifknlp3"}
+{"time":"2026-04-20T20:01:44.648235956+02:00","level":"INFO","msg":"stream: closed","id":"tifknlp3"}

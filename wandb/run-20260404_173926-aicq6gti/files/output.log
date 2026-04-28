@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_main_loso_baseline.py", line 212, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_main_loso_baseline.py", line 121, in main
+    metrics = train_loso_wear(
+              ^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 878, in train_loso_wear
+    num_workers = int(train_kwargs.get('num_workers', default_num_workers))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'NoneType'

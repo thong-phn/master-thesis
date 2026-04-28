@@ -1,0 +1,91 @@
+Train samples: 7011
+Val samples: 341
+Test samples: 2947
+Performance mode: True
+DataLoader settings: workers=6, pin_memory=True, persistent_workers=True, prefetch_factor=2
+Class counts: [1168.0, 1014.0, 937.0, 1234.0, 1313.0, 1345.0]
+Class weights: [0.9829999804496765, 1.1319999694824219, 1.2259999513626099, 0.9309999942779541, 0.875, 0.8539999723434448]
+
+============================================================
+STAGE 1: Train SeparableConvCNN model
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Use pretrained model:
+Test Loss: 0.2632 | Test Acc: 92.67% | Test F1 Macro: 0.9251
+
+============================================================
+STAGE 2: Training GumbelChannelPruningCNN (learn hard channel masks)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [5/60]: Train Loss: 2.7904; Train Acc: 67.42; Val Loss: 1.6290; Val Acc: 33.43; Mask: 48.52%
+Epoch [10/60]: Train Loss: 2.7047; Train Acc: 66.80; Val Loss: 1.6124; Val Acc: 33.43; Mask: 46.73%
+Early Stopping at Epoch [11/60] (patience=10).
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 1.5377 at Epoch 1
+Test Loss: 1.5173 | Test Acc: 36.85% | Test F1 Macro: 0.2849
+Hard channel keeps: block2=13/64, block3=22/128, block4=13/128
+
+============================================================
+STAGE 3: Building compact pruned model and fine-tuning
+============================================================
+Stage 3 model size: 2,857 params vs dense 36,868 params (92.25% reduction)
+Stage 3 widths: block2=13, block3=22, block4=13
+Epoch [5/60]: Train Loss: 0.6404; Train Acc: 81.73; Val Loss: 0.5424; Val Acc: 92.67
+Epoch [10/60]: Train Loss: 0.3989; Train Acc: 87.59; Val Loss: 0.2964; Val Acc: 97.07
+Epoch [15/60]: Train Loss: 0.2856; Train Acc: 91.06; Val Loss: 0.2079; Val Acc: 97.95
+Epoch [20/60]: Train Loss: 0.2295; Train Acc: 91.16; Val Loss: 0.1649; Val Acc: 97.65
+Epoch [25/60]: Train Loss: 0.2011; Train Acc: 92.01; Val Loss: 0.1499; Val Acc: 97.65
+Epoch [30/60]: Train Loss: 0.1799; Train Acc: 92.35; Val Loss: 0.1347; Val Acc: 96.77
+Epoch [35/60]: Train Loss: 0.1701; Train Acc: 92.80; Val Loss: 0.1375; Val Acc: 96.48
+Epoch [40/60]: Train Loss: 0.1647; Train Acc: 92.55; Val Loss: 0.1272; Val Acc: 96.48
+Epoch [45/60]: Train Loss: 0.1590; Train Acc: 92.98; Val Loss: 0.1133; Val Acc: 97.07
+Early Stopping at Epoch [47/60] (patience=10).
+--------------------------------------------------
+Stage 3 Summary:
+Best Val Loss: 0.1126 at Epoch 37
+Test Loss: 0.2675 | Test Acc: 90.33% | Test F1 Macro: 0.9028
+Model size reduction: 92.25% (2,857/36,868 params)
+
+============================================================
+THREE-STAGE CHANNEL PRUNING TRAINING COMPLETE
+============================================================
+Stage 1 (SeparableConvCNN): Test Acc: 92.67% | F1: 0.9251
+Stage 2 (GumbelChannelPruningCNN): Test Acc: 36.85% | F1: 0.2849
+Stage 3 (Pruned SeparableConvCNN): Test Acc: 90.33% | F1: 0.9028
+Stage 3 size reduction: 92.25%

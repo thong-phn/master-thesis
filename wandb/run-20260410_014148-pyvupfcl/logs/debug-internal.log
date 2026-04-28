@@ -1,0 +1,12 @@
+{"time":"2026-04-10T01:41:48.0295903+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-10T01:41:48.285176537+02:00","level":"INFO","msg":"stream: created new stream","id":"pyvupfcl"}
+{"time":"2026-04-10T01:41:48.285328917+02:00","level":"INFO","msg":"handler: started","stream_id":"pyvupfcl"}
+{"time":"2026-04-10T01:41:48.285488844+02:00","level":"INFO","msg":"stream: started","id":"pyvupfcl"}
+{"time":"2026-04-10T01:41:48.285570061+02:00","level":"INFO","msg":"writer: started","stream_id":"pyvupfcl"}
+{"time":"2026-04-10T01:41:48.2856321+02:00","level":"INFO","msg":"sender: started","stream_id":"pyvupfcl"}
+{"time":"2026-04-10T01:42:15.243412012+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-10T01:42:15.616817347+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-10T01:42:15.629133849+02:00","level":"INFO","msg":"stream: closing","id":"pyvupfcl"}
+{"time":"2026-04-10T01:42:15.629171608+02:00","level":"INFO","msg":"handler: closed","stream_id":"pyvupfcl"}
+{"time":"2026-04-10T01:42:15.629285106+02:00","level":"INFO","msg":"sender: closed","stream_id":"pyvupfcl"}
+{"time":"2026-04-10T01:42:15.629307294+02:00","level":"INFO","msg":"stream: closed","id":"pyvupfcl"}

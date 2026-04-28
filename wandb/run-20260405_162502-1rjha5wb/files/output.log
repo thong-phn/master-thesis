@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_main_loso_channel_pruning_random.py", line 241, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_main_loso_channel_pruning_random.py", line 146, in main
+    metrics = train_loso_wear_two_stage_random_pruning(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train_other_method.py", line 52, in train_loso_wear_two_stage_random_pruning
+    raise FileNotFoundError(f"Provided stage1 model path does not exist: {stage1_model_path}")
+FileNotFoundError: Provided stage1 model path does not exist: /home/qphan/master-thesis/models/stage1/fft/wear_best_model_subject{subject}_val.pth

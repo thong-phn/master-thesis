@@ -1,0 +1,89 @@
+Train samples: 49309
+Val samples: 4170
+Test samples: 9705
+Performance mode: True
+DataLoader settings: workers=6, pin_memory=True, persistent_workers=True, prefetch_factor=2
+Class counts: [8324.0, 8132.0, 3359.0, 3433.0, 3223.0, 1599.0, 1453.0, 19786.0]
+Class weights: [0.382999986410141, 0.3919999897480011, 0.949999988079071, 0.9300000071525574, 0.9900000095367432, 1.996000051498413, 2.197000026702881, 0.16099999845027924]
+
+============================================================
+STAGE 1: Train SeparableConvCNN model
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Use pretrained model:
+Test Loss: 0.6779 | Test Acc: 74.66% | Test F1 Macro: 0.6673
+
+============================================================
+STAGE 2: Training GumbelChannelPruningCNN (learn hard channel masks)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [5/60]: Train Loss: 2.3681; Train Acc: 32.36; Val Loss: 1.4478; Val Acc: 24.96; Mask: 41.61%
+Epoch [10/60]: Train Loss: 2.0151; Train Acc: 38.81; Val Loss: 1.2393; Val Acc: 32.61; Mask: 33.50%
+Epoch [15/60]: Train Loss: 1.7775; Train Acc: 44.03; Val Loss: 1.2700; Val Acc: 31.58; Mask: 26.27%
+Epoch [20/60]: Train Loss: 1.5977; Train Acc: 45.41; Val Loss: 1.2128; Val Acc: 33.29; Mask: 20.64%
+Epoch [25/60]: Train Loss: 1.4704; Train Acc: 46.24; Val Loss: 1.1917; Val Acc: 33.81; Mask: 16.33%
+Epoch [30/60]: Train Loss: 1.3851; Train Acc: 46.56; Val Loss: 1.1927; Val Acc: 33.79; Mask: 13.16%
+Early Stopping at Epoch [33/60] (patience=10).
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 1.1634 at Epoch 23
+Test Loss: 0.9214 | Test Acc: 71.70% | Test F1 Macro: 0.5870
+Hard channel keeps: block2=3/64, block3=8/128, block4=28/128
+
+============================================================
+STAGE 3: Building compact pruned model and fine-tuning
+============================================================
+Stage 3 model size: 3,213 params vs dense 36,998 params (91.32% reduction)
+Stage 3 widths: block2=3, block3=8, block4=28
+Epoch [5/60]: Train Loss: 1.0829; Train Acc: 47.92; Val Loss: 1.1243; Val Acc: 39.42
+Epoch [10/60]: Train Loss: 1.0319; Train Acc: 49.11; Val Loss: 1.0865; Val Acc: 40.55
+Epoch [15/60]: Train Loss: 1.0105; Train Acc: 49.66; Val Loss: 1.1164; Val Acc: 38.18
+Early Stopping at Epoch [19/60] (patience=10).
+--------------------------------------------------
+Stage 3 Summary:
+Best Val Loss: 1.0751 at Epoch 9
+Test Loss: 0.8702 | Test Acc: 72.05% | Test F1 Macro: 0.5921
+Model size reduction: 91.32% (3,213/36,998 params)
+
+============================================================
+THREE-STAGE CHANNEL PRUNING TRAINING COMPLETE
+============================================================
+Stage 1 (SeparableConvCNN): Test Acc: 74.66% | F1: 0.6673
+Stage 2 (GumbelChannelPruningCNN): Test Acc: 71.70% | F1: 0.5870
+Stage 3 (Pruned SeparableConvCNN): Test Acc: 72.05% | F1: 0.5921
+Stage 3 size reduction: 91.32%

@@ -1,0 +1,28 @@
+Train samples: 51258
+Val samples: 2221
+Test samples: 9705
+Class counts: [8461.0, 8099.0, 3355.0, 3516.0, 3222.0, 1596.0, 1447.0, 21562.0]
+Class weights: [0.3779999911785126, 0.39500001072883606, 0.9539999961853027, 0.9110000133514404, 0.9940000176429749, 2.00600004196167, 2.2130000591278076, 0.14800000190734863]
+Epoch [1/60]: Train Loss: 0.9947; Train Acc: 50.75; Val Loss: 0.8386; Val Acc: 65.92
+Epoch [2/60]: Train Loss: 0.7747; Train Acc: 59.92; Val Loss: 0.8784; Val Acc: 67.04
+Epoch [3/60]: Train Loss: 0.7197; Train Acc: 63.23; Val Loss: 0.8263; Val Acc: 65.24
+Epoch [4/60]: Train Loss: 0.6845; Train Acc: 65.36; Val Loss: 0.8374; Val Acc: 67.18
+Epoch [5/60]: Train Loss: 0.6528; Train Acc: 66.72; Val Loss: 0.7704; Val Acc: 68.08
+Epoch [6/60]: Train Loss: 0.6355; Train Acc: 67.73; Val Loss: 0.7979; Val Acc: 70.15
+Epoch [7/60]: Train Loss: 0.6171; Train Acc: 68.26; Val Loss: 0.7727; Val Acc: 68.30
+Epoch [8/60]: Train Loss: 0.6029; Train Acc: 68.88; Val Loss: 0.7302; Val Acc: 70.46
+Epoch [9/60]: Train Loss: 0.5855; Train Acc: 69.35; Val Loss: 0.8617; Val Acc: 69.07
+Epoch [10/60]: Train Loss: 0.5781; Train Acc: 69.66; Val Loss: 0.7732; Val Acc: 67.04
+Epoch [11/60]: Train Loss: 0.5685; Train Acc: 70.02; Val Loss: 0.9769; Val Acc: 65.29
+Epoch [12/60]: Train Loss: 0.5559; Train Acc: 70.71; Val Loss: 0.8501; Val Acc: 68.17
+Epoch [13/60]: Train Loss: 0.5421; Train Acc: 70.79; Val Loss: 0.7931; Val Acc: 68.89
+Epoch [14/60]: Train Loss: 0.5338; Train Acc: 70.86; Val Loss: 0.8626; Val Acc: 67.40
+Epoch [15/60]: Train Loss: 0.5268; Train Acc: 71.35; Val Loss: 0.8661; Val Acc: 69.34
+Epoch [16/60]: Train Loss: 0.5153; Train Acc: 71.41; Val Loss: 0.8442; Val Acc: 69.02
+Epoch [17/60]: Train Loss: 0.5099; Train Acc: 71.53; Val Loss: 0.7824; Val Acc: 70.24
+Epoch [18/60]: Train Loss: 0.5010; Train Acc: 71.86; Val Loss: 0.7908; Val Acc: 70.73
+Early Stopping at Epoch [18/60] (patience=10).
+--------------------------------------------------
+Stage 1 Summary:
+Best Val Loss: 0.7302 at Epoch 8
+Test Loss: 0.6338 | Test Acc: 78.46% | Test F1 Macro: 0.6902

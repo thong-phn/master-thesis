@@ -1,0 +1,1 @@
+{"stage1_test_loss":0.6504358043657142,"stage1_test_f1":0.6742216948894117,"stage1_loaded_from_checkpoint":true,"stage1_test_acc":77.48583204533746,"_runtime":24,"_wandb":{"runtime":24},"_timestamp":1.7754001596140072e+09,"_step":0,"stage1_checkpoint_path":"/home/qphan/master-thesis/models/stage1/fft/wear_best_model_subject0_val.pth"}

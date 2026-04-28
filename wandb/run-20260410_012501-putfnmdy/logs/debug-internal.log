@@ -1,0 +1,12 @@
+{"time":"2026-04-10T01:25:01.653879561+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-10T01:25:01.912276605+02:00","level":"INFO","msg":"stream: created new stream","id":"putfnmdy"}
+{"time":"2026-04-10T01:25:01.912371895+02:00","level":"INFO","msg":"handler: started","stream_id":"putfnmdy"}
+{"time":"2026-04-10T01:25:01.912580499+02:00","level":"INFO","msg":"stream: started","id":"putfnmdy"}
+{"time":"2026-04-10T01:25:01.912664595+02:00","level":"INFO","msg":"writer: started","stream_id":"putfnmdy"}
+{"time":"2026-04-10T01:25:01.912727018+02:00","level":"INFO","msg":"sender: started","stream_id":"putfnmdy"}
+{"time":"2026-04-10T01:25:24.336874283+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-10T01:25:24.561845515+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-10T01:25:24.573174709+02:00","level":"INFO","msg":"stream: closing","id":"putfnmdy"}
+{"time":"2026-04-10T01:25:24.573205979+02:00","level":"INFO","msg":"handler: closed","stream_id":"putfnmdy"}
+{"time":"2026-04-10T01:25:24.573358193+02:00","level":"INFO","msg":"sender: closed","stream_id":"putfnmdy"}
+{"time":"2026-04-10T01:25:24.5733823+02:00","level":"INFO","msg":"stream: closed","id":"putfnmdy"}

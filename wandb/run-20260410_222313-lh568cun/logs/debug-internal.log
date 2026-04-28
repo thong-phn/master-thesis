@@ -1,0 +1,12 @@
+{"time":"2026-04-10T22:23:13.05698394+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-10T22:23:13.330872752+02:00","level":"INFO","msg":"stream: created new stream","id":"lh568cun"}
+{"time":"2026-04-10T22:23:13.330999062+02:00","level":"INFO","msg":"handler: started","stream_id":"lh568cun"}
+{"time":"2026-04-10T22:23:13.331297214+02:00","level":"INFO","msg":"stream: started","id":"lh568cun"}
+{"time":"2026-04-10T22:23:13.331385947+02:00","level":"INFO","msg":"writer: started","stream_id":"lh568cun"}
+{"time":"2026-04-10T22:23:13.331455378+02:00","level":"INFO","msg":"sender: started","stream_id":"lh568cun"}
+{"time":"2026-04-10T22:23:36.748338446+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-10T22:23:36.987396467+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-10T22:23:36.99946904+02:00","level":"INFO","msg":"stream: closing","id":"lh568cun"}
+{"time":"2026-04-10T22:23:36.999503851+02:00","level":"INFO","msg":"handler: closed","stream_id":"lh568cun"}
+{"time":"2026-04-10T22:23:36.999617946+02:00","level":"INFO","msg":"sender: closed","stream_id":"lh568cun"}
+{"time":"2026-04-10T22:23:36.999640369+02:00","level":"INFO","msg":"stream: closed","id":"lh568cun"}

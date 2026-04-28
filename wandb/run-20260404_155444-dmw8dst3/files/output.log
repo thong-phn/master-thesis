@@ -1,0 +1,19 @@
+
+============================================================
+  Fold – validation subject 0
+============================================================
+  Input shape for export: (1, 6, 51)
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_quantize_loso_tflite_ptq.py", line 381, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_quantize_loso_tflite_ptq.py", line 335, in main
+    _export_onnx_and_convert(pt_model, onnx_path, saved_model_dir, input_shape)
+  File "/home/qphan/master-thesis/wear_quantize_loso_tflite_ptq.py", line 106, in _export_onnx_and_convert
+    torch.onnx.export(
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/onnx/__init__.py", line 282, in export
+    from torch.onnx._internal.exporter import _compat
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/onnx/_internal/exporter/_compat.py", line 16, in <module>
+    from torch.onnx._internal.exporter import (
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/onnx/_internal/exporter/_core.py", line 18, in <module>
+    import onnxscript
+ModuleNotFoundError: No module named 'onnxscript'

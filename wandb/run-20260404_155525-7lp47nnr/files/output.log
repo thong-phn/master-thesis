@@ -1,0 +1,63 @@
+
+============================================================
+  Fold – validation subject 0
+============================================================
+  Input shape for export: (1, 6, 51)
+/home/qphan/master-thesis/wear_quantize_loso_tflite_ptq.py:106: UserWarning: # 'dynamic_axes' is not recommended when dynamo=True, and may lead to 'torch._dynamo.exc.UserError: Constraints violated.' Supply the 'dynamic_shapes' argument instead if export is unsuccessful.
+  torch.onnx.export(
+W0404 15:55:41.959000 3586406 site-packages/torch/onnx/_internal/exporter/_compat.py:114] Setting ONNX exporter to use operator set version 18 because the requested opset_version 13 is a lower version than we have implementations for. Automatic version conversion will be performed, which may not be successful at converting to the requested version. If version conversion is unsuccessful, the opset version of the exported model will be kept at 18. Please consider setting opset_version >=18 to leverage latest ONNX features
+[torch.onnx] Obtain model graph for `SeparableConvCNN([...]` with `torch.export.export(..., strict=False)`...
+[torch.onnx] Obtain model graph for `SeparableConvCNN([...]` with `torch.export.export(..., strict=False)`... ✅
+[torch.onnx] Run decomposition...
+/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/cuda/__init__.py:283: UserWarning:
+    Found GPU1 NVIDIA GeForce GT 1030 which is of cuda capability 6.1.
+    Minimum and Maximum cuda capability supported by this version of PyTorch is
+    (7.0) - (12.0)
+
+  warnings.warn(
+/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/cuda/__init__.py:304: UserWarning:
+    Please install PyTorch with a following CUDA
+    configurations:  12.6 following instructions at
+    https://pytorch.org/get-started/locally/
+
+  warnings.warn(matched_cuda_warn.format(matched_arches))
+/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/torch/cuda/__init__.py:326: UserWarning:
+NVIDIA GeForce GT 1030 with CUDA capability sm_61 is not compatible with the current PyTorch installation.
+The current PyTorch install supports CUDA capabilities sm_70 sm_75 sm_80 sm_86 sm_90 sm_100 sm_120.
+If you want to use the NVIDIA GeForce GT 1030 GPU with PyTorch, please check the instructions at https://pytorch.org/get-started/locally/
+
+  warnings.warn(
+[torch.onnx] Run decomposition... ✅
+[torch.onnx] Translate the graph into ONNX...
+[torch.onnx] Translate the graph into ONNX... ✅
+The model version conversion is not supported by the onnxscript version converter and fallback is enabled. The model will be converted using the onnx C API (target version: 13).
+Failed to convert the model to the target version 13 using the ONNX C API. The model was not modified
+Traceback (most recent call last):
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/onnxscript/version_converter/__init__.py", line 120, in call
+    converted_proto = _c_api_utils.call_onnx_api(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/onnxscript/version_converter/_c_api_utils.py", line 65, in call_onnx_api
+    result = func(proto)
+             ^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/onnxscript/version_converter/__init__.py", line 115, in _partial_convert_version
+    return onnx.version_converter.convert_version(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/site-packages/onnx/version_converter.py", line 39, in convert_version
+    converted_model_str = C.convert_version(model_str, target_version)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: /github/workspace/onnx/version_converter/adapters/axes_input_to_attribute.h:65: adapt: Assertion `node->hasAttribute(kaxes)` failed: No initializer or constant input to node found
+Applied 8 of general pattern rewrite rules.
+  ONNX exported → /tmp/tmpt_qm51h0/model.onnx
+  onnx2tf: onnx2tf -i /tmp/tmpt_qm51h0/model.onnx -o /tmp/tmpt_qm51h0/saved_model -osd
+  TF SavedModel → /tmp/tmpt_qm51h0/saved_model
+
+  ── W8A16_FLOAT_IO ──
+  [ERROR] TFLite conversion (W8A16_FLOAT_IO): tensorflow/lite/kernels/reshape.cc:94 num_input_elements != num_output_elements (36 != 0)Node number 2 (RESHAPE) failed to prepare.
+
+  ── W8A16_INT_IO ──
+  [ERROR] TFLite conversion (W8A16_INT_IO): tensorflow/lite/kernels/reshape.cc:94 num_input_elements != num_output_elements (36 != 0)Node number 2 (RESHAPE) failed to prepare.
+
+  ── W8A8_INT_IO ──
+  [ERROR] TFLite conversion (W8A8_INT_IO): tensorflow/lite/kernels/reshape.cc:94 num_input_elements != num_output_elements (36 != 0)Node number 2 (RESHAPE) failed to prepare.
+
+Results saved → /home/qphan/master-thesis/log/wear_ptq_results_stage1_tflite.txt  (uploaded to W&B)

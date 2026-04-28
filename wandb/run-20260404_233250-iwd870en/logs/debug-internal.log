@@ -1,0 +1,12 @@
+{"time":"2026-04-04T23:32:50.243541157+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-04T23:32:50.499186853+02:00","level":"INFO","msg":"stream: created new stream","id":"iwd870en"}
+{"time":"2026-04-04T23:32:50.499305725+02:00","level":"INFO","msg":"handler: started","stream_id":"iwd870en"}
+{"time":"2026-04-04T23:32:50.499505129+02:00","level":"INFO","msg":"stream: started","id":"iwd870en"}
+{"time":"2026-04-04T23:32:50.499606207+02:00","level":"INFO","msg":"writer: started","stream_id":"iwd870en"}
+{"time":"2026-04-04T23:32:50.499667907+02:00","level":"INFO","msg":"sender: started","stream_id":"iwd870en"}
+{"time":"2026-04-04T23:55:18.708789836+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-04T23:55:18.999235152+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-04T23:55:19.011254218+02:00","level":"INFO","msg":"stream: closing","id":"iwd870en"}
+{"time":"2026-04-04T23:55:19.011288392+02:00","level":"INFO","msg":"handler: closed","stream_id":"iwd870en"}
+{"time":"2026-04-04T23:55:19.011409965+02:00","level":"INFO","msg":"sender: closed","stream_id":"iwd870en"}
+{"time":"2026-04-04T23:55:19.011436251+02:00","level":"INFO","msg":"stream: closed","id":"iwd870en"}

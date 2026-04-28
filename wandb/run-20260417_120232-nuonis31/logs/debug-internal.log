@@ -1,0 +1,12 @@
+{"time":"2026-04-17T12:02:32.458209294+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-17T12:02:32.711647451+02:00","level":"INFO","msg":"stream: created new stream","id":"nuonis31"}
+{"time":"2026-04-17T12:02:32.711750287+02:00","level":"INFO","msg":"handler: started","stream_id":"nuonis31"}
+{"time":"2026-04-17T12:02:32.711943172+02:00","level":"INFO","msg":"stream: started","id":"nuonis31"}
+{"time":"2026-04-17T12:02:32.71203111+02:00","level":"INFO","msg":"writer: started","stream_id":"nuonis31"}
+{"time":"2026-04-17T12:02:32.712116345+02:00","level":"INFO","msg":"sender: started","stream_id":"nuonis31"}
+{"time":"2026-04-17T12:02:50.675973272+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-17T12:02:51.326294559+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-17T12:02:51.338165504+02:00","level":"INFO","msg":"stream: closing","id":"nuonis31"}
+{"time":"2026-04-17T12:02:51.338191747+02:00","level":"INFO","msg":"handler: closed","stream_id":"nuonis31"}
+{"time":"2026-04-17T12:02:51.33834051+02:00","level":"INFO","msg":"sender: closed","stream_id":"nuonis31"}
+{"time":"2026-04-17T12:02:51.338387868+02:00","level":"INFO","msg":"stream: closed","id":"nuonis31"}

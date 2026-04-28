@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_main_loso_input_pruning.py", line 318, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_main_loso_input_pruning.py", line 162, in main
+    metrics = train_loso_wear_three_stage_input_pruning(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 2394, in train_loso_wear_three_stage_input_pruning
+    raise FileNotFoundError(f"Provided stage1 model path does not exist: {stage1_model_path}")
+FileNotFoundError: Provided stage1 model path does not exist: /home/qphan/master-thesis/models/wear/stage1/ihw/uci_best_model_subject0_val.pth

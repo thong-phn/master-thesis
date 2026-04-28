@@ -1,0 +1,1 @@
+{"val_loss":1.0505491353124172,"mask_l1":0.11764705926179886,"lr_backbone":0.0001,"train_loss":1.1467226940127533,"_timestamp":1.7757594683016906e+09,"val_acc":60.91205211726384,"best_val_loss":1.0505491353124172,"_runtime":35,"epoch":6,"lr_gumbel_bin":0.001,"_step":5,"train_acc":53.54958114163257,"_wandb":{"runtime":35},"stage":2}

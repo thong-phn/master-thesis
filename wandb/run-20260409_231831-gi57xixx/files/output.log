@@ -1,0 +1,126 @@
+Train samples: 7008
+Val samples: 344
+Test samples: 2947
+Performance mode: True
+DataLoader settings: workers=6, pin_memory=True, persistent_workers=True, prefetch_factor=2
+Class counts: [1173.0, 1024.0, 938.0, 1226.0, 1309.0, 1338.0]
+Class weights: [0.9789999723434448, 1.121999979019165, 1.225000023841858, 0.9369999766349792, 0.878000020980835, 0.859000027179718]
+
+============================================================
+STAGE 1: Loading pretrained SeparableConvCNN
+Checkpoint: /home/qphan/master-thesis/models/uci/stage1/fft/uci_best_model_subject29_val.pth
+============================================================
+--------------------------------------------------
+Stage 1 Summary:
+Use pretrained model:
+Test Loss: 0.2624 | Test Acc: 91.01% | Test F1 Macro: 0.9115
+
+============================================================
+STAGE 2: Training GumbelMaskSeparableConvCNN (input-bin pruning)
+============================================================
+
+Loading Stage 1 weights into Stage 2 model:
+  Loaded: sep_conv1.depthwise.weight
+  Loaded: sep_conv1.pointwise.weight
+  Loaded: bn1.weight
+  Loaded: bn1.bias
+  Loaded: bn1.running_mean
+  Loaded: bn1.running_var
+  Loaded: bn1.num_batches_tracked
+  Loaded: sep_conv2.depthwise.weight
+  Loaded: sep_conv2.pointwise.weight
+  Loaded: bn2.weight
+  Loaded: bn2.bias
+  Loaded: bn2.running_mean
+  Loaded: bn2.running_var
+  Loaded: bn2.num_batches_tracked
+  Loaded: sep_conv3.depthwise.weight
+  Loaded: sep_conv3.pointwise.weight
+  Loaded: bn3.weight
+  Loaded: bn3.bias
+  Loaded: bn3.running_mean
+  Loaded: bn3.running_var
+  Loaded: bn3.num_batches_tracked
+  Loaded: sep_conv4.depthwise.weight
+  Loaded: sep_conv4.pointwise.weight
+  Loaded: bn4.weight
+  Loaded: bn4.bias
+  Loaded: bn4.running_mean
+  Loaded: bn4.running_var
+  Loaded: bn4.num_batches_tracked
+  Loaded: fc1.weight
+  Loaded: fc1.bias
+  Loaded: fc2.weight
+  Loaded: fc2.bias
+  Kept random initialization of Gumbel-specific parameter
+Epoch [5/60]: Train Loss: 0.8965; Train Acc: 77.21; Val Loss: 0.3097; Val Acc: 86.92; Mask: 33.85%
+Epoch [10/60]: Train Loss: 0.6940; Train Acc: 81.48; Val Loss: 0.2747; Val Acc: 87.50; Mask: 32.31%
+Epoch [15/60]: Train Loss: 0.5930; Train Acc: 84.18; Val Loss: 0.2601; Val Acc: 89.83; Mask: 27.69%
+Epoch [20/60]: Train Loss: 0.5071; Train Acc: 87.21; Val Loss: 0.2490; Val Acc: 90.12; Mask: 24.62%
+Epoch [25/60]: Train Loss: 0.4635; Train Acc: 88.20; Val Loss: 0.2435; Val Acc: 90.41; Mask: 23.08%
+Epoch [30/60]: Train Loss: 0.4130; Train Acc: 89.55; Val Loss: 0.2171; Val Acc: 91.57; Mask: 23.08%
+Epoch [35/60]: Train Loss: 0.3779; Train Acc: 90.07; Val Loss: 0.2193; Val Acc: 91.86; Mask: 23.08%
+Epoch [40/60]: Train Loss: 0.3443; Train Acc: 91.00; Val Loss: 0.2150; Val Acc: 91.57; Mask: 21.54%
+Epoch [45/60]: Train Loss: 0.3240; Train Acc: 91.68; Val Loss: 0.2276; Val Acc: 91.28; Mask: 20.00%
+Epoch [50/60]: Train Loss: 0.3018; Train Acc: 92.37; Val Loss: 0.2189; Val Acc: 92.44; Mask: 20.00%
+Epoch [55/60]: Train Loss: 0.2871; Train Acc: 92.44; Val Loss: 0.2021; Val Acc: 93.31; Mask: 20.00%
+Epoch [60/60]: Train Loss: 0.2792; Train Acc: 92.51; Val Loss: 0.2124; Val Acc: 93.02; Mask: 20.00%
+--------------------------------------------------
+Stage 2 Summary:
+Best Val Loss: 0.1879 at Epoch 56
+Test Loss: 0.2638 | Test Acc: 90.23% | Test F1 Macro: 0.9022
+Hard input bins kept: 13/65 (20.0%)
+
+============================================================
+STAGE 3: Retraining SeparableConvCNN on pruned input
+============================================================
+  Partially loaded weights: loaded=32, skipped=1
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+Epoch [5/60]: Train Loss: 0.2412; Train Acc: 89.40; Val Loss: 0.2758; Val Acc: 90.12
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+Epoch [10/60]: Train Loss: 0.2139; Train Acc: 90.81; Val Loss: 0.3347; Val Acc: 85.17
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+Epoch [15/60]: Train Loss: 0.1924; Train Acc: 91.58; Val Loss: 0.3123; Val Acc: 85.17
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+Early Stopping at Epoch [16/60] (patience=10).
+/home/qphan/master-thesis/lib/model.py:11: UserWarning: [WARNING] Input length is too short for max-pooling.
+  warnings.warn("[WARNING] Input length is too short for max-pooling.")
+--------------------------------------------------
+Stage 3 Summary:
+Best Val Loss: 0.2691 at Epoch 6
+Test Loss: 0.2757 | Test Acc: 90.23% | Test F1 Macro: 0.9030
+
+============================================================
+THREE-STAGE TRAINING COMPLETE
+============================================================
+Stage 1 (SeparableConvCNN): Test Acc: 91.01% | F1: 0.9115
+Stage 2 (Input Bin Pruning): Test Acc: 90.23% | F1: 0.9022
+Stage 3 (Pruned Input Retrain): Test Acc: 90.23% | F1: 0.9030

@@ -1,0 +1,12 @@
+{"time":"2026-04-09T22:42:36.926672623+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-09T22:42:37.182391819+02:00","level":"INFO","msg":"stream: created new stream","id":"ibanm6vy"}
+{"time":"2026-04-09T22:42:37.182491202+02:00","level":"INFO","msg":"handler: started","stream_id":"ibanm6vy"}
+{"time":"2026-04-09T22:42:37.182681369+02:00","level":"INFO","msg":"stream: started","id":"ibanm6vy"}
+{"time":"2026-04-09T22:42:37.182767348+02:00","level":"INFO","msg":"writer: started","stream_id":"ibanm6vy"}
+{"time":"2026-04-09T22:42:37.182827853+02:00","level":"INFO","msg":"sender: started","stream_id":"ibanm6vy"}
+{"time":"2026-04-09T22:42:52.799490956+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-09T22:42:53.104260886+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-09T22:42:53.116063363+02:00","level":"INFO","msg":"stream: closing","id":"ibanm6vy"}
+{"time":"2026-04-09T22:42:53.116120103+02:00","level":"INFO","msg":"handler: closed","stream_id":"ibanm6vy"}
+{"time":"2026-04-09T22:42:53.116280805+02:00","level":"INFO","msg":"sender: closed","stream_id":"ibanm6vy"}
+{"time":"2026-04-09T22:42:53.11630304+02:00","level":"INFO","msg":"stream: closed","id":"ibanm6vy"}

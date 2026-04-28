@@ -1,0 +1,12 @@
+{"time":"2026-04-21T21:26:57.13643754+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-21T21:26:57.403367604+02:00","level":"INFO","msg":"stream: created new stream","id":"iirazgra"}
+{"time":"2026-04-21T21:26:57.403414973+02:00","level":"INFO","msg":"handler: started","stream_id":"iirazgra"}
+{"time":"2026-04-21T21:26:57.4035006+02:00","level":"INFO","msg":"stream: started","id":"iirazgra"}
+{"time":"2026-04-21T21:26:57.403530626+02:00","level":"INFO","msg":"writer: started","stream_id":"iirazgra"}
+{"time":"2026-04-21T21:26:57.403544566+02:00","level":"INFO","msg":"sender: started","stream_id":"iirazgra"}
+{"time":"2026-04-21T21:27:32.008873234+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-21T21:27:32.200246486+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-21T21:27:32.211935735+02:00","level":"INFO","msg":"stream: closing","id":"iirazgra"}
+{"time":"2026-04-21T21:27:32.211972756+02:00","level":"INFO","msg":"handler: closed","stream_id":"iirazgra"}
+{"time":"2026-04-21T21:27:32.21211271+02:00","level":"INFO","msg":"sender: closed","stream_id":"iirazgra"}
+{"time":"2026-04-21T21:27:32.212142164+02:00","level":"INFO","msg":"stream: closed","id":"iirazgra"}

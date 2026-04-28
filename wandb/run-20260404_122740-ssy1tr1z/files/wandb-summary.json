@@ -1,0 +1,1 @@
+{"stage":1,"_wandb":{"runtime":45},"_timestamp":1.77529850568015e+09,"val_acc":67.59756534192624,"val_loss":0.8445642813106528,"_runtime":45,"_step":6,"train_acc":68.94014126188691,"train_loss":0.6133949412183999,"epoch":7,"best_val_loss":0.7333975707251156,"lr":0.001}

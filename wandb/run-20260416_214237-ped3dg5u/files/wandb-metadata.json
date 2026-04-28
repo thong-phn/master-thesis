@@ -1,0 +1,28 @@
+{
+  "os":  "Linux-6.8.0-55-generic-x86_64-with-glibc2.39",
+  "python":  "CPython 3.11.14",
+  "startedAt":  "2026-04-16T19:42:37.578951Z",
+  "args":  [
+    "--preprocessing",
+    "ihw",
+    "--run_name",
+    "IHW-Channel-pruning2.0-wCEL",
+    "--sparsity_weight",
+    "2",
+    "--performance",
+    "--stage1_model_path",
+    "/home/qphan/master-thesis/models/stage1/ihw/wear_best_model_subject{subject}_val.pth"
+  ],
+  "program":  "/home/qphan/master-thesis/wear_main_loso_channel_pruning.py",
+  "codePath":  "wear_main_loso_channel_pruning.py",
+  "codePathLocal":  "wear_main_loso_channel_pruning.py",
+  "git":  {
+    "remote":  "git@github.com:thong-phn/master-thesis.git",
+    "commit":  "60713197712f346155c6da3c238e703358455191"
+  },
+  "email":  "mrthonglion@gmail.com",
+  "root":  "/home/qphan/master-thesis",
+  "host":  "student-pc",
+  "executable":  "/home/qphan/master-thesis/.venv/bin/python",
+  "writerId":  "7o8g3hv8bs8l2hism1r1ehfjqmlv38hi"
+}

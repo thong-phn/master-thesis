@@ -1,0 +1,12 @@
+{"time":"2026-04-17T10:56:18.669824972+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-17T10:56:18.928503932+02:00","level":"INFO","msg":"stream: created new stream","id":"mytrybxl"}
+{"time":"2026-04-17T10:56:18.928591535+02:00","level":"INFO","msg":"handler: started","stream_id":"mytrybxl"}
+{"time":"2026-04-17T10:56:18.928806417+02:00","level":"INFO","msg":"stream: started","id":"mytrybxl"}
+{"time":"2026-04-17T10:56:18.928890052+02:00","level":"INFO","msg":"writer: started","stream_id":"mytrybxl"}
+{"time":"2026-04-17T10:56:18.928948113+02:00","level":"INFO","msg":"sender: started","stream_id":"mytrybxl"}
+{"time":"2026-04-17T10:56:42.371730869+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-17T10:56:59.885514595+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-17T10:56:59.8971104+02:00","level":"INFO","msg":"stream: closing","id":"mytrybxl"}
+{"time":"2026-04-17T10:56:59.897150761+02:00","level":"INFO","msg":"handler: closed","stream_id":"mytrybxl"}
+{"time":"2026-04-17T10:56:59.897305594+02:00","level":"INFO","msg":"sender: closed","stream_id":"mytrybxl"}
+{"time":"2026-04-17T10:56:59.8973543+02:00","level":"INFO","msg":"stream: closed","id":"mytrybxl"}

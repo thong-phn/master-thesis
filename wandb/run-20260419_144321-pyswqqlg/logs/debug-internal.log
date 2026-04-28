@@ -1,0 +1,12 @@
+{"time":"2026-04-19T14:43:21.426674865+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-19T14:43:21.681597607+02:00","level":"INFO","msg":"stream: created new stream","id":"pyswqqlg"}
+{"time":"2026-04-19T14:43:21.681650247+02:00","level":"INFO","msg":"handler: started","stream_id":"pyswqqlg"}
+{"time":"2026-04-19T14:43:21.68173401+02:00","level":"INFO","msg":"stream: started","id":"pyswqqlg"}
+{"time":"2026-04-19T14:43:21.681770114+02:00","level":"INFO","msg":"writer: started","stream_id":"pyswqqlg"}
+{"time":"2026-04-19T14:43:21.681795254+02:00","level":"INFO","msg":"sender: started","stream_id":"pyswqqlg"}
+{"time":"2026-04-19T14:43:49.65184456+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-19T14:43:49.938843778+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-19T14:43:49.941698857+02:00","level":"INFO","msg":"stream: closing","id":"pyswqqlg"}
+{"time":"2026-04-19T14:43:49.941730153+02:00","level":"INFO","msg":"handler: closed","stream_id":"pyswqqlg"}
+{"time":"2026-04-19T14:43:49.94177464+02:00","level":"INFO","msg":"sender: closed","stream_id":"pyswqqlg"}
+{"time":"2026-04-19T14:43:49.941779318+02:00","level":"INFO","msg":"stream: closed","id":"pyswqqlg"}

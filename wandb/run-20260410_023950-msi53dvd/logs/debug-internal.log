@@ -1,0 +1,12 @@
+{"time":"2026-04-10T02:39:50.784681846+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-10T02:39:51.039669548+02:00","level":"INFO","msg":"stream: created new stream","id":"msi53dvd"}
+{"time":"2026-04-10T02:39:51.039768528+02:00","level":"INFO","msg":"handler: started","stream_id":"msi53dvd"}
+{"time":"2026-04-10T02:39:51.039985911+02:00","level":"INFO","msg":"stream: started","id":"msi53dvd"}
+{"time":"2026-04-10T02:39:51.040066604+02:00","level":"INFO","msg":"writer: started","stream_id":"msi53dvd"}
+{"time":"2026-04-10T02:39:51.040156199+02:00","level":"INFO","msg":"sender: started","stream_id":"msi53dvd"}
+{"time":"2026-04-10T02:40:08.030622606+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-10T02:40:08.375842215+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-10T02:40:08.387579125+02:00","level":"INFO","msg":"stream: closing","id":"msi53dvd"}
+{"time":"2026-04-10T02:40:08.387614927+02:00","level":"INFO","msg":"handler: closed","stream_id":"msi53dvd"}
+{"time":"2026-04-10T02:40:08.387761616+02:00","level":"INFO","msg":"sender: closed","stream_id":"msi53dvd"}
+{"time":"2026-04-10T02:40:08.387786206+02:00","level":"INFO","msg":"stream: closed","id":"msi53dvd"}

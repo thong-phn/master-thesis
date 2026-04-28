@@ -1,0 +1,12 @@
+{"time":"2026-04-17T12:00:40.93380609+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-17T12:00:41.20156454+02:00","level":"INFO","msg":"stream: created new stream","id":"jfjkywen"}
+{"time":"2026-04-17T12:00:41.201676817+02:00","level":"INFO","msg":"handler: started","stream_id":"jfjkywen"}
+{"time":"2026-04-17T12:00:41.201863541+02:00","level":"INFO","msg":"stream: started","id":"jfjkywen"}
+{"time":"2026-04-17T12:00:41.201957373+02:00","level":"INFO","msg":"writer: started","stream_id":"jfjkywen"}
+{"time":"2026-04-17T12:00:41.202015306+02:00","level":"INFO","msg":"sender: started","stream_id":"jfjkywen"}
+{"time":"2026-04-17T12:01:00.152786485+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-17T12:01:00.531001208+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-17T12:01:00.542922188+02:00","level":"INFO","msg":"stream: closing","id":"jfjkywen"}
+{"time":"2026-04-17T12:01:00.542962862+02:00","level":"INFO","msg":"handler: closed","stream_id":"jfjkywen"}
+{"time":"2026-04-17T12:01:00.543109701+02:00","level":"INFO","msg":"sender: closed","stream_id":"jfjkywen"}
+{"time":"2026-04-17T12:01:00.543163878+02:00","level":"INFO","msg":"stream: closed","id":"jfjkywen"}

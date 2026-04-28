@@ -1,0 +1,13 @@
+{"time":"2026-04-22T08:50:15.068934973+02:00","level":"INFO","msg":"stream: starting","core version":"0.25.0"}
+{"time":"2026-04-22T08:50:15.33303397+02:00","level":"INFO","msg":"stream: created new stream","id":"stjgdxm8"}
+{"time":"2026-04-22T08:50:15.333158011+02:00","level":"INFO","msg":"handler: started","stream_id":"stjgdxm8"}
+{"time":"2026-04-22T08:50:15.333398654+02:00","level":"INFO","msg":"stream: started","id":"stjgdxm8"}
+{"time":"2026-04-22T08:50:15.333491215+02:00","level":"INFO","msg":"writer: started","stream_id":"stjgdxm8"}
+{"time":"2026-04-22T08:50:15.333563199+02:00","level":"INFO","msg":"sender: started","stream_id":"stjgdxm8"}
+{"time":"2026-04-22T08:51:00.084539497+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-04-22T08:52:13.721172133+02:00","level":"INFO","msg":"api: retrying HTTP error","status":500,"url":"https://api.wandb.ai/files/thongp-ubicomp/thesis-uci/stjgdxm8/file_stream","body":"{\"error\":\"context deadline exceeded\"}"}
+{"time":"2026-04-22T08:52:17.39872334+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-04-22T08:52:17.410902951+02:00","level":"INFO","msg":"stream: closing","id":"stjgdxm8"}
+{"time":"2026-04-22T08:52:17.410937609+02:00","level":"INFO","msg":"handler: closed","stream_id":"stjgdxm8"}
+{"time":"2026-04-22T08:52:17.411052823+02:00","level":"INFO","msg":"sender: closed","stream_id":"stjgdxm8"}
+{"time":"2026-04-22T08:52:17.411130503+02:00","level":"INFO","msg":"stream: closed","id":"stjgdxm8"}

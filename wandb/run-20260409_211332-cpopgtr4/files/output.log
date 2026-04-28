@@ -1,0 +1,25 @@
+Traceback (most recent call last):
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/pathlib.py", line 1116, in mkdir
+    os.mkdir(self, mode)
+PermissionError: [Errno 13] Permission denied: '/root/master-thesis/models/wear/stage1/fft'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/qphan/master-thesis/wear_main_loso_input_pruning.py", line 318, in <module>
+    main()
+  File "/home/qphan/master-thesis/wear_main_loso_input_pruning.py", line 162, in main
+    metrics = train_loso_wear_three_stage_input_pruning(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qphan/master-thesis/lib/wear_train.py", line 2373, in train_loso_wear_three_stage_input_pruning
+    stage1_model_path.parent.mkdir(parents=True, exist_ok=True)
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/pathlib.py", line 1125, in mkdir
+    if not exist_ok or not self.is_dir():
+                           ^^^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/pathlib.py", line 1250, in is_dir
+    return S_ISDIR(self.stat().st_mode)
+                   ^^^^^^^^^^^
+  File "/home/qphan/anaconda3/envs/py311-litert-torch/lib/python3.11/pathlib.py", line 1013, in stat
+    return os.stat(self, follow_symlinks=follow_symlinks)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 13] Permission denied: '/root/master-thesis/models/wear/stage1/fft'

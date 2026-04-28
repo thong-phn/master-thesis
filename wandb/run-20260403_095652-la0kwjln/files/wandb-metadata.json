@@ -1,0 +1,25 @@
+{
+  "os":  "Linux-6.8.0-55-generic-x86_64-with-glibc2.39",
+  "python":  "CPython 3.11.14",
+  "startedAt":  "2026-04-03T07:56:52.748548Z",
+  "args":  [
+    "--subjects",
+    "1",
+    "--sparsity_weight_bin",
+    "0.09",
+    "--preprocessing",
+    "fft"
+  ],
+  "program":  "/home/qphan/master-thesis/wear_main_loso_five_stage.py",
+  "codePath":  "wear_main_loso_five_stage.py",
+  "codePathLocal":  "wear_main_loso_five_stage.py",
+  "git":  {
+    "remote":  "git@github.com:thong-phn/master-thesis.git",
+    "commit":  "e0179dae0a92c0ede53d10cb352fc4e0d1d1caee"
+  },
+  "email":  "mrthonglion@gmail.com",
+  "root":  "/home/qphan/master-thesis",
+  "host":  "student-pc",
+  "executable":  "/home/qphan/anaconda3/envs/py311-litert-torch/bin/python",
+  "writerId":  "3ovotcv9acp3p2xxgfb6d3juvvd7ghz3"
+}
