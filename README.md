@@ -1,244 +1,44 @@
-Note:
-Accuracy 
-    Body acc works better than total acc
-    Without tau annealing
-        - With self.bn0: 91.38% - 41% mask
-        - Without self.bn0: 91.89% - 47% mask
-    Tau annealing
-        - With self.bn0: 92.09% - 46% mask
-        - Without self.bn0: 89.55% - 41.5% mask
+# Efficient Multi-Stage Pruning and Quantization for Human Activity Recognition (HAR)
 
-Size
-    32 -> 64 -> 128 -> 128: 92%
-    16 -> 32 -> 64 -> 64: 89 (half of parameters remove)
+## 📌 Project Overview
+This repository provides a complete PyTorch-based experimental framework aimed at building lightweight, highly efficient neural networks for wearable sensors and low-power edge devices. Focusing on Human Activity Recognition (HAR), the project applies advanced continuous pruning techniques—specifically using Gumbel-Softmax differentiable masking—to identify optimal features and internal parameters.
 
-Results:
-Gumbel mask (tau annealing from 3.0 to 2.0)
-    Test Accuracy: 89.08% ± 2.30%
-    Test F1 Macro: 0.8914 ± 0.0230
-Gumbel mask (tau annealing from 5.0 to 1.0)
-    Test Accuracy: 89.32% ± 1.92%
-    Test F1 Macro: 0.8934 ± 0.0196
-Gumbel mask (tau annealing from 5.0 to 1.0, remove weigh-sparity ramp up, sparsity_weight = 0.01)
-    Test Accuracy: 89.67% ± 1.66%
-    Test F1 Macro: 0.8974 ± 0.0165
-Gumbel mask (tau annealing from 5.0 to 1.0, remove weigh-sparity ramp up, sparsity_weight = 0.005)
-    Test Accuracy: 89.67% ± 1.66%
-    Test F1 Macro: 0.8974 ± 0.0165
+It evaluates these concepts primarily through two datasets (**UCI-HAR** and **WEAR**) using a rigorous **Leave-One-Subject-Out (LOSO)** cross-validation methodology, culminating in post-training optimized conversions to **TensorFlow Lite (TFLite)** suitable for edge deployment.
 
+## ✨ Key Features & Methodologies
+- **Model Architecture**: Centered around **Separable Convolutional Neural Networks (SeparableConvCNN)**, which natively strip down the parameter count while preserving spatial and temporal learning capacity.
+- **Data Preprocessing**: Compares various data representation techniques including **Raw Time-Domain** signals, **Fast Fourier Transform (FFT)**, and **Discrete Cosine Transform (DCT)**. 
+- **Leave-One-Subject-Out (LOSO)**: Ensures realistic out-of-sample generalization for wearable users.
+- **Gumbel-Softmax Pruning Methods**:
+  - **Input Pruning**: Identifies and drops uninformative time-steps or frequency bins (in FFT/DCT) via a learnable mask.
+  - **Channel Pruning**: Dynamically removes unused convolutional channels during training.
+- **TFLite Post-Training Quantization (PTQ)**: Provides a deployment-ready pipeline (`PyTorch .pth` → `ONNX` → `TF SavedModel` via `onnx2tf` → `.tflite`). Target quantization formats include `W8A16_FLOAT_IO`, `W8A16_INT_IO`, and `W8A8_INT_IO`.
 
-Add WEAR debug:
-    Observation
-        Gummbel Mask: Stop at epoch 1
-        Raw time-domain without Gummbel Mask: Stop at epoch 4; 73.95%
-        Raw FFT without Gummbel Mask: Stop at epoch 1; 72.38%
-        GUMBEL_MASK
-        --preprocessing 'fft' --sparsity_weight 0.0001: Test Loss: 0.7397 | Test Acc: 72.38% | Test F1 Macro: 0.6733
-    Issue: FFT data seem not working
-    Cause: 
-        FFT compresses 100 samples → 51 bins (losing temporal sequence info),
-        Large DC/low-frequency dominance: The DC component (gravity) and first few bins dominate the FFT spectrum. 
-        Same hyperparameters tuned for UCI-HAR: 
-            Metric	UCI-HAR FFT ✅	WEAR FFT ❌	WEAR raw ✅
-            Shape	(6, 65)	(6, 51)	(6, 100)
-            Mean	0.010	0.107	0.433
-            Std	0.035	0.198	1.156
-            Max	0.685	1.955	6.133
-            DC (bin 0)	0.022	0.557	—
-    Solution: Gravity filter
-        Raw FFT without Gummbel stop at epoch 4; Accuracy: 71.06% 
-        FFT with Gumbel stop at epoch 4; Accuracy: 57.88% -> Using UCI-HAR give comparable accuracy
-Add WEAR debug 2: Try with 2 stage training (pre-trained the model without Gumbel)
-        FFT with Gumbel stop at epoch 2; Accuracy: 70.63%; Mask: 80%
-        FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; Accuracy: 71.18%; Mask: 90%
-        FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; sparsity weight: 0.1; Accuracy: 70.46%; Mask: 60
-        FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; sparsity weight: 0.5; Accuracy: 45.80%; Mask: 60
-        FFT with Gumbel stop at epoch 4; LR reduce in 2nd stage; sparsity weight: 1; Accuracy: 20.46%; Mask: 0 -> limit
+## ⚙️ Multi-Stage Training Pipeline
+The project adopts robust multi-stage pipelines (found across 3-stage or 5-stage variations) to progressively simplify the model without sacrificing accuracy. For instance, the **Five-Stage Multi-Pruning Pipeline** works as follows:
+- **Stage 1 (Pre-training)**: Train the standard `SeparableConvCNN` without masking to establish a solid weight initialization and baseline.
+- **Stage 2 (Input Pruning Logic)**: Introduce Gumbel masking on inputs and train briefly to establish sparse binary masks indicating which frequency bins/steps to keep.
+- **Stage 3 (Input Application)**: Extract the pruned input and fully retrain the `SeparableConvCNN`.
+- **Stage 4 (Channel Pruning Logic)**: Introduce channel-based Gumbel masking to identify which network filters can be safely dropped.
+- **Stage 5 (Physical Pruning & Fine-Tuning)**: Physically slice away unused sub-tensor parameters to yield a true compact model and fine-tune for the final evaluation. 
 
-Note: Typical pipeline: Accel -> Remove g -> FFT -> Normalized
-TODO: 
-- Add LRReduce
-- Try with different model
-- Why joint optimization not work but 2 stage work?
-Dataset: 
-UCI-HAR: Locomotion
-Wetlab: Controlled Experiment
-Handwashing: Daily life
+## 📂 Repository Structure
+- **`lib/`**: Contains foundational utilities.
+  - `model.py`: PyTorch Module bindings (`SeparableConvCNN`, `GumbelMaskSeparableConvCNN`, etc.).
+  - `ml_lib.py` / `signal_lib.py`: Core training loops, signal-processing techniques, and Gumbel-pruning integration routines.
+  - `uci_train.py` / `wear_train*.py`: Definitions for dataset classes, specific validation procedures, and stage pipelines.
+- **`[dataset]_main_loso_*.py`**: Main entrypoint scripts for running multi-stage Gumbel Pruning over different paradigms (baseline, input_pruning, channel_pruning, five_stage). Prefixed for **UCI** (`uci_`) or **WEAR** (`wear_`).
+- **`[dataset]_quantize_loso_tflite_ptq.py`**: Scripts facilitating the automated pipeline to port pruned PyTorch models into quantized `TFLite` executables.
+- **`log/`**: Experimental result outputs, validation scores, and tracking files (logging hyperparameter setups for FFT/DCT metrics).
+- **`models/`**, **`fig/`**, **`scripts/`**, **`wandb/`**: Corresponding spaces for saved weights, visualizations, utility scripts, and tracking.
 
-WEAR: Sport
+## 🚀 Getting Started Focus (Usage Example)
+To run a channel pruning pipeline on UCI-HAR leveraging LOSO validation:
+\`\`\`bash
+python uci_main_loso_channel_pruning.py 
+\`\`\`
+To proceed with packaging a Stage 5 pruned model to a quantized TFLite package for Subjects 1, 2, and 3:
+\`\`\`bash
+python uci_quantize_loso_tflite_ptq.py --stage 5 --subjects '1,2,3'
+\`\`\`
 
-Weighted CEL
-    Subject 0, no weighted:
-        STAGE 1
-        Test Accuracy: 71.14% ± 0.00%
-        Test F1 Macro: 0.6580 ± 0.0000
-
-        STAGE2:
-        Test Accuracy: 68.41% ± 0.00%
-        Test F1 Macro: 0.6327 ± 0.0000
-
-        STAGE3:
-        Test Accuracy: 72.81% ± 0.00%
-        Test F1 Macro: 0.6633 ± 0.0000
-
-        STAGE4:
-        Test Accuracy: 70.63% ± 0.00%
-        Test F1 Macro: 0.6508 ± 0.0000
-
-        STAGE5:
-        Test Accuracy: 70.89% ± 0.00%
-        Test F1 Macro: 0.6518 ± 0.0000
-
-        Improvement (Stage5 - Stage1):
-        Accuracy: -0.25%
-        F1 Macro: -0.0062
-    Subject 0, weighted, keep less input?:
-        STAGE1:
-        Test Accuracy: 79.20% ± 0.00%
-        Test F1 Macro: 0.6841 ± 0.0000
-
-        STAGE2:
-        Test Accuracy: 73.01% ± 0.00%
-        Test F1 Macro: 0.6336 ± 0.0000
-
-        STAGE3:
-        Test Accuracy: 77.89% ± 0.00%
-        Test F1 Macro: 0.6823 ± 0.0000
-
-        STAGE4:
-        Test Accuracy: 79.97% ± 0.00%
-        Test F1 Macro: 0.6851 ± 0.0000
-
-        STAGE5:
-        Test Accuracy: 79.73% ± 0.00%
-        Test F1 Macro: 0.6884 ± 0.0000
-
-        Improvement (Stage5 - Stage1):
-        Accuracy: 0.54%
-        F1 Macro: 0.0043
-
-About bn0 issue
-    Debug thêm với subject 7: 
-        No bn0: Prune quá nhiều 
-            Baseline stage 1: Test Acc: da co
-        With bn0: Prune vừa phải
-            Baseline da co
-        No bn0 + Zscore normalization: 54.39% ± 0.00%
-        With bn0 + Zscore norm: 56
-    Input pruning S0: Train samples: 50686; Val samples: 2793; Test samples: 9705.
-    NOTE: Stage 3 (Fine tuning pruned input)
-        No bn0, sparsity weight = 0.1 -> Maintain accuracy
-            - Stage 1: Test Acc: 71.14% | Test F1 Macro: 0.6580
-            - Stage 2: Test Acc: 68.41% | Test F1 Macro: 0.6327 | Hard input bins kept: 30/51 (58.8%)
-            - Stage 3: Test Acc: 71.55% | Test F1 Macro: 0.6606
-        With bn0, sparsity weight = 0.1 -> Higher at the begin but drop
-            - Stage 1: Test Acc: 73.33% | Test F1 Macro: 0.6610
-            - Stage 2: Test Acc: 69.58% | Test F1 Macro: 0.6342 | Hard input bins kept: 36/51 (70.6%)
-            - Stage 3: Test Acc: 70.93% | Test F1 Macro: 0.6570 
-    Input pruning S12: Train samples: 50210; Val samples: 3269; Test samples: 9705
-        No bn0, sparsity weight = 0.1
-            - Stage 1: Test Acc: 71.68% | Test F1 Macro: 0.6592
-            - Stage 2: Test Acc: 71.54% | Test F1 Macro: 0.6619 | Hard input bins kept: 27/51 (52.9%)
-            - Stage 3: Test Acc: 72.46% | Test F1 Macro: 0.6677
-        With bn0, sparsity weight = 0.1
-            - Stage 1: Test Acc: 72.34% | Test F1 Macro: 0.6660
-            - Stage 2: Test Acc: 70.48% | Test F1 Macro: 0.6580 | Hard input bins kept: 25/51 (49.0%)
-            - Stage 3: Test Acc: 70.47% | Test F1 Macro: 0.6547
-
-SPARSITY_WEIGHT
-- FFT: 0.09
-- IHW: 0.07
-- DCT: 
-
-
-wCEL additional input pruning tuning
-S0:
-Stage1: Test Accuracy: 79.20% ± 0.00% | Test F1 Macro: 0.6841 ± 0.0000
-- SPARSITY_WEIGHT: 0.2 ->  Test Accuracy: 79.22% ± 0.00% | Test F1 Macro: 0.6881 ± 0.0000 | Input bins: 26/51 (51.0%)
-- SPARSITY_WEIGHT: 0.25 -> kept bins=11/51
-- SPARSITY_WEIGHT: 0.3 ->  Input bins: 10/51 (19.6%)
-
-S7: 
-Stage 1: Test Accuracy: 72.68% ± 0.00% | Test F1 Macro: 0.6554 ± 0.0000
-- SPARSITY_WEIGHT: 0.2 -> Test Accuracy: 74.57% ± 0.00% | Test F1 Macro: 0.6692 ± 0.0000 | Hard input bins kept: 26/51 (51.0%)
-- SPARSITY_WEIGHT: 0.3 -> Test Acc: 77.28%% | Test F1 Macro: 0.6757 | Hard input bins kept: 16/51 (31.4%)
-
-wCEL additional channel pruning tuning
-S0:
-- SPARSITY_WEIGHT_CHANNEL: 0.1 -> 
-wandb:        model_param_count 30086
-wandb:  model_param_count_dense 36998
-STAGE2:
-  Test Accuracy: 77.63% ± 0.00%
-  Test F1 Macro: 0.6481 ± 0.0000
-
-STAGE3:
-  Test Accuracy: 79.60% ± 0.00%
-  Test F1 Macro: 0.6945 ± 0.0000
-
-Improvement (Stage2 - Stage1):
-  Accuracy: -1.57%
-  F1 Macro: -0.0360
-
-Improvement (Stage3 - Stage2):
-  Accuracy: 1.97%
-  F1 Macro: 0.0465
-0.2
-wandb:        model_param_count 18084
-wandb:  model_param_count_dense 36998
-
-
-STAGE1:
-  Test Accuracy: 79.20% ± 0.00%
-  Test F1 Macro: 0.6841 ± 0.0000
-
-STAGE2:
-  Test Accuracy: 80.24% ± 0.00%
-  Test F1 Macro: 0.6834 ± 0.0000
-
-STAGE3:
-  Test Accuracy: 79.95% ± 0.00%
-  Test F1 Macro: 0.6890 ± 0.0000
-
-Improvement (Stage2 - Stage1):
-  Accuracy: 1.04%
-  F1 Macro: -0.0007
-
-Improvement (Stage3 - Stage2):
-  Accuracy: -0.29%
-  F1 Macro: 0.0056
-
-0.3
-wandb:        model_param_count 18217
-wandb:  model_param_count_dense 36998
-
-STAGE1:
-  Test Accuracy: 79.20% ± 0.00%
-  Test F1 Macro: 0.6841 ± 0.0000
-
-STAGE2:
-  Test Accuracy: 78.59% ± 0.00%
-  Test F1 Macro: 0.6545 ± 0.0000
-
-STAGE3:
-  Test Accuracy: 80.02% ± 0.00%
-  Test F1 Macro: 0.6912 ± 0.0000
-
-Improvement (Stage2 - Stage1):
-  Accuracy: -0.61%
-  F1 Macro: -0.0296
-
-Improvement (Stage3 - Stage2):
-  Accuracy: 1.43%
-  F1 Macro: 0.0367
-
-0.4
-
-
-
-Baseline 
-WEAR
-TD: Test Accuracy: 81.22% ± 2.13% | Test F1 Macro: 0.7180 ± 0.0313
-DCT: Test Accuracy: 78.80% ± 2.17% | Test F1 Macro: 0.6864 ± 0.0144
-IHW: Test Accuracy: 80.74% ± 2.56% | Test F1 Macro: 0.7154 ± 0.0128
-FFT: Test Accuracy: 77.89% ± 1.77% | Test F1 Macro: 0.6788 ± 0.0115
