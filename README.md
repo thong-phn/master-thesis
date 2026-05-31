@@ -50,8 +50,9 @@ With this pruning method, we achieved inference speeds 3.5 times faster than the
 Annotation:
 - `TD`: Time domain data; `FFT`: Fast Fourier Transform; `DCT`: Discrete Cosine Transform; `IHW`: Integer Haar Wavelet
 - `F32`: 32-bit floating-point weights and activations; `W8A16`: 8-bit integer weights and 16-bit integer activations
-- `Input ratio`: Ratio of the pruned input size to the default input size. For example, an `Input ratio` of 0.424 means that if the default model has 100 input frequency bins, the pruned model uses an average of only 42 frequency bins to achieve comparable performance. This helps reduce the model's inference time and RAM usage on edge devices.
-- `Model param. ratio`: Ratio of the pruned model parameters to the default model parameters. For example, a `Model param. ratio` of 0.5 means that if the default model has 100,000 parameters, the pruned model requires only 50,000 parameters to achieve comparable performance. This significantly reduces the model's flash usage and computational load.
+- `Input ratio`: Ratio of the pruned input size to the default input size. For example, an `Input ratio` of 0.424 means that if the default model has 100 input frequency bins, the pruned model uses an average of only 42 frequency bins to achieve comparable performance. This helps reduce the model's inference time and RAM usage on edge devices. Similar to `Model param. ratio`.
+- Predictive metrics: `Accuracy`; `F1-macro`
+- Efficiency metrics: `Inference` (the inference time of a single sample through the network); `ROM` (the footprint required to store the model’s static parameters); `RAM` (a private heap for the model runtime engine)
 
 <!-- 
 ## MCU demonstration
