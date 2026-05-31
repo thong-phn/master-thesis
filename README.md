@@ -44,6 +44,7 @@ With this pruning method, we achieved inference speeds 3.5 times faster than the
 | Pruned-DCT     | 0.424            | 0.498                    | 79.03<br><sub>±0.98</sub>    | 68.36<br><sub>±1.07</sub>   | 79.00<br><sub>±1.00</sub>   | 68.35<br><sub>±1.07</sub>   | 24.72<br><sub>±6.57</sub>   |**11.22<br><sub>±1.79</sub>**| 86.02<br><sub>±12.22</sub>   |
 | IHW            | 1.000            | 1.000                    | 81.09<br><sub>±2.24</sub>    | 72.07<br><sub>±1.26</sub>   | 81.08<br><sub>±2.26</sub>   | 72.07<br><sub>±1.28</sub>   | 80.91<br><sub>±0.01</sub>   | 22.87<br><sub>±0.00</sub>   | 162.27<br><sub>±0.00</sub>   |
 | Pruned-IHW     | 0.490            | 0.555                    | **81.62<br><sub>±0.63</sub>**|**72.30<br><sub>±0.57</sub>**|**81.56<br><sub>±0.64</sub>**|**72.27<br><sub>±0.56</sub>**|**22.15<br><sub>±5.77</sub>**| 11.63<br><sub>±2.20</sub>   |**74.19<br><sub>±13.34</sub>**|
+
 ![tradeoff](docs/wear-tradeoff.png)
 
 Annotation:
