@@ -13,6 +13,7 @@ log/
 .vscode/
 backup/
 wandb/
+.github/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
