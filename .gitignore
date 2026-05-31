@@ -4,14 +4,12 @@ wandb/
 # Dataset
 uci-har/
 wear/
-img/
 .vscode/
 fig/
 log/
 
 # Other
 .vscode/
-backup/
 wandb/
 .github/
 
