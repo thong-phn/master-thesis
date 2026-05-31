@@ -1,5 +1,6 @@
 # Wandb
 wandb/
+
 # Dataset
 uci-har/
 wear/
@@ -7,6 +8,12 @@ img/
 .vscode/
 fig/
 log/
+
+# Other
+.vscode/
+backup/
+wandb/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

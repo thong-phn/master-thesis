@@ -1,9 +1,0 @@
-Traceback (most recent call last):
-  File "/home/qphan/master-thesis/wear_main_loso_channel_pruning.py", line 291, in <module>
-    main()
-  File "/home/qphan/master-thesis/wear_main_loso_channel_pruning.py", line 169, in main
-    metrics = train_loso_wear_three_stage_pruning_channel(
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/qphan/master-thesis/lib/wear_train.py", line 1933, in train_loso_wear_three_stage_pruning_channel
-    raise FileNotFoundError(f"Provided stage1 model path does not exist: {stage1_model_path}")
-FileNotFoundError: Provided stage1 model path does not exist: /home/qphan/master-thesis/models/stage1/ihw/wear_best_model_subject0_val.pth

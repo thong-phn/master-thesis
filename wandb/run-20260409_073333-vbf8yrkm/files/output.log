@@ -1,7 +1,0 @@
-
-============================================================
-  Fold – validation subject 4
-============================================================
-  [skip] checkpoint not found: /home/qphan/master-thesis/models/wear_best_model_five_stage_subject4_val_stage1.pth
-
-Results saved → /home/qphan/master-thesis/log/wear_ptq_results_stage1_tflite.txt  (uploaded to W&B)
