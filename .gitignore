@@ -4,6 +4,8 @@ wandb/
 # Dataset
 uci-har/
 wear/
+!models/wear
+!models/tflite/wear
 .vscode/
 fig/
 log/
